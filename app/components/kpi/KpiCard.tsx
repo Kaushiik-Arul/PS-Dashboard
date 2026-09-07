@@ -5,9 +5,13 @@ export interface KpiMetric {
   title: string;
   value: string;
   comparisonLabel: string;
-  trendValue: string;
-  trendDirection: "up" | "down" | "neutral";
-  trendTone: "favorable" | "adverse" | "neutral";
+  breakdown?: Array<{
+    label: string;
+    value: string;
+  }>;
+  trendValue?: string;
+  trendDirection?: "up" | "down" | "neutral";
+  trendTone?: "favorable" | "adverse" | "neutral";
   icon: string;
   iconColor?: "blue" | "green" | "orange" | "red" | "purple";
 }
@@ -25,28 +29,43 @@ export function KpiCard({ metric }: KpiCardProps) {
         </div>
         <div className="kpi-card__content">
           <span className="kpi-card__title">{metric.title}</span>
-          <div className="kpi-card__value">{metric.value}</div>
+          {metric.breakdown ? (
+            <div className="kpi-card__breakdown">
+              {metric.breakdown.map((item) => (
+                <div className="kpi-card__breakdown-item" key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="kpi-card__value">{metric.value}</div>
+          )}
         </div>
       </div>
 
-      <div className="kpi-card__trend">
-        <span className="kpi-card__comparison">{metric.comparisonLabel}</span>
-        <span
-          className={`kpi-card__trend-value kpi-card__trend-value--${metric.trendTone}`}
-          aria-label={`${metric.trendDirection}, ${metric.trendValue}`}
-        >
-          {metric.trendDirection === "up" && (
-            <i className="a-icon boschicon-bosch-ic-arrow-up" aria-hidden="true" />
+      {(metric.comparisonLabel || metric.trendValue) && (
+        <div className="kpi-card__trend">
+          <span className="kpi-card__comparison">{metric.comparisonLabel}</span>
+          {metric.trendValue && metric.trendDirection && metric.trendTone && (
+            <span
+              className={`kpi-card__trend-value kpi-card__trend-value--${metric.trendTone}`}
+              aria-label={`${metric.trendDirection}, ${metric.trendValue}`}
+            >
+              {metric.trendDirection === "up" && (
+                <i className="a-icon boschicon-bosch-ic-arrow-up" aria-hidden="true" />
+              )}
+              {metric.trendDirection === "down" && (
+                <i className="a-icon boschicon-bosch-ic-arrow-down" aria-hidden="true" />
+              )}
+              {metric.trendDirection === "neutral" && (
+                <i className="a-icon boschicon-bosch-ic-minus" aria-hidden="true" />
+              )}
+              {metric.trendValue}
+            </span>
           )}
-          {metric.trendDirection === "down" && (
-            <i className="a-icon boschicon-bosch-ic-arrow-down" aria-hidden="true" />
-          )}
-          {metric.trendDirection === "neutral" && (
-            <i className="a-icon boschicon-bosch-ic-minus" aria-hidden="true" />
-          )}
-          {metric.trendValue}
-        </span>
-      </div>
+        </div>
+      )}
     </article>
   );
 }

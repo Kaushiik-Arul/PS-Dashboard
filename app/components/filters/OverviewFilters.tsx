@@ -43,10 +43,10 @@ const filterFields: Array<{
 interface OverviewFiltersProps {
   value: DashboardFilters;
   activeValue: DashboardFilters;
-  period: string;
-  periodOptions: string[];
+  period?: string;
+  periodOptions?: string[];
   onChange: (filters: DashboardFilters) => void;
-  onPeriodChange: (period: string) => void;
+  onPeriodChange?: (period: string) => void;
   onApply: () => void;
   onClear: () => void;
 }
@@ -89,12 +89,14 @@ export function OverviewFilters({
             />
           </button>
           <div className="overview-filters__header-actions">
-            <div className="a-dropdown overview-filters__period">
-              <label htmlFor="dashboard-period">Period (MM/YY)</label>
-              <select id="dashboard-period" value={period} onChange={(event) => onPeriodChange(event.target.value)}>
-                {periodOptions.map((option) => <option key={option}>{option}</option>)}
-              </select>
-            </div>
+            {period !== undefined && periodOptions && onPeriodChange && (
+              <div className="a-dropdown overview-filters__period">
+                <label htmlFor="dashboard-period">Period (MM/YY)</label>
+                <select id="dashboard-period" value={period} onChange={(event) => onPeriodChange(event.target.value)}>
+                  {periodOptions.map((option) => <option key={option}>{option}</option>)}
+                </select>
+              </div>
+            )}
             {isExpanded && (
               <button className="a-button a-button--integrated -small" type="button" onClick={onClear}>
                 <i className="a-icon a-button__icon boschicon-bosch-ic-reset" aria-hidden="true" />

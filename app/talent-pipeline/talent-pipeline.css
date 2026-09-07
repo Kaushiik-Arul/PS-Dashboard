@@ -1,0 +1,31 @@
+.talent-demographics {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.talent-demographics__group {
+  min-width: 0;
+}
+
+.talent-demographics__group h3 {
+  color: var(--base-major__enabled__default__fill);
+  font: var(--sem__typography__bold__s);
+  margin: 0 0 0.75rem;
+}
+
+.talent-demographics__group .horizontal-chart__row {
+  grid-template-columns: 2.5rem minmax(4rem, 1fr) auto;
+}
+
+@media (min-width: 1196px) {
+  .talent-demographics {
+    gap: 1rem;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .talent-demographics .donut-chart {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+}

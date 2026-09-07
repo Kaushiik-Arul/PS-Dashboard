@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="-light-mode">
-      <body className="-secondary">
+      <body className="-primary">
         <AppShell>{children}</AppShell>
       </body>
     </html>
