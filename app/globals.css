@@ -1,26 +1,275 @@
-@import "tailwindcss";
+* {
+  box-sizing: border-box;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Project mappings for guideline values not exposed as generic FROK tokens. */
+  --app-border-width: 0.0625rem;
+  --app-radius-1: 0.25rem;
+  --app-radius-2: 0.5rem;
+  --app-space-1: 0.25rem;
+  --app-space-2: 0.5rem;
+  --app-space-3: 0.75rem;
+  --app-space-4: 1rem;
+  --app-space-6: 1.5rem;
+  --app-space-8: 2rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  margin: 0;
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+.app-shell__skip-link {
+  background-color: var(--background);
+  color: var(--plain-pure__enabled__default__front);
+  inset-block-start: 0;
+  inset-inline-start: 1rem;
+  padding: 0.75rem 1rem;
+  position: fixed;
+  transform: translateY(-100%);
+}
+
+.app-shell__skip-link:focus {
+  transform: translateY(0);
+}
+
+.app-shell__content {
+  min-height: 100vh;
+  padding-top: calc(var(--comp__header__supergraphic-offset) + 3rem);
+  padding-inline: 1rem;
+}
+
+.overview-page {
+  padding-block: 1rem;
+  width: 100%;
+}
+
+.placeholder-page,
+.dashboard-state {
+  padding-block: var(--app-space-8);
+}
+
+.placeholder-page h1,
+.dashboard-state h1 {
+  font: var(--sem__typography__bold__xl);
+  margin: 0;
+}
+
+.placeholder-page p,
+.dashboard-state p {
+  color: var(--base-major__enabled__default__fill);
+  margin-block: var(--app-space-2) 0;
+}
+
+.dashboard-state {
+  align-items: center;
+  border: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+  border-radius: var(--app-radius-2);
+  display: flex;
+  flex-direction: column;
+  padding-inline: var(--app-space-4);
+  text-align: center;
+}
+
+.dashboard-state > .a-icon {
+  color: var(--accent-major__enabled__default__fill);
+  font-size: 2rem;
+  margin-block-end: var(--app-space-2);
+}
+
+.dashboard-state .a-button {
+  margin-block-start: var(--app-space-4);
+}
+
+.app-shell__header-actions {
+  align-items: center;
+  display: flex;
+  margin-left: auto;
+}
+
+.app-shell__bosch-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.app-shell__bosch-logo svg {
+  height: 100%;
+  width: auto;
+}
+
+.app-shell__user-profile {
+  align-items: center;
+  background-color: var(--base-pure__enabled__hovered__fill);
+  border-radius: var(--app-radius-2);
+  display: flex;
+  gap: 0.75rem;
+  margin: auto 0.75rem 0.75rem;
+  opacity: 0.9;
+  padding: 0.75rem;
+}
+
+.app-shell__user-profile-avatar {
+  align-items: center;
+  background-color: var(--base-minor__enabled__default__front);
+  border-radius: 50%;
+  color: var(--background);
+  display: flex;
+  flex-shrink: 0;
+  height: 2.25rem;
+  justify-content: center;
+  overflow: hidden;
+  width: 2.25rem;
+}
+
+.app-shell__user-profile-avatar .a-icon {
+  color: var(--background);
+  font-size: 1.25rem;
+}
+
+.app-shell__user-profile-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-shell__user-profile-name {
+  color: var(--base-minor__enabled__default__front);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell__user-profile-role {
+  color: var(--base-minor__enabled__default__front);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell__user-profile-settings {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 2rem;
+  justify-content: center;
+  margin-left: auto;
+  padding: 0.25rem;
+  width: 2rem;
+}
+
+.app-shell__user-profile-settings .a-icon {
+  color: var(--base-minor__enabled__default__front);
+  font-size: 1.25rem;
+}
+
+/* Collapsed nav state: hide text/info/settings and center avatar */
+.m-side-navigation .app-shell__user-profile {
+  background-color: transparent;
+  gap: 0;
+  justify-content: center;
+  margin: auto 0.5rem 0.5rem;
+  padding: 0.5rem;
+}
+
+.m-side-navigation .app-shell__user-profile-info,
+.m-side-navigation .app-shell__user-profile-settings {
+  display: none;
+}
+
+.m-side-navigation.-open .app-shell__user-profile {
+  background-color: var(--base-pure__enabled__hovered__fill);
+  gap: 0.75rem;
+  justify-content: flex-start;
+  margin: auto 0.75rem 0.75rem;
+  padding: 0.75rem;
+}
+
+.m-side-navigation.-open .app-shell__user-profile-info,
+.m-side-navigation.-open .app-shell__user-profile-settings {
+  display: flex;
+}
+
+@media (min-width: 600px) {
+  .app-shell__content {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1196px) {
+  .app-shell__content {
+    margin-left: 3rem;
+    padding-inline: 2rem;
+  }
+
+  .app-shell__content--navigation-open {
+    margin-left: 16rem;
+  }
+}
+
+@media (min-width: 1196px) {
+  .m-side-navigation.-open {
+    width: 16rem;
+  }
+}
+
+@media (min-width: 1400px) {
+  .app-shell__content {
+    padding-inline: 2rem;
+  }
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* Header layout overrides */
+.o-minimal-header__top {
+  gap: 0.25rem;
+}
+
+.o-minimal-header__burger {
+  padding-inline-end: 0;
+}
+
+.o-minimal-header .o-minimal-header__title {
+  flex: 0 1 auto;
+  margin-left: 0.5rem !important;
+  padding-inline-start: 0.25rem;
+}
+
+@media (min-width: 1196px) {
+  .o-minimal-header .o-minimal-header__title {
+    margin-left: 3.5rem !important;
+  }
+}
+
+.o-minimal-header__logo {
+  margin-left: auto;
+  margin-right: 1rem;
+}
+
+.m-side-navigation {
+  display: flex;
+  flex-direction: column;
 }
