@@ -39,3 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+UI_UX_DESIGN_PRINCIPLES_v0.5.md

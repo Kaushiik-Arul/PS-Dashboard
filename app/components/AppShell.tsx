@@ -22,6 +22,11 @@ const navigationItems = [
     label: "Attrition",
     icon: "boschicon-bosch-ic-arrow-left",
   },
+  {
+    href: "/succession-planning",
+    label: "Succession Planning",
+    icon: "boschicon-bosch-ic-chart-line",
+  }
 ];
 
 function isCurrentRoute(pathname: string, href: string) {
