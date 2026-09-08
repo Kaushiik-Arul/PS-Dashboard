@@ -1,9 +1,17 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useAuth } from "@/src/auth/AuthProvider";
+import type { UserRole } from "@/src/auth/roles";
+
+const roleLabels: Record<UserRole, string> = {
+  hrbp: "HR Business Partner",
+  manager: "Manager",
+  employee: "Employee",
+  admin: "Administrator",
+};
 
 export function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) {
-  const router = useRouter();
+  const { role } = useAuth();
 
   return (
     <div className="app-shell__user-profile">
@@ -14,19 +22,8 @@ export function UserProfile({ isCollapsed = false }: { isCollapsed?: boolean }) 
       {!isCollapsed && (
         <div className="app-shell__user-profile-info">
           <span className="app-shell__user-profile-name">John Doe</span>
-          <span className="app-shell__user-profile-role">HR Business Partner</span>
+          <span className="app-shell__user-profile-role">{roleLabels[role]}</span>
         </div>
-      )}
-
-      {!isCollapsed && (
-        <button
-          type="button"
-          className="app-shell__user-profile-settings"
-          aria-label="Settings"
-          onClick={() => router.push("/settings")}
-        >
-          <i className="a-icon boschicon-bosch-ic-settings" aria-hidden="true" />
-        </button>
       )}
     </div>
   );

@@ -1,6 +1,9 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/src/auth/AuthProvider";
+import { hasPermission } from "@/src/auth/permissions";
+import type { UserRole } from "@/src/auth/roles";
 
 import { UserProfile } from "./UserProfile";
 import { useState, type ReactNode } from "react";
@@ -15,18 +18,25 @@ const navigationItems = [
   {
     href: "/talent-pipeline",
     label: "Talent Pipeline",
-    icon: "boschicon-bosch-ic-chart-line",
-  },
-  {
-    href: "/attrition",
-    label: "Attrition",
-    icon: "boschicon-bosch-ic-arrow-left",
+    icon: "boschicon-bosch-ic-people",
   },
   {
     href: "/succession-planning",
     label: "Succession Planning",
-    icon: "boschicon-bosch-ic-chart-line",
-  }
+    icon: "boschicon-bosch-ic-target",
+  },
+  {
+    href: "/hrbp-point",
+    label: "HRBP Point",
+    icon: "boschicon-bosch-ic-chart-bar",
+  },
+];
+
+const roleOptions: { value: UserRole; label: string }[] = [
+  { value: "hrbp", label: "HRBP" },
+  { value: "manager", label: "Manager" },
+  { value: "employee", label: "Employee" },
+  { value: "admin", label: "Admin" },
 ];
 
 function isCurrentRoute(pathname: string, href: string) {
@@ -35,10 +45,14 @@ function isCurrentRoute(pathname: string, href: string) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { role, setRole } = useAuth();
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
+  const visibleNavigationItems = navigationItems.filter(
+    (item) => item.href !== "/hrbp-point" || hasPermission(role, "viewHrbpPoint"),
+  );
   const activeItem =
-    navigationItems.find((item) => isCurrentRoute(pathname, item.href)) ??
-    navigationItems[0];
+    visibleNavigationItems.find((item) => isCurrentRoute(pathname, item.href)) ??
+    visibleNavigationItems[0];
 
   return (
     <>
@@ -61,6 +75,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="o-minimal-header__title">{activeItem.label}</div>
           <div className="app-shell__header-actions">
+            <select
+              className="app-shell__role-select"
+              aria-label="Simulated role"
+              value={role}
+              onChange={(event) => setRole(event.target.value as UserRole)}
+            >
+              {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <Link
               href="/"
               className="o-minimal-header__logo app-shell__bosch-logo"
@@ -132,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <ul className="m-menu-group" role="menubar" aria-orientation="vertical">
-          {navigationItems.map((item) => {
+          {visibleNavigationItems.map((item) => {
             const isActive = isCurrentRoute(pathname, item.href);
 
             return (

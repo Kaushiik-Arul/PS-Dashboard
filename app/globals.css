@@ -90,6 +90,7 @@ body {
 .app-shell__header-actions {
   align-items: center;
   display: flex;
+  gap: 0.75rem;
   margin-left: auto;
 }
 
@@ -161,26 +162,19 @@ body {
   white-space: nowrap;
 }
 
-.app-shell__user-profile-settings {
-  align-items: center;
-  background: transparent;
-  border: 0;
+.app-shell__role-select {
+  background-color: var(--background);
+  border: 1px solid var(--base-major__enabled__default__fill);
+  color: var(--base-major__enabled__default__fill);
   cursor: pointer;
-  display: flex;
-  flex-shrink: 0;
-  height: 2rem;
-  justify-content: center;
-  margin-left: auto;
-  padding: 0.25rem;
-  width: 2rem;
+  font: inherit;
+  font-size: 0.875rem;
+  height: 2.5rem;
+  padding-inline: 0.5rem;
+  width: 7rem;
 }
 
-.app-shell__user-profile-settings .a-icon {
-  color: var(--base-minor__enabled__default__front);
-  font-size: 1.25rem;
-}
-
-/* Collapsed nav state: hide text/info/settings and center avatar */
+/* Collapsed nav state: hide profile details and center avatar */
 .m-side-navigation .app-shell__user-profile {
   background-color: transparent;
   gap: 0;
@@ -189,8 +183,7 @@ body {
   padding: 0.5rem;
 }
 
-.m-side-navigation .app-shell__user-profile-info,
-.m-side-navigation .app-shell__user-profile-settings {
+.m-side-navigation .app-shell__user-profile-info {
   display: none;
 }
 
@@ -202,8 +195,7 @@ body {
   padding: 0.75rem;
 }
 
-.m-side-navigation.-open .app-shell__user-profile-info,
-.m-side-navigation.-open .app-shell__user-profile-settings {
+.m-side-navigation.-open .app-shell__user-profile-info {
   display: flex;
 }
 

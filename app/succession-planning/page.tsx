@@ -124,7 +124,7 @@ export default function SuccessionPlanningPage() {
           <p>Succession Planning Distribution by various metrics</p>
         </div>
         <div className="chart-grid chart-grid--composition">
-          <ChartCard title="Active vs passive" description="Current status of position by criticality">
+          <ChartCard title="Active vs passive" description="Current status of position by criticality" onDownload={()=>console.log("Export Position")}>
             <DonutChart data={positionsbyCriticality} total="98" />
           </ChartCard>
           <ChartCard title="Incumbent Change Expected" description="Expected changes in incumbents by year">

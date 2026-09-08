@@ -358,16 +358,16 @@ export default function OverviewPage() {
           <p>Distribution of employees across organizational dimensions</p>
         </div>
         <div className="chart-grid chart-grid--composition">
-          <ChartCard title="Headcount by range" description="Employees by salary level and group">
+          <ChartCard title="Headcount by range" description="Employees by salary level and group" onDownload={()=>console.log("Export Position")}>
             <HorizontalBarChart data={filteredRanges} />
           </ChartCard>
-          <ChartCard title="Gender distribution" description="Share of total workforce">
+          <ChartCard title="Gender distribution" description="Share of total workforce" onDownload={()=>console.log("Export Gender")}>
             <DonutChart data={filteredGender} total={totalLabel} />
           </ChartCard>
-          <ChartCard title="Headcount by function" description="Employees across business functions">
+          <ChartCard title="Headcount by function" description="Employees across business functions" onDownload={()=>console.log("Export Function")}>
             <HorizontalBarChart data={filteredFunctions} />
           </ChartCard>
-          <ChartCard title="Headcount by location" description="Employees across major sites">
+          <ChartCard title="Headcount by location" description="Employees across major sites" onDownload={()=>console.log("Export Location")}>
             <DonutChart data={filteredLocations} total={totalLabel} />
           </ChartCard>
         </div>
@@ -379,16 +379,16 @@ export default function OverviewPage() {
           <p>Age, tenure, retirement exposure, and current-month workforce movement</p>
         </div>
         <div className="chart-grid chart-grid--profiles">
-          <ChartCard title="Age profile" description="Headcount by age range">
+          <ChartCard title="Age profile" description="Headcount by age range" onDownload={()=>console.log("Export Age")}>
             <VerticalBarChart data={filteredAge} />
           </ChartCard>
-          <ChartCard title="Tenure profile" description="Headcount by completed service">
+          <ChartCard title="Tenure profile" description="Headcount by completed service" onDownload={()=>console.log("Export Tenure")}>
             <VerticalBarChart data={filteredTenure} tone="turquoise" />
           </ChartCard>
-          <ChartCard title="Workforce movement" description={`Inbound, outbound, and active employees in ${currentPeriod.title}`}>
+          <ChartCard title="Workforce movement" description={`Inbound, outbound, and active employees in ${currentPeriod.title}`} onDownload={()=>console.log("Export Movement")}>
             <MovementChart data={filteredMovement} period={currentPeriod.title} />
           </ChartCard>
-          <ChartCard title="Retirement risk" description="Employees reaching retirement eligibility" className="chart-card--wide">
+          <ChartCard title="Retirement risk" description="Employees reaching retirement eligibility" className="chart-card--wide" onDownload={()=>console.log("Export Retirement Risk")}  >
             <RetirementRiskTable rows={filteredRisk} />
           </ChartCard>
         </div>

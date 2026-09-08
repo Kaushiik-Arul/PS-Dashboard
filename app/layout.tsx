@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import { AuthProvider } from "@/src/auth/AuthProvider";
 import "@bosch/frontend.kit-npm/styles/frontend-kit-foundations.css";
 import "@bosch/frontend.kit-npm/styles/frontend-kit-icons.css";
 import "@bosch/frontend.kit-npm/bosch/semantic/index.css";
@@ -36,7 +36,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="-light-mode">
       <body className="-primary">
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

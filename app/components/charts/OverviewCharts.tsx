@@ -1,6 +1,8 @@
 "use client";
 
 import { useId, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useAuth } from "@/src/auth/AuthProvider";
+import { hasPermission } from "@/src/auth/permissions";
 import "./overview-charts.css";
 
 function positionChartTooltip(event: ReactPointerEvent<HTMLElement>) {
@@ -22,9 +24,18 @@ interface ChartCardProps {
   description: string;
   className?: string;
   children: React.ReactNode;
+  onDownload?: () => void;
 }
 
-export function ChartCard({ title, description, className = "", children }: ChartCardProps) {
+export function ChartCard({
+  title,
+  description,
+  className = "",
+  children,
+  onDownload,
+}: ChartCardProps) {
+  const { role } = useAuth();
+  const canDownload = hasPermission(role, "exportCharts");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(true);
   const menuId = useId();
@@ -32,47 +43,91 @@ export function ChartCard({ title, description, className = "", children }: Char
   return (
     <article className={`chart-card ${className}`.trim()}>
       <header className="chart-card__header">
+
+        {/* Title + description */}
         <div>
           <h2 className="chart-card__title">{title}</h2>
-          {isDescriptionVisible && <p className="chart-card__description">{description}</p>}
+
+          {isDescriptionVisible && (
+            <p className="chart-card__description">
+              {description}
+            </p>
+          )}
         </div>
-        <div
-          className="chart-card__menu-control"
-          onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) setIsMenuOpen(false);
-          }}
-        >
-          <button
-            className="a-button a-button--integrated chart-card__menu-trigger"
-            type="button"
-            aria-label={`Options for ${title}`}
-            aria-expanded={isMenuOpen}
-            aria-controls={menuId}
-            aria-haspopup="menu"
-            onClick={() => setIsMenuOpen((open) => !open)}
+
+        {/* Header actions */}
+        <div className="chart-card__actions">
+
+          {/* Three-dot menu */}
+          <div
+            className="chart-card__menu-control"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setIsMenuOpen(false);
+              }
+            }}
           >
-            <i className="a-icon a-button__icon boschicon-bosch-ic-options" aria-hidden="true" />
-          </button>
-          {isMenuOpen && (
-            <div className="a-box chart-card__menu" id={menuId} role="menu">
-              <button
-                className="a-button a-button--integrated -small"
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setIsDescriptionVisible((visible) => !visible);
-                  setIsMenuOpen(false);
-                }}
+            <button
+              className="a-button a-button--integrated chart-card__menu-trigger"
+              type="button"
+              aria-label={`Options for ${title}`}
+              aria-expanded={isMenuOpen}
+              aria-controls={menuId}
+              aria-haspopup="menu"
+              onClick={() => setIsMenuOpen((open) => !open)}
+            >
+              <i
+                className="a-icon a-button__icon boschicon-bosch-ic-options"
+                aria-hidden="true"
+              />
+            </button>
+
+            {isMenuOpen && (
+              <div
+                className="a-box chart-card__menu"
+                id={menuId}
+                role="menu"
               >
-                <span className="a-button__label">
-                  {isDescriptionVisible ? "Hide context" : "Show context"}
-                </span>
-              </button>
-            </div>
+                <button
+                  className="a-button a-button--integrated -small"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsDescriptionVisible((visible) => !visible);
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <span className="a-button__label">
+                    {isDescriptionVisible
+                      ? "Hide context"
+                      : "Show context"}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+                    {/* Download */}
+          {onDownload && canDownload && (
+            <button
+              className="a-button a-button--integrated chart-card__download"
+              type="button"
+              aria-label={`Download ${title}`}
+              title="Download Excel"
+              onClick={onDownload}
+            >
+              <i
+                className="a-icon a-button__icon boschicon-bosch-ic-download"
+                aria-hidden="true"
+              />
+            </button>
           )}
         </div>
       </header>
-      <div className="chart-card__body">{children}</div>
+
+      {/* Chart */}
+      <div className="chart-card__body">
+        {children}
+      </div>
     </article>
   );
 }
