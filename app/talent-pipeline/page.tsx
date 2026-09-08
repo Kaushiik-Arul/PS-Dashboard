@@ -6,15 +6,55 @@ import {
   OverviewFilters,
   type DashboardFilters,
 } from "../components/filters/OverviewFilters";
+
 import { KpiCard, type KpiMetric } from "../components/kpi/KpiCard";
 import { KpiGrid } from "../components/kpi/KpiGrid";
+
 import {
   ChartCard,
   DonutChart,
   HorizontalBarChart,
   VerticalBarChart,
 } from "../components/charts/OverviewCharts";
+
+import {
+  DataTable,
+  type DataTableColumn,
+} from "../components/data-table/DataTable";
+
 import "./talent-pipeline.css";
+
+type StatusTone = "success" | "warning" | "error" | "neutral";
+
+function getStatusTone(value: unknown): StatusTone {
+  const normalizedValue = String(value).toLowerCase();
+
+  if (["available", "active", "green", "good", "good match", "high", "yes"].includes(normalizedValue)) {
+    return "success";
+  }
+
+  if (["under discussion", "planned", "potential match", "medium"].includes(normalizedValue)) {
+    return "warning";
+  }
+
+  if (["not available", "red", "red - not available", "no"].includes(normalizedValue)) {
+    return "error";
+  }
+
+  return "neutral";
+}
+
+function renderStatusValue(value: unknown) {
+  return (
+    <span className={`data-table__badge -${getStatusTone(value)}`}>
+      {String(value)}
+    </span>
+  );
+}
+
+/* =========================================================
+   CHART DATA
+========================================================= */
 
 const talentPoolDistribution = [
   { label: "TP1", value: 212 },
@@ -25,26 +65,81 @@ const talentPoolDistribution = [
 ];
 
 const activePassiveDistribution = [
-  { label: "Active", value: 352, displayValue: "352 (73.0%)", color: "var(--data-visualization-3)" },
-  { label: "Passive", value: 130, displayValue: "130 (27.0%)", color: "var(--data-visualization-5)" },
+  {
+    label: "Active",
+    value: 352,
+    displayValue: "352 (73.0%)",
+    color: "var(--data-visualization-3)",
+  },
+  {
+    label: "Passive",
+    value: 130,
+    displayValue: "130 (27.0%)",
+    color: "var(--data-visualization-5)",
+  },
 ];
 
 const nominationStatusDistribution = [
-  { label: "Green", value: 259, displayValue: "259 (53.7%)", color: "var(--signal-success-pure__enabled__default__front)" },
-  { label: "Amber", value: 134, displayValue: "134 (27.8%)", color: "var(--signal-warning-pure__enabled__default__front)" },
-  { label: "Red", value: 89, displayValue: "89 (18.5%)", color: "var(--signal-error-pure__enabled__default__front)" },
+  {
+    label: "Green",
+    value: 259,
+    displayValue: "259 (53.7%)",
+    color: "var(--signal-success-pure__enabled__default__front)",
+  },
+  {
+    label: "Amber",
+    value: 134,
+    displayValue: "134 (27.8%)",
+    color: "var(--signal-warning-pure__enabled__default__front)",
+  },
+  {
+    label: "Red",
+    value: 89,
+    displayValue: "89 (18.5%)",
+    color: "var(--signal-error-pure__enabled__default__front)",
+  },
 ];
 
 const developmentPoolDistribution = [
-  { label: "Female talent", value: 268, displayValue: "268 (55.6%)", color: "var(--data-visualization-4)" },
-  { label: "Key to retain", value: 72, displayValue: "72 (14.9%)", color: "var(--data-visualization-1)" },
-  { label: "Future talent", value: 94, displayValue: "94 (19.5%)", color: "var(--data-visualization-3)" },
-  { label: "Change wanted", value: 48, displayValue: "48 (10.0%)", color: "var(--data-visualization-5)" },
+  {
+    label: "Female talent",
+    value: 268,
+    displayValue: "268 (55.6%)",
+    color: "var(--data-visualization-4)",
+  },
+  {
+    label: "Key to retain",
+    value: 72,
+    displayValue: "72 (14.9%)",
+    color: "var(--data-visualization-1)",
+  },
+  {
+    label: "Future talent",
+    value: 94,
+    displayValue: "94 (19.5%)",
+    color: "var(--data-visualization-3)",
+  },
+  {
+    label: "Change wanted",
+    value: 48,
+    displayValue: "48 (10.0%)",
+    color: "var(--data-visualization-5)",
+  },
 ];
 
 const talentGenderDistribution = [
-  { label: "Male", value: 374, displayValue: "374 (77.6%)", color: "var(--data-visualization-1)" },
-  { label: "Female", value: 108, displayValue: "108 (22.4%)", color: "var(--data-visualization-4)" },
+  {
+    label: "Male",
+    value: 374,
+    displayValue: "374 (77.6%)",
+    color: "var(--data-visualization-1)",
+  },
+  {
+    label: "Female",
+    value: 108,
+    displayValue: "108 (22.4%)",
+    color: "var(--data-visualization-4)",
+  },
 ];
 
 const talentRangeDistribution = [
@@ -57,6 +152,736 @@ const talentRangeDistribution = [
   { label: "G5", value: 34 },
   { label: "G6", value: 12 },
 ];
+
+/* =========================================================
+   TABLE 1
+   STEP AVAILABLE TALENT
+========================================================= */
+
+interface StepAvailableTalent {
+  personnelNo: string;
+  employeeName: string;
+  talentPool: string;
+  developmentPool: string;
+  functionName: string;
+  orgUnit: string;
+  location: string;
+  stepAvailability: string;
+  preferredFunction: string;
+  preferredLocation: string;
+  availableFrom: string;
+}
+
+const stepAvailableTalentColumns: DataTableColumn<StepAvailableTalent>[] = [
+  {
+    key: "personnelNo",
+    label: "Pers.No.",
+    group: "Employee",
+  },
+  {
+    key: "employeeName",
+    label: "Employee Name",
+    group: "Employee",
+  },
+
+  {
+    key: "talentPool",
+    label: "Talent Pool",
+    group: "Talent",
+    filterable: true,
+  },
+  {
+    key: "developmentPool",
+    label: "Dev. Pool",
+    group: "Talent",
+    filterable: true,
+  },
+
+  {
+    key: "functionName",
+    label: "Function",
+    group: "Current Position",
+    filterable: true,
+  },
+  {
+    key: "orgUnit",
+    label: "Org Unit",
+    group: "Current Position",
+    filterable: true,
+  },
+  {
+    key: "location",
+    label: "Location",
+    group: "Current Position",
+    filterable: true,
+  },
+
+  {
+    key: "stepAvailability",
+    label: "STEP Availability",
+    group: "STEP Preference",
+    filterable: true,
+    render: renderStatusValue,
+  },
+
+  {
+    key: "preferredFunction",
+    label: "Preferred Function",
+    group: "STEP Preference",
+  },
+  {
+    key: "preferredLocation",
+    label: "Preferred Location",
+    group: "STEP Preference",
+  },
+  {
+    key: "availableFrom",
+    label: "Avail. From",
+    group: "STEP Preference",
+  }
+];
+
+const stepAvailableTalent: StepAvailableTalent[] = [
+  {
+    personnelNo: "3005409",
+    employeeName: "Sujith Sugathan",
+    talentPool: "TP1",
+    developmentPool: "Future Talent",
+    functionName: "R&D",
+    orgUnit: "PS-DC/ENG-IN",
+    location: "Bangalore",
+    stepAvailability: "Available",
+    preferredFunction: "Engineering / Project Mgmt",
+    preferredLocation: "Bangalore / Germany",
+    availableFrom: "01-Jan-2027",
+  },
+  {
+    personnelNo: "31195420",
+    employeeName: "Mohan Murugan R",
+    talentPool: "TP1",
+    developmentPool: "-",
+    functionName: "R&D",
+    orgUnit: "PS-CC/RW-IN",
+    location: "Bangalore",
+    stepAvailability: "Under Discussion",
+    preferredFunction: "R&D",
+    preferredLocation: "Europe",
+    availableFrom: "01-Apr-2027",
+    // preferredNeed: "6-10 Months",
+  },
+  {
+    personnelNo: "3079124",
+    employeeName: "Vijaya Mohan N S",
+    talentPool: "TP1",
+    developmentPool: "Key to Retain",
+    functionName: "General Mgmt",
+    orgUnit: "PS/RP-IN",
+    location: "Bangalore",
+    stepAvailability: "Available",
+    preferredFunction: "General Mgmt",
+    preferredLocation: "Europe / India",
+    availableFrom: "01-Jun-2026",
+    // preferredNeed: "12-24 Months",
+  },
+  {
+    personnelNo: "3063279",
+    employeeName: "Amit Singhal",
+    talentPool: "TP1",
+    developmentPool: "Future Talent",
+    functionName: "Sales",
+    orgUnit: "PS/CA-IN",
+    location: "Bangalore",
+    stepAvailability: "Planned",
+    preferredFunction: "Sales",
+    preferredLocation: "Europe",
+    availableFrom: "01-Sep-2027",
+    // preferredNeed: "12 Months",
+  },
+  {
+    personnelNo: "3075806",
+    employeeName: "Ravindra",
+    talentPool: "TP1",
+    developmentPool: "Key to Retain",
+    functionName: "Logistics",
+    orgUnit: "PS/LOG-IN",
+    location: "Bangalore",
+    stepAvailability: "Not Available",
+    preferredFunction: "-",
+    preferredLocation: "-",
+    availableFrom: "-",
+    // preferredNeed: "-",
+  },
+];
+
+/* =========================================================
+   TABLE 2
+   OPEN STEP POSITIONS
+========================================================= */
+
+interface StepPosition {
+  positionId: string;
+  positionTitle: string;
+  functionName: string;
+  orgUnit: string;
+  location: string;
+  range: string;
+  startDate: string;
+  duration: string;
+  matchedStatus: string;
+}
+
+const stepPositionColumns: DataTableColumn<StepPosition>[] = [
+  {
+    key: "positionId",
+    label: "Position / Assignment ID",
+    group: "Position",
+  },
+  {
+    key: "positionTitle",
+    label: "Position Title",
+    group: "Position",
+  },
+
+  {
+    key: "functionName",
+    label: "Function",
+    group: "Organisation",
+    filterable: true,
+  },
+  {
+    key: "orgUnit",
+    label: "Org Unit",
+    group: "Organisation",
+    filterable: true,
+  },
+  {
+    key: "location",
+    label: "Location",
+    group: "Organisation",
+    filterable: true,
+  },
+  {
+    key: "range",
+    label: "Range",
+    group: "Organisation",
+    filterable: true,
+  },
+
+  {
+    key: "startDate",
+    label: "Start Date",
+    group: "Assignment",
+  },
+  {
+    key: "duration",
+    label: "Duration",
+    group: "Assignment",
+  },
+
+  {
+    key: "matchedStatus",
+    label: "Matched Status",
+    group: "Matching",
+    filterable: true,
+    render: renderStatusValue,
+  },
+];
+
+const stepPositions: StepPosition[] = [
+  {
+    positionId: "STEP-001",
+    positionTitle: "Engineering Project Manager",
+    functionName: "Engineering",
+    orgUnit: "PS-CC/RW-IN",
+    location: "Germany",
+    range: "GROUP3",
+    startDate: "01-Jan-2027",
+    duration: "12-24 Months",
+    matchedStatus: "Green",
+  },
+  {
+    positionId: "STEP-002",
+    positionTitle: "Product Owner",
+    functionName: "R&D",
+    orgUnit: "PS-OC-IN",
+    location: "Europe",
+    range: "GROUP3",
+    startDate: "01-Feb-2027",
+    duration: "12 Months",
+    matchedStatus: "Potential Match",
+  },
+  {
+    positionId: "STEP-003",
+    positionTitle: "Plant Excellence Lead",
+    functionName: "Manufacturing",
+    orgUnit: "PS/MFG-IN",
+    location: "Germany",
+    range: "GROUP4",
+    startDate: "01-Jun-2027",
+    duration: "18 Months",
+    matchedStatus: "Good Match",
+  },
+  {
+    positionId: "STEP-004",
+    positionTitle: "Sales Strategy Analyst",
+    functionName: "Sales",
+    orgUnit: "PS/CA-IN",
+    location: "Europe",
+    range: "GROUP3",
+    startDate: "01-Mar-2027",
+    duration: "12 Months",
+    matchedStatus: "Potential Match",
+  },
+  {
+    positionId: "STEP-005",
+    positionTitle: "Quality Improvement Lead",
+    functionName: "Quality",
+    orgUnit: "PS-QA-IN",
+    location: "Bangalore",
+    range: "GROUP4",
+    startDate: "01-Apr-2027",
+    duration: "12-18 Months",
+    matchedStatus: "Good",
+  },
+];
+
+/* =========================================================
+   TABLE 3
+   PEOPLE TO STEP POSITION MATCHING
+========================================================= */
+
+interface StepMatch {
+  employee: string;
+  talentPool: string;
+  currentFunction: string;
+  availableFrom: string;
+
+  preferredFunction: string;
+  preferredLocation: string;
+
+  openPosition: string;
+  hostFunction: string;
+  hostLocation: string;
+
+  rangeMatch: string;
+  availabilityMatch: string;
+  skillMatch: string;
+
+  overallMatch: string;
+  hrbpComment: string;
+}
+
+const stepMatchColumns: DataTableColumn<StepMatch>[] = [
+  {
+    key: "employee",
+    label: "Employee",
+    group: "Employee",
+  },
+  {
+    key: "talentPool",
+    label: "Talent Pool",
+    group: "Employee",
+    filterable: true,
+  },
+  {
+    key: "currentFunction",
+    label: "Current Function",
+    group: "Employee",
+    filterable: true,
+  },
+  {
+    key: "availableFrom",
+    label: "Available From",
+    group: "Employee",
+  },
+
+  {
+    key: "preferredFunction",
+    label: "Preferred Function",
+    group: "Preference",
+  },
+  {
+    key: "preferredLocation",
+    label: "Preferred Location",
+    group: "Preference",
+  },
+
+  {
+    key: "openPosition",
+    label: "Open Position",
+    group: "STEP Position",
+  },
+  {
+    key: "hostFunction",
+    label: "Host Function",
+    group: "STEP Position",
+    filterable: true,
+  },
+  {
+    key: "hostLocation",
+    label: "Host Location",
+    group: "STEP Position",
+    filterable: true,
+  },
+
+  {
+    key: "rangeMatch",
+    label: "Range Match",
+    group: "Match Assessment",
+    filterable: true,
+    render: renderStatusValue,
+  },
+  {
+    key: "availabilityMatch",
+    label: "Availability Match",
+    group: "Match Assessment",
+    filterable: true,
+    render: renderStatusValue,
+  },
+  {
+    key: "skillMatch",
+    label: "Skill Match",
+    group: "Match Assessment",
+    filterable: true,
+    render: renderStatusValue,
+  },
+
+  {
+    key: "overallMatch",
+    label: "Overall Match",
+    group: "Result",
+    filterable: true,
+    render: renderStatusValue,
+  },
+
+  {
+    key: "hrbpComment",
+    label: "HRBP Comment",
+    group: "Result",
+  },
+];
+
+const stepMatches: StepMatch[] = [
+  {
+    employee: "Sujith Sugathan",
+    talentPool: "TP1",
+    currentFunction: "R&D",
+    availableFrom: "01-Jan-2027",
+
+    preferredFunction: "Engineering / Project Mgmt",
+    preferredLocation: "Bangalore / Germany",
+
+    openPosition: "STEP-001",
+    hostFunction: "Engineering",
+    hostLocation: "Germany",
+
+    rangeMatch: "Yes",
+    availabilityMatch: "High",
+    skillMatch: "High",
+
+    overallMatch: "Good",
+    hrbpComment: "Strong technical and people skills",
+  },
+  {
+    employee: "Vijaya Mohan N S",
+    talentPool: "TP1",
+    currentFunction: "General Mgmt",
+    availableFrom: "01-Jun-2026",
+
+    preferredFunction: "General Mgmt",
+    preferredLocation: "Europe / India",
+
+    openPosition: "STEP-002",
+    hostFunction: "R&D",
+    hostLocation: "Europe",
+
+    rangeMatch: "Yes",
+    availabilityMatch: "Medium",
+    skillMatch: "Available",
+
+    overallMatch: "Potential Match",
+    hrbpComment: "Needs product experience",
+  },
+  {
+    employee: "Amit Singhal",
+    talentPool: "TP1",
+    currentFunction: "Sales",
+    availableFrom: "01-Sep-2027",
+
+    preferredFunction: "Sales",
+    preferredLocation: "Europe",
+
+    openPosition: "STEP-004",
+    hostFunction: "Sales",
+    hostLocation: "Europe",
+
+    rangeMatch: "Yes",
+    availabilityMatch: "High",
+    skillMatch: "Medium",
+
+    overallMatch: "Good",
+    hrbpComment: "Good strategic fit",
+  },
+  {
+    employee: "Ravindra",
+    talentPool: "TP1",
+    currentFunction: "Logistics",
+    availableFrom: "-",
+
+    preferredFunction: "Logistics",
+    preferredLocation: "Europe",
+
+    openPosition: "STEP-003",
+    hostFunction: "Manufacturing",
+    hostLocation: "Germany",
+
+    rangeMatch: "Yes",
+    availabilityMatch: "Red",
+    skillMatch: "Not Available",
+
+    overallMatch: "-",
+    hrbpComment: "Availability constraint",
+  },
+];
+
+/* =========================================================
+   TABLE 4
+   TALENT & DEVELOPMENT REGISTER
+========================================================= */
+
+interface TalentDevelopmentRegister {
+  personnelNo: string;
+  employeeName: string;
+
+  psGroup: string;
+  orgUnit: string;
+  range: string;
+  functionalArea: string;
+
+  talentPool: string;
+  developmentPool: string;
+
+  gender: string;
+  dob: string;
+  age: number;
+  ageRange: string;
+
+  fromDate: string;
+  toDate: string;
+
+  nominationStatus: string;
+}
+
+const talentDevelopmentColumns: DataTableColumn<TalentDevelopmentRegister>[] =
+  [
+    {
+      key: "personnelNo",
+      label: "Pers.No.",
+      group: "Employee",
+    },
+    {
+      key: "employeeName",
+      label: "Employee Name",
+      group: "Employee",
+    },
+
+    {
+      key: "psGroup",
+      label: "PS Group",
+      group: "Organisation",
+      filterable: true,
+    },
+    {
+      key: "orgUnit",
+      label: "Org Unit",
+      group: "Organisation",
+      filterable: true,
+    },
+    {
+      key: "range",
+      label: "Range",
+      group: "Organisation",
+      filterable: true,
+    },
+    {
+      key: "functionalArea",
+      label: "Functional Area",
+      group: "Organisation",
+      filterable: true,
+    },
+
+    {
+      key: "talentPool",
+      label: "Talent Pool",
+      group: "Talent",
+      filterable: true,
+    },
+    {
+      key: "developmentPool",
+      label: "Dev. Pool",
+      group: "Talent",
+      filterable: true,
+    },
+
+    {
+      key: "gender",
+      label: "Gender",
+      group: "Demographics",
+      filterable: true,
+    },
+    {
+      key: "dob",
+      label: "DOB",
+      group: "Demographics",
+    },
+    {
+      key: "age",
+      label: "Age",
+      group: "Demographics",
+    },
+    {
+      key: "ageRange",
+      label: "Age Range",
+      group: "Demographics",
+      filterable: true,
+    },
+
+    {
+      key: "fromDate",
+      label: "From Date",
+      group: "Nomination",
+    },
+    {
+      key: "toDate",
+      label: "To Date",
+      group: "Nomination",
+    },
+
+    {
+      key: "nominationStatus",
+      label: "Nomination Status",
+      group: "Status",
+      filterable: true,
+      render: renderStatusValue,
+    },
+  ];
+
+const talentDevelopmentRegister: TalentDevelopmentRegister[] = [
+  {
+    personnelNo: "31195420",
+    employeeName: "Mohan Murugan R",
+
+    psGroup: "GROUP3",
+    orgUnit: "PS-CC/RW-IN",
+    range: "GROUP3",
+    functionalArea: "Research & Development",
+
+    talentPool: "TP1",
+    developmentPool: "-",
+
+    gender: "Male",
+    dob: "21-Mar-1989",
+    age: 37,
+    ageRange: "36-40",
+
+    fromDate: "01-Jan-2026",
+    toDate: "31-Dec-2027",
+
+    nominationStatus: "Active",
+  },
+  {
+    personnelNo: "3079124",
+    employeeName: "Vijaya Mohan N S",
+
+    psGroup: "GROUP3",
+    orgUnit: "PS/RP-IN",
+    range: "GROUP3",
+    functionalArea: "General Management",
+
+    talentPool: "TP1",
+    developmentPool: "Key to Retain",
+
+    gender: "Male",
+    dob: "13-Sep-1988",
+    age: 37,
+    ageRange: "36-40",
+
+    fromDate: "01-Jan-2026",
+    toDate: "31-Dec-2028",
+
+    nominationStatus: "Active",
+  },
+  {
+    personnelNo: "3063279",
+    employeeName: "Amit Singhal",
+
+    psGroup: "GROUP3",
+    orgUnit: "PS/CA-IN",
+    range: "GROUP3",
+    functionalArea: "Sales",
+
+    talentPool: "TP1",
+    developmentPool: "Future Talent",
+
+    gender: "Male",
+    dob: "19-Sep-1986",
+    age: 40,
+    ageRange: "36-40",
+
+    fromDate: "01-Jan-2026",
+    toDate: "31-Dec-2028",
+
+    nominationStatus: "Active",
+  },
+  {
+    personnelNo: "3075806",
+    employeeName: "Ravindra",
+
+    psGroup: "GROUP3",
+    orgUnit: "PS/LOG-IN",
+    range: "GROUP3",
+    functionalArea: "Logistics",
+
+    talentPool: "TP1",
+    developmentPool: "-",
+
+    gender: "Male",
+    dob: "06-May-1984",
+    age: 42,
+    ageRange: "41-45",
+
+    fromDate: "01-Jan-2026",
+    toDate: "31-Dec-2028",
+
+    nominationStatus: "Active",
+  },
+  {
+    personnelNo: "3005409",
+    employeeName: "Sujith Sugathan",
+
+    psGroup: "GROUP3",
+    orgUnit: "PS-DC/ENG-IN",
+    range: "GROUP3",
+    functionalArea: "Research & Development",
+
+    talentPool: "TP1",
+    developmentPool: "Future Talent",
+
+    gender: "Male",
+    dob: "11-Apr-1983",
+    age: 43,
+    ageRange: "41-45",
+
+    fromDate: "01-Jan-2026",
+    toDate: "31-Dec-2028",
+
+    nominationStatus: "Active",
+  },
+];
+
+/* =========================================================
+   KPI DATA
+========================================================= */
 
 const talentPipelineKpis: KpiMetric[] = [
   {
@@ -152,10 +977,15 @@ const talentPipelineKpis: KpiMetric[] = [
   },
 ];
 
+/* =========================================================
+   PAGE
+========================================================= */
+
 export default function TalentPipelinePage() {
   const [draftFilters, setDraftFilters] = useState<DashboardFilters>({
     ...emptyDashboardFilters,
   });
+
   const [activeFilters, setActiveFilters] = useState<DashboardFilters>({
     ...emptyDashboardFilters,
   });
@@ -174,17 +1004,29 @@ export default function TalentPipelinePage() {
         onApply={() => setActiveFilters({ ...draftFilters })}
         onClear={clearFilters}
       />
-      <section className="kpi-section" aria-labelledby="talent-pipeline-summary-title">
+
+      {/* KPI SECTION */}
+
+      <section
+        className="kpi-section"
+        aria-labelledby="talent-pipeline-summary-title"
+      >
         <div className="kpi-section__header">
           <div>
-            <h1 id="talent-pipeline-summary-title" className="kpi-section__title">
+            <h1
+              id="talent-pipeline-summary-title"
+              className="kpi-section__title"
+            >
               Talent pipeline summary
             </h1>
+
             <p className="kpi-section__description">
-              Talent pool composition, nomination status, and upcoming expirations
+              Talent pool composition, nomination status, and upcoming
+              expirations
             </p>
           </div>
         </div>
+
         <KpiGrid>
           {talentPipelineKpis.map((kpi) => (
             <KpiCard key={kpi.id} metric={kpi} />
@@ -192,37 +1034,155 @@ export default function TalentPipelinePage() {
         </KpiGrid>
       </section>
 
-      <section className="dashboard-section" aria-labelledby="talent-distribution-title">
+      {/* CHARTS */}
+
+      <section
+        className="dashboard-section"
+        aria-labelledby="talent-distribution-title"
+      >
         <div className="dashboard-section__heading">
-          <h2 id="talent-distribution-title">Talent pool distribution</h2>
-          <p>Talent pool level, activity, nomination, gender, and range composition</p>
+          <h2 id="talent-distribution-title">
+            Talent pool distribution
+          </h2>
+
+          <p>
+            Talent pool level, activity, nomination, gender, and range
+            composition
+          </p>
         </div>
+
         <div className="chart-grid chart-grid--composition">
-          <ChartCard title="Talent pool distribution" description="Members by talent pool level">
+          <ChartCard
+            title="Talent pool distribution"
+            description="Members by talent pool level"
+          >
             <VerticalBarChart data={talentPoolDistribution} />
           </ChartCard>
-          <ChartCard title="Active vs passive" description="Current status of talent pool members">
-            <DonutChart data={activePassiveDistribution} total="482" />
+
+          <ChartCard
+            title="Active vs passive"
+            description="Current status of talent pool members"
+          >
+            <DonutChart
+              data={activePassiveDistribution}
+              total="482"
+            />
           </ChartCard>
-          <ChartCard title="Nomination status (RAG)" description="Nomination health across the talent pool">
-            <DonutChart data={nominationStatusDistribution} total="482" />
+
+          <ChartCard
+            title="Nomination status (RAG)"
+            description="Nomination health across the talent pool"
+          >
+            <DonutChart
+              data={nominationStatusDistribution}
+              total="482"
+            />
           </ChartCard>
-          <ChartCard title="Development pool distribution" description="Members across development pool categories">
-            <DonutChart data={developmentPoolDistribution} total="482" />
+
+          <ChartCard
+            title="Development pool distribution"
+            description="Members across development pool categories"
+          >
+            <DonutChart
+              data={developmentPoolDistribution}
+              total="482"
+            />
           </ChartCard>
-          <ChartCard title="Gender and range distribution" description="Talent pool composition by gender and range">
+
+          <ChartCard
+            title="Gender and range distribution"
+            description="Talent pool composition by gender and range"
+          >
             <div className="talent-demographics">
               <div className="talent-demographics__group">
                 <h3>By gender</h3>
-                <DonutChart data={talentGenderDistribution} total="482" />
+
+                <DonutChart
+                  data={talentGenderDistribution}
+                  total="482"
+                />
               </div>
+
               <div className="talent-demographics__group">
                 <h3>By range</h3>
-                <HorizontalBarChart data={talentRangeDistribution} />
+
+                <HorizontalBarChart
+                  data={talentRangeDistribution}
+                />
               </div>
             </div>
           </ChartCard>
         </div>
+      </section>
+
+      {/* =====================================================
+          TALENT / STEP TABLES
+      ===================================================== */}
+
+      <section
+        className="dashboard-section talent-register-section"
+        aria-labelledby="talent-register-title"
+      >
+        <div className="dashboard-section__heading">
+          <h2 id="talent-register-title">
+            Talent and STEP registers
+          </h2>
+
+          <p>
+            Talent availability, STEP opportunities, position matching and
+            development information
+          </p>
+        </div>
+
+        {/* TOP TWO TABLES */}
+
+        <div className="talent-table-grid">
+          <DataTable
+            title="STEP-Available Talent (People)"
+            description="Talent currently available or planned for STEP assignments"
+            columns={stepAvailableTalentColumns}
+            rows={stepAvailableTalent}
+            getRowKey={(row) => row.personnelNo}
+            downloadFileName="step-available-talent"
+            pageSizeOptions={[5, 10, 25]}
+          />
+
+          <DataTable
+            title="Open STEP Positions"
+            description="Available STEP assignments and current matching status"
+            columns={stepPositionColumns}
+            rows={stepPositions}
+            getRowKey={(row) => row.positionId}
+            downloadFileName="open-step-positions"
+            pageSizeOptions={[5, 10, 25]}
+          />
+        </div>
+
+        {/* MATCHING TABLE */}
+
+        <DataTable
+          title="People to STEP Position Matching"
+          description="Potential matches between available talent and open STEP positions"
+          columns={stepMatchColumns}
+          rows={stepMatches}
+          getRowKey={(row) =>
+            `${row.employee}-${row.openPosition}`
+          }
+          downloadFileName="step-position-matching"
+          pageSizeOptions={[5, 10, 25]}
+        />
+
+        {/* TALENT REGISTER */}
+
+        <DataTable
+          title="Talent & Development Register"
+          description="Complete talent pool, development, nomination and STEP status register"
+          columns={talentDevelopmentColumns}
+          rows={talentDevelopmentRegister}
+          getRowKey={(row) => row.personnelNo}
+          downloadFileName="talent-development-register"
+          pageSizeOptions={[5, 10, 25]}
+        />
       </section>
     </main>
   );

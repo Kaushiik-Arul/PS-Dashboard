@@ -142,7 +142,27 @@
 .data-table__badge {
   background-color: var(--base-minor__enabled__default__fill);
   display: inline-block;
+  font-weight: 600;
   padding: 0.125rem var(--app-space-2);
+}
+
+.data-table__badge.-success {
+  background-color: color-mix(in srgb, var(--signal-success-pure__enabled__default__front) 14%, var(--background));
+  color: var(--signal-success-pure__enabled__default__front);
+}
+
+.data-table__badge.-warning {
+  background-color: color-mix(in srgb, var(--signal-warning-pure__enabled__default__front) 16%, var(--background));
+  color: var(--signal-warning-pure__enabled__default__front);
+}
+
+.data-table__badge.-error {
+  background-color: color-mix(in srgb, var(--signal-error-pure__enabled__default__front) 14%, var(--background));
+  color: var(--signal-error-pure__enabled__default__front);
+}
+
+.data-table__badge.-neutral {
+  color: var(--base-major__enabled__default__fill);
 }
 
 .data-table__footer {
