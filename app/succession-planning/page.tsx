@@ -4,6 +4,20 @@ import { useState } from "react";
 import { emptyDashboardFilters,OverviewFilters,type DashboardFilters } from "../components/filters/OverviewFilters";
 import { KpiCard, KpiMetric } from "../components/kpi/KpiCard";
 import { KpiGrid } from "../components/kpi/KpiGrid";
+import { ChartCard, DonutChart, VerticalBarChart } from "../components/charts/OverviewCharts";
+
+const positionsbyCriticality = [
+  { label: "High", value: 46, displayValue: "46 (47.9%)", color: "var(--signal-success-pure__enabled__default__front)" },
+  { label: "Medium", value: 34, displayValue: "34 (35.4%)", color: "var(--signal-warning-pure__enabled__default__front)" },
+  { label: "Low", value: 18, displayValue: "18 (18.8%)", color: "var(--signal-error-pure__enabled__default__front)" },
+];
+
+const incumbentChangeExpected = [
+  { label: "2027", value: 8 },
+  { label: "2028", value: 12 },
+  { label: "2029", value: 10 },
+  { label: "2030+", value: 66 },
+];
 
 const SuccessionPlanningKpis: KpiMetric[] = [
   {
@@ -26,7 +40,7 @@ const SuccessionPlanningKpis: KpiMetric[] = [
     trendDirection: "up",
     trendTone: "favorable",
     icon: "boschicon-bosch-ic-user",
-    iconColor: "blue",
+    iconColor: "red",
   },
   {
       id: "ready-1to2-years",
@@ -37,7 +51,7 @@ const SuccessionPlanningKpis: KpiMetric[] = [
     trendDirection: "up",
     trendTone: "favorable",
     icon: "boschicon-bosch-ic-user",
-    iconColor: "blue",
+    iconColor: "orange",
   },
   {
       id: "ready-3to4-years",
@@ -48,7 +62,7 @@ const SuccessionPlanningKpis: KpiMetric[] = [
     trendDirection: "up",
     trendTone: "favorable",
     icon: "boschicon-bosch-ic-user",
-    iconColor: "blue",
+    iconColor: "red",
   },{
       id: "ready-successors",
     title: "Position w/o Ready Successors",
@@ -58,7 +72,7 @@ const SuccessionPlanningKpis: KpiMetric[] = [
     trendDirection: "up",
     trendTone: "favorable",
     icon: "boschicon-bosch-ic-user",
-    iconColor: "blue",
+    iconColor: "green",
   }
 ];
 
@@ -87,23 +101,37 @@ export default function SuccessionPlanningPage() {
       />
 
 
-            <section className="kpi-section" aria-labelledby="succession-pipeline-summary-title">
-              <div className="kpi-section__header">
-                <div>
-                  <h1 id="succession-pipeline-summary-title" className="kpi-section__title">
-                    Succession pipeline summary
-                  </h1>
-                  <p className="kpi-section__description">
-                    Position coverage, succession readiness, development status and cross-BU opportunities
-                  </p>
-                </div>
-              </div>
-              <KpiGrid>
-                {SuccessionPlanningKpis.map((kpi) => (
-                   <KpiCard key={kpi.id} metric={kpi} />
-                   ))}
-              </KpiGrid>
-            </section>
+      <section className="kpi-section" aria-labelledby="succession-pipeline-summary-title">
+        <div className="kpi-section__header">
+          <div>
+            <h1 id="succession-pipeline-summary-title" className="kpi-section__title">
+              Succession pipeline summary
+            </h1>
+            <p className="kpi-section__description">
+              Position coverage, succession readiness, development status and cross-BU opportunities
+            </p>
+          </div>
+        </div>
+        <KpiGrid>
+          {SuccessionPlanningKpis.map((kpi) => (
+            <KpiCard key={kpi.id} metric={kpi} />
+           ))}
+        </KpiGrid>
+      </section>
+      <section className="dashboard-section" aria-labelledby="Succession-planning-distribution-title">
+        <div className="dashboard-section__heading">
+          <h2 id="Succession-planning-distribution-title">Succession Planning Distribution</h2>
+          <p>Succession Planning Distribution by various metrics</p>
+        </div>
+        <div className="chart-grid chart-grid--composition">
+          <ChartCard title="Active vs passive" description="Current status of position by criticality">
+            <DonutChart data={positionsbyCriticality} total="98" />
+          </ChartCard>
+          <ChartCard title="Incumbent Change Expected" description="Expected changes in incumbents by year">
+            <VerticalBarChart data={incumbentChangeExpected} />
+          </ChartCard>          
+        </div>
+      </section>
     </main>
   );
 }
