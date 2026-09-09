@@ -34,6 +34,7 @@ const navigationItems = [
 
 const roleOptions: { value: UserRole; label: string }[] = [
   { value: "hrbp", label: "HRBP" },
+  { value: "Range Head", label: "Range Head" },
   { value: "manager", label: "Manager" },
   { value: "employee", label: "Employee" },
   { value: "admin", label: "Admin" },
@@ -47,9 +48,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { role, setRole } = useAuth();
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
-  const visibleNavigationItems = navigationItems.filter(
-    (item) => item.href !== "/hrbp-point" || hasPermission(role, "viewHrbpPoint"),
-  );
+  const visibleNavigationItems = navigationItems.filter((item) => {
+    if (item.href === "/hrbp-point") {
+      return hasPermission(role, "viewHrbpPoint");
+    }
+
+    if (item.href === "/succession-planning") {
+      return hasPermission(role, "successionPlanningPoint");
+    }
+
+    return true;
+  });
   const activeItem =
     visibleNavigationItems.find((item) => isCurrentRoute(pathname, item.href)) ??
     visibleNavigationItems[0];

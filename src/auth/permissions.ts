@@ -2,11 +2,13 @@ import type { UserRole } from "./roles";
 
 export type Permission =
   | "exportCharts"
-  | "viewHrbpPoint";
+  | "viewHrbpPoint"
+  | "successionPlanningPoint";
 
 export const permissions: Record<Permission, readonly UserRole[]> = {
   exportCharts: ["hrbp"],
   viewHrbpPoint: ["hrbp"],
+  successionPlanningPoint: ["hrbp", "Range Head"]
 };
 
 export function hasPermission(

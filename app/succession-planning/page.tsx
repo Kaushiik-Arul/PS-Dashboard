@@ -6,6 +6,9 @@ import { KpiCard, KpiMetric } from "../components/kpi/KpiCard";
 import { KpiGrid } from "../components/kpi/KpiGrid";
 import { ChartCard, DonutChart, VerticalBarChart } from "../components/charts/OverviewCharts";
 import { DataTable, type DataTableColumn } from "../components/data-table/DataTable";
+import { redirect } from "next/navigation";
+import { useAuth } from "@/src/auth/AuthProvider";
+import { hasPermission } from "@/src/auth/permissions";
 
 const positionsbyCriticality = [
   { label: "High", value: 46, displayValue: "46 (47.9%)", color: "var(--signal-success-pure__enabled__default__front)" },
@@ -141,6 +144,10 @@ const SuccessionPlanningKpis: KpiMetric[] = [
 
 
 export default function SuccessionPlanningPage() {
+  const { role } = useAuth();
+  if (!role || !hasPermission(role, "successionPlanningPoint")) {
+    redirect("/");
+  }
     const [draftFilters, setDraftFilters] = useState<DashboardFilters>({
     ...emptyDashboardFilters,
   });
