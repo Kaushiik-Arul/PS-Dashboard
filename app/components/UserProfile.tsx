@@ -5,6 +5,7 @@ import type { UserRole } from "@/src/auth/roles";
 
 const roleLabels: Record<UserRole, string> = {
   hrbp: "HR Business Partner",
+  "Range Head": "Range Head",
   manager: "Manager",
   employee: "Employee",
   admin: "Administrator",
