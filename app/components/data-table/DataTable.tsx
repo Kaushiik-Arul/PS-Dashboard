@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/src/auth/AuthProvider";
 import { hasPermission } from "@/src/auth/permissions";
 import "./data-table.css";
@@ -50,6 +50,9 @@ export function DataTable<Row extends object>({
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const tableCardRef = useRef<HTMLElement>(null);
+  const expandButtonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const filterableColumns = columns.filter((column) => column.filterable);
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
@@ -64,6 +67,45 @@ export function DataTable<Row extends object>({
   const safePage = Math.min(currentPage, pageCount);
   const startIndex = (safePage - 1) * pageSize;
   const visibleRows = filteredRows.slice(startIndex, startIndex + pageSize);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const expandButton = expandButtonRef.current;
+    const handleDialogKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsExpanded(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const focusableElements = tableCardRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusableElements?.length) return;
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleDialogKeyDown);
+    expandButton?.focus();
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleDialogKeyDown);
+      expandButton?.focus();
+    };
+  }, [isExpanded]);
 
   const downloadCsv = () => {
     const header = columns.map((column) => escapeCsvValue(column.label)).join(",");
@@ -81,7 +123,13 @@ export function DataTable<Row extends object>({
   };
 
   return (
-    <section className="data-table-card" aria-label={title}>
+    <section
+      ref={tableCardRef}
+      className={`data-table-card${isExpanded ? " data-table-card--expanded" : ""}`}
+      aria-label={title}
+      aria-modal={isExpanded || undefined}
+      role={isExpanded ? "dialog" : undefined}
+    >
       <header className="data-table-card__header">
         <div>
           <h2 className="data-table-card__title">{title}</h2>
@@ -152,6 +200,19 @@ export function DataTable<Row extends object>({
               />
             </button>
           )}
+          <button
+            ref={expandButtonRef}
+            className="a-button a-button--integrated data-table-card__action"
+            type="button"
+            aria-label={isExpanded ? `Close expanded ${title}` : `Expand ${title}`}
+            title={isExpanded ? "Close expanded table" : "Expand table"}
+            onClick={() => setIsExpanded((expanded) => !expanded)}
+          >
+            <i
+              className={`a-icon a-button__icon ${isExpanded ? "boschicon-bosch-ic-close" : "boschicon-bosch-ic-fullscreen"}`}
+              aria-hidden="true"
+            />
+          </button>
           {canDownload && (
             <button
               className="a-button a-button--integrated data-table-card__action"
