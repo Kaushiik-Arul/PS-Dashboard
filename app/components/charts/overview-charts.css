@@ -35,6 +35,14 @@
   position: relative;
 }
 
+.chart-card--wide {
+  padding: 1.5rem;
+}
+
+.chart-card--wide .chart-card__title {
+  font: var(--sem__typography__bold__l);
+}
+
 .chart-card__header {
   align-items: flex-start;
   display: flex;
@@ -256,12 +264,29 @@
 
 .vertical-chart__item {
   align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
   display: grid;
   flex: 1 0 2.25rem;
+  font: inherit;
   gap: 0.25rem;
   grid-template-rows: 1.125rem 1fr auto;
   height: 100%;
   justify-items: center;
+  padding: 0;
+  position: relative;
+  transition: opacity 125ms cubic-bezier(0.38, 0.04, 0.35, 0.96);
+}
+
+.vertical-chart__item.-dimmed {
+  opacity: 0.2;
+}
+
+.vertical-chart__item.-selected::before {
+  display: none;
 }
 
 .vertical-chart__item:focus-visible::before {
@@ -291,6 +316,31 @@
   max-width: 1.5rem;
   min-height: 0.125rem;
   width: 65%;
+}
+
+.vertical-chart__popover {
+  background-color: var(--background);
+  box-shadow: var(--sem__box-shadow__small);
+  display: grid;
+  gap: var(--app-space-2);
+  inset-block-end: 2rem;
+  inset-inline-start: 50%;
+  max-width: 7rem;
+  outline: var(--app-border-width) solid var(--floating-outline);
+  padding: var(--app-space-4) var(--app-space-3);
+  position: absolute;
+  text-align: start;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 1;
+}
+
+.vertical-chart__popover strong {
+  font: var(--sem__typography__bold__s);
+}
+
+.vertical-chart__popover span {
+  font: var(--sem__typography__regular__s);
 }
 
 .risk-summary {

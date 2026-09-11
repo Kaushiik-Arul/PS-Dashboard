@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useAuth } from "@/src/auth/AuthProvider";
 import { hasPermission } from "@/src/auth/permissions";
 import "./data-table.css";
@@ -48,6 +48,9 @@ export function DataTable<Row extends object>({
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDescriptionVisible, setIsDescriptionVisible] = useState(true);
+  const menuId = useId();
   const filterableColumns = columns.filter((column) => column.filterable);
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const filterPanelId = `${downloadFileName}-filters`;
@@ -61,21 +64,6 @@ export function DataTable<Row extends object>({
   const safePage = Math.min(currentPage, pageCount);
   const startIndex = (safePage - 1) * pageSize;
   const visibleRows = filteredRows.slice(startIndex, startIndex + pageSize);
-  const groups = columns.reduce<{ label: string; span: number }[]>((result, column) => {
-    const previousGroup = result.at(-1);
-
-    if (previousGroup?.label === column.group) {
-      previousGroup.span += 1;
-    } else {
-      result.push({ label: column.group, span: 1 });
-    }
-
-    return result;
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [rows, pageSize, filters]);
 
   const downloadCsv = () => {
     const header = columns.map((column) => escapeCsvValue(column.label)).join(",");
@@ -97,9 +85,57 @@ export function DataTable<Row extends object>({
       <header className="data-table-card__header">
         <div>
           <h2 className="data-table-card__title">{title}</h2>
-          <p className="data-table-card__description">{description}</p>
+          {isDescriptionVisible && <p className="data-table-card__description">{description}</p>}
         </div>
         <div className="data-table-card__actions">
+          <div
+            className="data-table-card__menu-control"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setIsMenuOpen(false);
+              }
+            }}
+          >
+            <button
+              className="a-button a-button--integrated data-table-card__action"
+              type="button"
+              aria-label={`Options for ${title}`}
+              aria-controls={menuId}
+              aria-expanded={isMenuOpen}
+              aria-haspopup="menu"
+              onClick={() => setIsMenuOpen((open) => !open)}
+            >
+              <i className="a-icon a-button__icon boschicon-bosch-ic-options" aria-hidden="true" />
+            </button>
+            {isMenuOpen && (
+              <div className="a-box data-table-card__menu" id={menuId} role="menu">
+                <button
+                  className="a-button a-button--integrated -small"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsDescriptionVisible((visible) => !visible);
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <span className="a-button__label">{isDescriptionVisible ? "Hide context" : "Show context"}</span>
+                </button>
+                <button
+                  className="a-button a-button--integrated -small"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setFilters({});
+                    setCurrentPage(1);
+                    setPageSize(pageSizeOptions[0] ?? 10);
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <span className="a-button__label">Reset table view</span>
+                </button>
+              </div>
+            )}
+          </div>
           {filterableColumns.length > 0 && (
             <button
               className="a-button a-button--integrated data-table-card__action"
@@ -143,7 +179,10 @@ export function DataTable<Row extends object>({
                 <span>{column.label}</span>
                 <select
                   value={filters[key] ?? ""}
-                  onChange={(event) => setFilters((current) => ({ ...current, [key]: event.target.value }))}
+                  onChange={(event) => {
+                    setFilters((current) => ({ ...current, [key]: event.target.value }));
+                    setCurrentPage(1);
+                  }}
                 >
                   <option value="">All</option>
                   {options.map((option) => <option key={option} value={option}>{option}</option>)}
@@ -152,7 +191,14 @@ export function DataTable<Row extends object>({
             );
           })}
           {Object.values(filters).some(Boolean) && (
-            <button className="a-button a-button--secondary -small" type="button" onClick={() => setFilters({})}>
+            <button
+              className="a-button a-button--secondary -small"
+              type="button"
+              onClick={() => {
+                setFilters({});
+                setCurrentPage(1);
+              }}
+            >
               <span className="a-button__label">Clear filters</span>
             </button>
           )}
@@ -162,13 +208,6 @@ export function DataTable<Row extends object>({
       <div className="data-table-scroll">
         <table className="data-table">
           <thead>
-            <tr className="data-table__group-header">
-              {groups.map((group, index) => (
-                <th key={`${group.label}-${index}`} colSpan={group.span} scope="colgroup">
-                  {group.label}
-                </th>
-              ))}
-            </tr>
             <tr className="data-table__column-header">
               {columns.map((column) => (
                 <th key={String(column.key)} scope="col">{column.label}</th>
@@ -218,7 +257,13 @@ export function DataTable<Row extends object>({
         </div>
         <label className="data-table__page-size">
           Rows per page
-          <select value={pageSize} onChange={(event) => setPageSize(Number(event.target.value))}>
+          <select
+            value={pageSize}
+            onChange={(event) => {
+              setPageSize(Number(event.target.value));
+              setCurrentPage(1);
+            }}
+          >
             {pageSizeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
         </label>

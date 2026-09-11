@@ -1,13 +1,13 @@
 "use client";
 
-export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorPage({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
-    <main className="dashboard-state -primary" role="alert">
-      <i className="a-icon boschicon-bosch-ic-alert-error" aria-hidden="true" />
+    <main className="error-page" role="alert">
+      <strong className="error-page__code">500</strong>
       <h1>Workforce data could not be loaded</h1>
-      <p>Try loading the dashboard again.</p>
-      <button className="a-button" type="button" onClick={reset}>
-        <span className="a-button__label">Try again</span>
+      <p>The request could not be completed. Try loading the dashboard again.</p>
+      <button className="a-button a-button--primary" type="button" onClick={retry}>
+        <span className="a-button__label">Reload dashboard</span>
       </button>
     </main>
   );

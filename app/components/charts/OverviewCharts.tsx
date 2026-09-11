@@ -139,7 +139,7 @@ export function HorizontalBarChart({ data }: { data: ChartDatum[] }) {
     <div className="horizontal-chart" role="group" aria-label="Horizontal bar chart">
       {data.map((item, index) => {
         const relativePercentage = maximum > 0 ? (item.value / maximum) * 100 : 0;
-        const detail = `${item.label}: ${item.displayValue ?? item.value.toLocaleString()}. ${relativePercentage.toFixed(1)}% of the largest category.`;
+        const detail = `${item.label}: ${item.displayValue ?? item.value.toLocaleString()}. ${relativePercentage.toFixed(1)}% of the chart scale.`;
 
         return <div className="horizontal-chart__row chart-data-point" key={item.label} tabIndex={0} data-tooltip={detail} aria-label={detail} onPointerMove={positionChartTooltip}>
           <span className="horizontal-chart__label">{item.label}</span>
@@ -158,12 +158,13 @@ interface DonutDatum extends ChartDatum {
 }
 
 export function DonutChart({ data, total }: { data: DonutDatum[]; total: string }) {
-  let runningTotal = 0;
   const sum = data.reduce((accumulator, item) => accumulator + item.value, 0);
-  const segments = data.map((item) => {
-    const start = (runningTotal / sum) * 100;
-    runningTotal += item.value;
-    const end = (runningTotal / sum) * 100;
+  const segments = data.map((item, index) => {
+    const precedingTotal = data
+      .slice(0, index)
+      .reduce((accumulator, precedingItem) => accumulator + precedingItem.value, 0);
+    const start = sum > 0 ? (precedingTotal / sum) * 100 : 0;
+    const end = sum > 0 ? ((precedingTotal + item.value) / sum) * 100 : 0;
     const separator = data.length > 1 ? Math.min(0.18, (end - start) / 4) : 0;
     return `var(--background) ${start}% ${start + separator}%, ${item.color} ${start + separator}% ${end - separator}%, var(--background) ${end - separator}% ${end}%`;
   });
@@ -206,21 +207,40 @@ export function DonutChart({ data, total }: { data: DonutDatum[]; total: string 
 }
 
 export function VerticalBarChart({ data, tone = "blue" }: { data: ChartDatum[]; tone?: "blue" | "turquoise" }) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const maximum = Math.max(...data.map((item) => item.value));
+  const axisMaximum = maximum > 0 ? maximum * 1.1 : 1;
 
   return (
     <div className={`vertical-chart vertical-chart--${tone}`} role="group" aria-label="Vertical bar chart">
       {data.map((item, index) => {
-        const relativePercentage = maximum > 0 ? (item.value / maximum) * 100 : 0;
+        const relativePercentage = (item.value / axisMaximum) * 100;
         const detail = `${item.label}: ${item.displayValue ?? item.value.toLocaleString()}. ${relativePercentage.toFixed(1)}% of the largest category.`;
+        const isSelected = selectedIndex === index;
+        const isDimmed = selectedIndex !== null && !isSelected;
 
-        return <div className="vertical-chart__item chart-data-point" key={item.label} tabIndex={0} data-tooltip={detail} aria-label={detail} onPointerMove={positionChartTooltip}>
+        return <button
+          className={`vertical-chart__item chart-data-point${isSelected ? " -selected" : ""}${isDimmed ? " -dimmed" : ""}`}
+          key={item.label}
+          type="button"
+          data-tooltip={detail}
+          aria-label={`${detail} ${isSelected ? "Close details" : "Show details"}.`}
+          aria-pressed={isSelected}
+          onClick={() => setSelectedIndex((current) => current === index ? null : index)}
+          onPointerMove={positionChartTooltip}
+        >
           <strong>{item.displayValue ?? item.value.toLocaleString()}</strong>
           <div className="vertical-chart__track">
             <span style={{ backgroundColor: `var(--data-visualization-${tone === "blue" ? (index % 2 === 0 ? 1 : 2) : (index % 2 === 0 ? 5 : 6)})`, height: `${relativePercentage}%` }} />
           </div>
           <span>{item.label}</span>
-        </div>;
+          {isSelected && (
+            <span className="vertical-chart__popover" role="status">
+              <strong>{item.label}</strong>
+              <span>{item.displayValue ?? item.value.toLocaleString()}</span>
+            </span>
+          )}
+        </button>;
       })}
     </div>
   );

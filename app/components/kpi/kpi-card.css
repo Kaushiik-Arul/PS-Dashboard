@@ -76,8 +76,8 @@
 
 .kpi-card__value {
   color: var(--plain-pure__enabled__default__front);
-  font-size: 1.375rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 600;
   line-height: 1.75rem;
   white-space: nowrap;
 }

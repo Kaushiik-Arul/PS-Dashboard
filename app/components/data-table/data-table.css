@@ -40,6 +40,25 @@
   width: 3rem;
 }
 
+.data-table-card__menu-control {
+  position: relative;
+}
+
+.data-table-card__menu {
+  background-color: var(--background);
+  inset-block-start: 3rem;
+  inset-inline-end: 0;
+  min-width: 11rem;
+  padding: var(--app-space-2);
+  position: absolute;
+  z-index: 2;
+}
+
+.data-table-card__menu .a-button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
 .data-table__filters {
   align-items: flex-end;
   background-color: var(--base-minor__enabled__default__fill);
@@ -104,17 +123,15 @@
   border-inline-end: 0;
 }
 
-.data-table__group-header th {
-  background-color: var(--plain-major__enabled__default__fill);
-  color: var(--plain-major__enabled__default__front);
+.data-table__column-header th {
+  background-color: var(--background);
+  border-block-end-color: var(--plain-pure__enabled__default__front);
+  color: var(--plain-pure__enabled__default__front);
   font-weight: 700;
-  text-align: center;
 }
 
-.data-table__column-header th {
+.data-table tbody tr:nth-child(even) {
   background-color: var(--base-minor__enabled__default__fill);
-  color: var(--base-major__enabled__default__fill);
-  font-weight: 700;
 }
 
 .data-table tbody tr:hover {

@@ -40,13 +40,3 @@
   gap: var(--app-space-4);
   grid-template-columns: minmax(0, 1fr);
 }
-
-/*
-  On large displays, show STEP Available Talent
-  and Open STEP Positions next to each other.
-*/
-@media (min-width: 1400px) {
-  .talent-table-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
