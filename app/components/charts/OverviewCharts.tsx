@@ -290,25 +290,27 @@ export function RetirementRiskTable({ rows }: { rows: RiskRow[] }) {
         <div className="chart-data-point" tabIndex={0} data-tooltip={`${totals.threeYears} employees reach retirement eligibility within 3 years.`} aria-label={`${totals.threeYears} employees reach retirement eligibility within 3 years.`} onPointerMove={positionChartTooltip}><span>Within 3 years</span><strong>{totals.threeYears}</strong></div>
         <div className="chart-data-point" tabIndex={0} data-tooltip={`${totals.fiveYears} employees reach retirement eligibility within 5 years.`} aria-label={`${totals.fiveYears} employees reach retirement eligibility within 5 years.`} onPointerMove={positionChartTooltip}><span>Within 5 years</span><strong>{totals.fiveYears}</strong></div>
       </div>
-      <div className="risk-heatmap__legend" aria-label="Risk concentration legend">
-        <span>Lower concentration</span>
-        <i aria-hidden="true" />
-        <span>Higher concentration</span>
-      </div>
-      <div className="risk-table-scroll">
-        <table className="risk-table">
-          <thead><tr><th>Function</th><th>&lt; 1 yr</th><th>&lt; 3 yrs</th><th>&lt; 5 yrs</th></tr></thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.functionName}>
-                <th scope="row">{row.functionName}</th>
-                {renderHeatCell(row.functionName, "1 year", row.oneYear)}
-                {renderHeatCell(row.functionName, "3 years", row.threeYears)}
-                {renderHeatCell(row.functionName, "5 years", row.fiveYears)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="risk-heatmap">
+        <div className="risk-heatmap__legend" aria-label="Risk concentration legend">
+          <span>Lower</span>
+          <i aria-hidden="true" />
+          <span>Higher</span>
+        </div>
+        <div className="risk-table-scroll">
+          <table className="risk-table">
+            <thead><tr><th>Function</th><th>&lt; 1 yr</th><th>&lt; 3 yrs</th><th>&lt; 5 yrs</th></tr></thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.functionName}>
+                  <th scope="row">{row.functionName}</th>
+                  {renderHeatCell(row.functionName, "1 year", row.oneYear)}
+                  {renderHeatCell(row.functionName, "3 years", row.threeYears)}
+                  {renderHeatCell(row.functionName, "5 years", row.fiveYears)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

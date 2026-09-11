@@ -347,7 +347,6 @@
   display: grid;
   gap: 0.5rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-block-end: 1rem;
 }
 
 .risk-summary div {
@@ -372,6 +371,10 @@
 .risk-summary div:nth-child(2) strong { color: var(--signal-warning-pure__enabled__default__front); }
 .risk-summary div:nth-child(3) strong { color: var(--signal-error-pure__enabled__default__front); }
 
+.risk-heatmap {
+  min-width: 0;
+}
+
 .risk-heatmap__legend {
   align-items: center;
   display: flex;
@@ -393,7 +396,7 @@
 }
 
 .risk-table-scroll { overflow-x: auto; }
-.risk-table { border-collapse: collapse; font-size: 0.75rem; line-height: 1.125rem; min-width: 26rem; width: 100%; }
+.risk-table { border-collapse: collapse; font-size: 0.75rem; line-height: 1.125rem; min-width: 22rem; width: 100%; }
 .risk-table th, .risk-table td { border-block-end: 1px solid var(--base-major__disabled__default__fill); padding: 0.5rem; text-align: end; }
 .risk-table th:first-child { text-align: start; width: 40%; }
 .risk-table thead th:not(:first-child),
@@ -472,6 +475,23 @@
   .donut-chart__graphic { justify-self: center; }
 }
 
+@container (min-width: 30rem) {
+  .risk-panel {
+    align-items: stretch;
+    display: grid;
+    gap: var(--app-space-3);
+    grid-template-columns: minmax(6.5rem, 0.28fr) minmax(0, 1fr);
+  }
+
+  .risk-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .risk-summary div {
+    align-content: center;
+  }
+}
+
 @container (max-width: 24.99rem) {
   .donut-chart--dense .chart-legend {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -481,7 +501,6 @@
 @media (min-width: 1196px) {
   .chart-grid--composition,
   .chart-grid--profiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .chart-grid--profiles .chart-card--wide { grid-column: 1 / -1; }
 }
 .chart-card__actions {
   align-items: flex-start;

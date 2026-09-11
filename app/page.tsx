@@ -388,7 +388,7 @@ export default function OverviewPage() {
           <ChartCard title="Workforce movement" description={`Inbound, outbound, and active employees in ${currentPeriod.title}`} onDownload={()=>console.log("Export Movement")}>
             <MovementChart data={filteredMovement} period={currentPeriod.title} />
           </ChartCard>
-          <ChartCard title="Retirement risk" description="Employees reaching retirement eligibility" className="chart-card--wide" onDownload={()=>console.log("Export Retirement Risk")}>
+          <ChartCard title="Retirement risk" description="Employees reaching retirement eligibility" onDownload={()=>console.log("Export Retirement Risk")}>
             <RetirementRiskTable rows={filteredRisk} />
           </ChartCard>
         </div>
