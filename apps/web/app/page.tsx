@@ -1,5 +1,7 @@
-import { OverviewDashboard } from "@/features/overview/OverviewDashboard";
+import { getOverview } from "@/features/overview/overview.api";
+import { OverviewDashboard } from "@/features/overview/OverviewDashboardView";
 
-export default function OverviewPage() {
-  return <OverviewDashboard />;
+export default async function OverviewPage() {
+  const overview = await getOverview();
+  return <OverviewDashboard data={overview} />;
 }

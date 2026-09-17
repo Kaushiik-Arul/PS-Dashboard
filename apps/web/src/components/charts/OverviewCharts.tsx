@@ -352,7 +352,7 @@ export function MovementChart({ data, period }: { data: MovementDatum[]; period:
               <strong>{metric.value}</strong>
             </div>
             <div className="movement-chart__track">
-              <span className={metric.className} style={{ width: `${(metric.value / maximum) * 100}%` }} />
+              <span className={metric.className} style={{ width: `${maximum > 0 ? (metric.value / maximum) * 100 : 0}%` }} />
             </div>
           </div>;
         })}
