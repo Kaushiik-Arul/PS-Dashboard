@@ -5,44 +5,25 @@ import {
   emptyDashboardFilters,
   OverviewFilters,
   type DashboardFilters,
-} from "../components/filters/OverviewFilters";
+} from "@/components/filters/OverviewFilters";
 
-import { KpiCard, type KpiMetric } from "../components/kpi/KpiCard";
-import { KpiGrid } from "../components/kpi/KpiGrid";
+import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
+import { KpiGrid } from "@/components/kpi/KpiGrid";
 
 import {
   ChartCard,
   DonutChart,
   HorizontalBarChart,
   VerticalBarChart,
-} from "../components/charts/OverviewCharts";
+} from "@/components/charts/OverviewCharts";
 
 import {
   DataTable,
   type DataTableColumn,
-} from "../components/data-table/DataTable";
+} from "@/components/data-table/DataTable";
 
 import "./talent-pipeline.css";
-
-type StatusTone = "success" | "warning" | "error" | "neutral";
-
-function getStatusTone(value: unknown): StatusTone {
-  const normalizedValue = String(value).toLowerCase();
-
-  if (["available", "active", "green", "good", "good match", "high", "yes"].includes(normalizedValue)) {
-    return "success";
-  }
-
-  if (["under discussion", "planned", "potential match", "medium"].includes(normalizedValue)) {
-    return "warning";
-  }
-
-  if (["not available", "red", "red - not available", "no"].includes(normalizedValue)) {
-    return "error";
-  }
-
-  return "neutral";
-}
+import { getStatusTone } from "./status";
 
 function renderStatusValue(value: unknown) {
   return (
@@ -981,7 +962,7 @@ const talentPipelineKpis: KpiMetric[] = [
    PAGE
 ========================================================= */
 
-export default function TalentPipelinePage() {
+export function TalentPipelineDashboard() {
   const [draftFilters, setDraftFilters] = useState<DashboardFilters>({
     ...emptyDashboardFilters,
   });

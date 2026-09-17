@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { KpiCard } from "./components/kpi/KpiCard";
-import { KpiGrid } from "./components/kpi/KpiGrid";
-import type { KpiMetric } from "./components/kpi/KpiCard";
+import { KpiCard } from "@/components/kpi/KpiCard";
+import { KpiGrid } from "@/components/kpi/KpiGrid";
+import type { KpiMetric } from "@/components/kpi/KpiCard";
 import {
   emptyDashboardFilters,
   OverviewFilters,
   type DashboardFilters,
-} from "./components/filters/OverviewFilters";
+} from "@/components/filters/OverviewFilters";
 import {
   ChartCard,
   DonutChart,
@@ -16,7 +16,8 @@ import {
   MovementChart,
   RetirementRiskTable,
   VerticalBarChart,
-} from "./components/charts/OverviewCharts";
+} from "@/components/charts/OverviewCharts";
+import { normalizeData, scaleProfile, shareFromData } from "./overview-calculations";
 
 const kpis: KpiMetric[] = [
   {
@@ -221,11 +222,6 @@ const fixedFilterShares: Partial<Record<keyof DashboardFilters, Record<string, n
   hrbp: { "John Doe": 0.42, "Priya Sharma": 0.33, "Michael Chen": 0.25 },
 };
 
-function shareFromData(value: string, data: Array<{ label: string; value: number }>) {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  return (data.find((item) => item.label === value)?.value ?? 0) / total;
-}
-
 function getFilteredScale(filters: DashboardFilters) {
   return (Object.entries(filters) as Array<[keyof DashboardFilters, string]>).reduce((scale, [key, value]) => {
     if (value === "All") return scale;
@@ -237,23 +233,7 @@ function getFilteredScale(filters: DashboardFilters) {
   }, 1);
 }
 
-function normalizeData<T extends { label: string; value: number }>(data: T[], selection: string, total: number) {
-  const visibleData = selection === "All" ? data : data.filter((item) => item.label === selection);
-  const visibleTotal = visibleData.reduce((sum, item) => sum + item.value, 0);
-
-  return visibleData.map((item) => ({
-    ...item,
-    value: visibleTotal > 0 ? Math.round((item.value / visibleTotal) * total) : 0,
-    displayValue: visibleTotal > 0 ? Math.round((item.value / visibleTotal) * total).toLocaleString() : "0",
-  }));
-}
-
-function scaleProfile<T extends { value: number }>(data: T[], total: number) {
-  const profileTotal = data.reduce((sum, item) => sum + item.value, 0);
-  return data.map((item) => ({ ...item, value: Math.round((item.value / profileTotal) * total) }));
-}
-
-export default function OverviewPage() {
+export function OverviewDashboard() {
   const [draftFilters, setDraftFilters] = useState<DashboardFilters>({ ...emptyDashboardFilters });
   const [activeFilters, setActiveFilters] = useState<DashboardFilters>({ ...emptyDashboardFilters });
   const [selectedPeriod, setSelectedPeriod] = useState("09/26");

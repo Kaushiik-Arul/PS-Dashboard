@@ -1,9 +1,9 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/src/auth/AuthProvider";
-import { hasPermission } from "@/src/auth/permissions";
-import type { UserRole } from "@/src/auth/roles";
+import { useAuth } from "@/auth/AuthProvider";
+import { hasPermission } from "@/auth/permissions";
+import type { UserRole } from "@/auth/roles";
 
 import { UserProfile } from "./UserProfile";
 import { useState, type ReactNode } from "react";

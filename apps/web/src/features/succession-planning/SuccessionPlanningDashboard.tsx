@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { emptyDashboardFilters,OverviewFilters,type DashboardFilters } from "../components/filters/OverviewFilters";
-import { KpiCard, KpiMetric } from "../components/kpi/KpiCard";
-import { KpiGrid } from "../components/kpi/KpiGrid";
-import { ChartCard, DonutChart, VerticalBarChart } from "../components/charts/OverviewCharts";
-import { DataTable, type DataTableColumn } from "../components/data-table/DataTable";
+import { emptyDashboardFilters, OverviewFilters, type DashboardFilters } from "@/components/filters/OverviewFilters";
+import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
+import { KpiGrid } from "@/components/kpi/KpiGrid";
+import { ChartCard, DonutChart, VerticalBarChart } from "@/components/charts/OverviewCharts";
+import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
 import { redirect } from "next/navigation";
-import { useAuth } from "@/src/auth/AuthProvider";
-import { hasPermission } from "@/src/auth/permissions";
+import { useAuth } from "@/auth/AuthProvider";
+import { hasPermission } from "@/auth/permissions";
 
 const positionsbyCriticality = [
   { label: "High", value: 46, displayValue: "46 (47.9%)", color: "var(--signal-success-pure__enabled__default__front)" },
@@ -143,7 +143,7 @@ const SuccessionPlanningKpis: KpiMetric[] = [
 ];
 
 
-export default function SuccessionPlanningPage() {
+export function SuccessionPlanningDashboard() {
   const { role } = useAuth();
   if (!role || !hasPermission(role, "successionPlanningPoint")) {
     redirect("/");

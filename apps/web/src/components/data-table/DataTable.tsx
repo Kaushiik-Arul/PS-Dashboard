@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { useAuth } from "@/src/auth/AuthProvider";
-import { hasPermission } from "@/src/auth/permissions";
+import { useAuth } from "@/auth/AuthProvider";
+import { hasPermission } from "@/auth/permissions";
 import "./data-table.css";
 
 export interface DataTableColumn<Row extends object> {

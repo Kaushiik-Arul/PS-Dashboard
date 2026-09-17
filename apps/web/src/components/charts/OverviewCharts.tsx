@@ -1,8 +1,8 @@
 "use client";
 
 import { useId, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { useAuth } from "@/src/auth/AuthProvider";
-import { hasPermission } from "@/src/auth/permissions";
+import { useAuth } from "@/auth/AuthProvider";
+import { hasPermission } from "@/auth/permissions";
 import "./overview-charts.css";
 
 function positionChartTooltip(event: ReactPointerEvent<HTMLElement>) {

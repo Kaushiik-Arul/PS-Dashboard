@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuth } from "@/src/auth/AuthProvider";
-import type { UserRole } from "@/src/auth/roles";
+import { useAuth } from "@/auth/AuthProvider";
+import type { UserRole } from "@/auth/roles";
 
 const roleLabels: Record<UserRole, string> = {
   hrbp: "HR Business Partner",

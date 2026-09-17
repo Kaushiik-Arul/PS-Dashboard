@@ -1,10 +1,10 @@
 "use client";
 
 import { redirect } from "next/navigation";
-import { useAuth } from "@/src/auth/AuthProvider";
-import { hasPermission } from "@/src/auth/permissions";
+import { useAuth } from "@/auth/AuthProvider";
+import { hasPermission } from "@/auth/permissions";
 
-export default function HrbpPointPage() {
+export function HrbpPointDashboard() {
   const { role } = useAuth();
 
   if (!hasPermission(role, "viewHrbpPoint")) {

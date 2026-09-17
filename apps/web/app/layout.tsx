@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/src/auth/AuthProvider";
+import { AuthProvider } from "@/auth/AuthProvider";
 import "@bosch/frontend.kit-npm/styles/frontend-kit-foundations.css";
 import "@bosch/frontend.kit-npm/styles/frontend-kit-icons.css";
 import "@bosch/frontend.kit-npm/bosch/semantic/index.css";
@@ -21,7 +21,7 @@ import "@bosch/frontend.kit-npm/molecules/sideNavigation.css";
 import "@bosch/frontend.kit-npm/organisms/minimalHeader.css";
 import "./globals.css";
 
-import { AppShell } from "./components/AppShell";
+import { AppShell } from "@/components/AppShell";
 
 export const metadata: Metadata = {
   title: "Power Solutions",
