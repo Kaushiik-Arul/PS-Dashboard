@@ -13,9 +13,9 @@ export const permissions: Record<Permission, readonly UserRole[]> = {
   exportCharts: ["hrbp"],
   manageEmployeeStatus: ["hrbp"],
   viewHrbpPoint: ["hrbp"],
-  viewEmployee360: ["hrbp", "admin"],
-  viewTalentPipeline: ["hrbp", "admin"],
-  successionPlanningPoint: ["hrbp", "admin"],
+  viewEmployee360: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
+  viewTalentPipeline: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
+  successionPlanningPoint: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   manageAccessPoint: ["hrbp"],
 };
 

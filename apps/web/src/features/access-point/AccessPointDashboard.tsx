@@ -20,6 +20,7 @@ type AssignmentForm = {
   role: ManagedRole;
   assignedRange: string;
   assignedOrgUnit: string;
+  assignedOrgUnits: string[];
   temporaryPassword: string;
 };
 
@@ -27,6 +28,7 @@ const emptyForm: AssignmentForm = {
   role: "range_head",
   assignedRange: "",
   assignedOrgUnit: "",
+  assignedOrgUnits: [],
   temporaryPassword: "",
 };
 
@@ -102,8 +104,22 @@ export function AccessPointDashboard({
   };
 
   const changeRange = (assignedRange: string) => {
-    setForm((current) => ({ ...current, assignedRange, assignedOrgUnit: "" }));
+    setForm((current) => ({
+      ...current,
+      assignedRange,
+      assignedOrgUnit: "",
+      assignedOrgUnits: [],
+    }));
     void fetchOrgUnits(assignedRange);
+  };
+
+  const toggleOrgUnit = (orgUnit: string) => {
+    setForm((current) => ({
+      ...current,
+      assignedOrgUnits: current.assignedOrgUnits.includes(orgUnit)
+        ? current.assignedOrgUnits.filter((item) => item !== orgUnit)
+        : [...current.assignedOrgUnits, orgUnit],
+    }));
   };
 
   const searchEmployees = async () => {
@@ -141,6 +157,9 @@ export function AccessPointDashboard({
       role: assignment.role,
       assignedRange: assignment.assignedRange ?? "",
       assignedOrgUnit: assignment.assignedOrgUnit ?? "",
+      assignedOrgUnits: assignment.assignedOrgUnit
+        ? [assignment.assignedOrgUnit]
+        : [],
       temporaryPassword: "",
     });
     setOrgUnits(scopeOptions.orgUnits);
@@ -155,42 +174,58 @@ export function AccessPointDashboard({
       setMessage("Select an employee from the namelist search results.");
       return;
     }
+    if (!editing && form.role === "department_head" && form.assignedOrgUnits.length === 0) {
+      setMessage("Select at least one Org Unit.");
+      return;
+    }
     setIsSaving(true);
     setMessage("");
     const csrfToken = getCsrfToken();
-    const response = await fetch(
-      editing
-        ? `/api/access-point/assignments/${encodeURIComponent(editing.assignmentId)}`
-        : "/api/access-point/assignments",
-      {
-        method: editing ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+    const selectedOrgUnits = !editing && form.role === "department_head"
+      ? form.assignedOrgUnits
+      : [form.assignedOrgUnit];
+    const savedAssignments: AccessAssignment[] = [];
+
+    for (const assignedOrgUnit of selectedOrgUnits) {
+      const response = await fetch(
+        editing
+          ? `/api/access-point/assignments/${encodeURIComponent(editing.assignmentId)}`
+          : "/api/access-point/assignments",
+        {
+          method: editing ? "PATCH" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+          },
+          body: JSON.stringify({
+            ...(!editing ? {
+              persNo: selectedEmployee?.persNo,
+              temporaryPassword: form.temporaryPassword || undefined,
+            } : {}),
+            role: form.role,
+            assignedRange: form.role === "admin" ? null : form.assignedRange,
+            assignedOrgUnit:
+              form.role === "department_head" || form.role === "sub_department_head"
+                ? assignedOrgUnit
+                : null,
+          }),
         },
-        body: JSON.stringify({
-          ...(!editing ? {
-            persNo: selectedEmployee?.persNo,
-            temporaryPassword: form.temporaryPassword || undefined,
-          } : {}),
-          role: form.role,
-          assignedRange: form.role === "admin" ? null : form.assignedRange,
-          assignedOrgUnit:
-            form.role === "department_head" || form.role === "sub_department_head"
-              ? form.assignedOrgUnit
-              : null,
-        }),
-      },
-    ).catch(() => null);
-    if (!response?.ok) {
-      setMessage(response ? await errorMessage(response) : "The API is unavailable.");
-      setIsSaving(false);
-      return;
+      ).catch(() => null);
+      if (!response?.ok) {
+        setAssignments((current) => [...current, ...savedAssignments]
+          .sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
+        setMessage(response ? await errorMessage(response) : "The API is unavailable.");
+        setIsSaving(false);
+        return;
+      }
+      savedAssignments.push((await response.json()) as AccessAssignment);
     }
-    const saved = (await response.json()) as AccessAssignment;
+
     setAssignments((current) => editing
-      ? current.map((item) => item.assignmentId === saved.assignmentId ? saved : item)
-      : [...current, saved].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
+      ? current.map((item) => item.assignmentId === savedAssignments[0].assignmentId
+        ? savedAssignments[0]
+        : item)
+      : [...current, ...savedAssignments].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
     setIsSaving(false);
     editorRef.current?.close();
   };
@@ -219,7 +254,10 @@ export function AccessPointDashboard({
   };
 
   const requiresRange = form.role !== "admin";
-  const requiresOrgUnit = form.role === "department_head" || form.role === "sub_department_head";
+  const requiresSingleOrgUnit = editing
+    ? form.role === "department_head" || form.role === "sub_department_head"
+    : form.role === "sub_department_head";
+  const requiresMultipleOrgUnits = !editing && form.role === "department_head";
   const employee = editing
     ? { employeeName: editing.employeeName, persNo: editing.persNo, email: editing.email, designation: null }
     : selectedEmployee;
@@ -289,9 +327,10 @@ export function AccessPointDashboard({
             </div>}
 
             {employee && <>
-              <label className="access-point__field"><span>Role*</span><select value={form.role} disabled={isSaving} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as ManagedRole, assignedRange: event.target.value === "admin" ? "" : current.assignedRange, assignedOrgUnit: "" }))}>{managedRoles.map((item) => <option value={item} key={item}>{managedRoleLabels[item]}</option>)}</select></label>
+              <label className="access-point__field"><span>Role*</span><select value={form.role} disabled={isSaving} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as ManagedRole, assignedRange: event.target.value === "admin" ? "" : current.assignedRange, assignedOrgUnit: "", assignedOrgUnits: [] }))}>{managedRoles.map((item) => <option value={item} key={item}>{managedRoleLabels[item]}</option>)}</select></label>
               {requiresRange && <label className="access-point__field"><span>Range*</span><select required value={form.assignedRange} disabled={isSaving} onChange={(event) => changeRange(event.target.value)}><option value="">Select Range</option>{scopeOptions.ranges.map((item) => <option key={item}>{item}</option>)}</select></label>}
-              {requiresOrgUnit && <label className="access-point__field"><span>Accessible Org Unit*</span><select required value={form.assignedOrgUnit} disabled={isSaving || !form.assignedRange} onChange={(event) => setForm((current) => ({ ...current, assignedOrgUnit: event.target.value }))}><option value="">Select Org Unit</option>{orgUnits.map((item) => <option key={item}>{item}</option>)}</select></label>}
+              {requiresSingleOrgUnit && <label className="access-point__field"><span>Accessible Org Unit*</span><select required value={form.assignedOrgUnit} disabled={isSaving || !form.assignedRange} onChange={(event) => setForm((current) => ({ ...current, assignedOrgUnit: event.target.value }))}><option value="">Select Org Unit</option>{orgUnits.map((item) => <option key={item}>{item}</option>)}</select></label>}
+              {requiresMultipleOrgUnits && <fieldset className="access-point__field access-point__multi-select" disabled={isSaving || !form.assignedRange}><legend>Accessible Org Units*</legend><div className="access-point__multi-options">{orgUnits.map((item) => <label key={item}><input type="checkbox" checked={form.assignedOrgUnits.includes(item)} onChange={() => toggleOrgUnit(item)} /><span>{item}</span></label>)}</div><small>{form.assignedOrgUnits.length} selected</small></fieldset>}
               {!editing && selectedEmployee && !selectedEmployee.hasAccount && <label className="access-point__field"><span>Temporary password*</span><input type="password" minLength={12} required autoComplete="new-password" value={form.temporaryPassword} disabled={isSaving} onChange={(event) => setForm((current) => ({ ...current, temporaryPassword: event.target.value }))} /><small>Use at least 12 characters. The employee must change it after signing in.</small></label>}
               {!editing && selectedEmployee?.hasAccount && <p className="access-point__notice">An account already exists. This role will be added as another assignment; its password will not change.</p>}
             </>}
