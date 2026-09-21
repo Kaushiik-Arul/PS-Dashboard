@@ -12,6 +12,7 @@ const config_1 = require("@nestjs/config");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const environment_1 = require("./config/environment");
+const hrbp_point_module_1 = require("./modules/hrbp-point/hrbp-point.module");
 const overview_module_1 = require("./modules/overview/overview.module");
 let AppModule = class AppModule {
 };
@@ -24,6 +25,7 @@ exports.AppModule = AppModule = __decorate([
                 isGlobal: true,
                 validate: environment_1.validateEnvironment,
             }),
+            hrbp_point_module_1.HrbpPointModule,
             overview_module_1.OverviewModule,
         ],
         controllers: [app_controller_1.AppController],

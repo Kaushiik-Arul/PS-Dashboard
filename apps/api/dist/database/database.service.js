@@ -30,8 +30,8 @@ let DatabaseService = DatabaseService_1 = class DatabaseService {
             this.logger.error('An idle PostgreSQL connection failed');
         });
     }
-    query(queryText) {
-        return this.pool.query(queryText);
+    query(queryText, values = []) {
+        return this.pool.query(queryText, values);
     }
     async onApplicationShutdown() {
         await this.pool.end();

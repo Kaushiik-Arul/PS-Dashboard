@@ -6,6 +6,6 @@ export declare class DatabaseService implements OnApplicationShutdown {
     private readonly logger;
     private readonly pool;
     constructor(config: ConfigService<Environment, true>);
-    query<Row extends QueryResultRow>(queryText: string): Promise<QueryResult<Row>>;
+    query<Row extends QueryResultRow>(queryText: string, values?: unknown[]): Promise<QueryResult<Row>>;
     onApplicationShutdown(): Promise<void>;
 }

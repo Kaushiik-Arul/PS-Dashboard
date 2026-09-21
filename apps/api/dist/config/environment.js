@@ -7,7 +7,11 @@ const nodeEnvironments = new Set([
     'production',
 ]);
 function validateEnvironment(values) {
-    const nodeEnvironment = String(values.NODE_ENV ?? 'development');
+    const nodeEnvironmentValue = values.NODE_ENV ?? 'development';
+    if (typeof nodeEnvironmentValue !== 'string') {
+        throw new Error('NODE_ENV must be development, test, or production');
+    }
+    const nodeEnvironment = nodeEnvironmentValue;
     if (!nodeEnvironments.has(nodeEnvironment)) {
         throw new Error('NODE_ENV must be development, test, or production');
     }
@@ -15,7 +19,11 @@ function validateEnvironment(values) {
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
         throw new Error('PORT must be an integer between 1 and 65535');
     }
-    const databaseUrl = String(values.DATABASE_URL ?? '').trim();
+    const databaseUrlValue = values.DATABASE_URL ?? '';
+    if (typeof databaseUrlValue !== 'string') {
+        throw new Error('DATABASE_URL is required');
+    }
+    const databaseUrl = databaseUrlValue.trim();
     if (!databaseUrl) {
         throw new Error('DATABASE_URL is required');
     }

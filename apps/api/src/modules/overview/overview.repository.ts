@@ -13,10 +13,14 @@ export class OverviewRepository {
 
   async getOverview(): Promise<OverviewResponseDto> {
     const result = await this.database.query<OverviewRow>(`
+      WITH settings AS (
+        SELECT CURRENT_DATE AS as_of_date
+      )
       SELECT JSONB_BUILD_OBJECT(
-        'kpis', public.get_workforce_kpis(),
-        'charts', public.get_workforce_charts()
-      ) AS dashboard;
+        'kpis', public.get_workforce_kpis(settings.as_of_date),
+        'charts', public.get_workforce_charts(settings.as_of_date)
+      ) AS dashboard
+      FROM settings;
     `);
 
     const dashboard = result.rows[0]?.dashboard;

@@ -27,8 +27,11 @@ export class DatabaseService implements OnApplicationShutdown {
     });
   }
 
-  query<Row extends QueryResultRow>(queryText: string): Promise<QueryResult<Row>> {
-    return this.pool.query<Row>(queryText);
+  query<Row extends QueryResultRow>(
+    queryText: string,
+    values: unknown[] = [],
+  ): Promise<QueryResult<Row>> {
+    return this.pool.query<Row>(queryText, values);
   }
 
   async onApplicationShutdown(): Promise<void> {
