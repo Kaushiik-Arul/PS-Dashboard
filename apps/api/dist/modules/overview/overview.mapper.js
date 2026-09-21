@@ -68,16 +68,6 @@ function mapRetirementRisk(value) {
         };
     });
 }
-function mapWorkforceMovement(value) {
-    const source = requireRecord(value, 'charts.workforce_movement');
-    return {
-        monthStart: requireString(source.month_start, 'charts.workforce_movement.month_start'),
-        throughDate: requireString(source.through_date, 'charts.workforce_movement.through_date'),
-        inbound: nullableNumber(source.inbound, 'charts.workforce_movement.inbound'),
-        outbound: nullableNumber(source.outbound, 'charts.workforce_movement.outbound'),
-        active: nullableNumber(source.active, 'charts.workforce_movement.active'),
-    };
-}
 function mapOverviewResponse(value) {
     const dashboard = requireRecord(value, 'dashboard');
     const kpis = requireRecord(dashboard.kpis, 'kpis');
@@ -97,14 +87,14 @@ function mapOverviewResponse(value) {
             crl: mapKpi(kpis.crl, 'kpis.crl'),
         },
         charts: {
-            headcountByRange: mapDistribution(charts.headcount_by_range, 'charts.headcount_by_range'),
+            headcountByPsGroup: mapDistribution(charts.headcount_by_ps_group, 'charts.headcount_by_ps_group'),
             genderDistribution: mapDistribution(charts.gender_distribution, 'charts.gender_distribution'),
             headcountByFunction: mapDistribution(charts.headcount_by_function, 'charts.headcount_by_function'),
             headcountByLocation: mapDistribution(charts.headcount_by_location, 'charts.headcount_by_location'),
             ageProfile: mapDistribution(charts.age_profile, 'charts.age_profile'),
             tenureProfile: mapDistribution(charts.tenure_profile, 'charts.tenure_profile'),
             retirementRisk: mapRetirementRisk(charts.retirement_risk),
-            workforceMovement: mapWorkforceMovement(charts.workforce_movement),
+            workforceMovement: mapDistribution(charts.workforce_movement, 'charts.workforce_movement'),
         },
     };
 }

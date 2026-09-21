@@ -316,43 +316,26 @@ export function RetirementRiskTable({ rows }: { rows: RiskRow[] }) {
   );
 }
 
-interface MovementDatum {
-  month: string;
-  inbound: number;
-  outbound: number;
-  active: number;
-}
-
-export function MovementChart({ data, period }: { data: MovementDatum[]; period: string }) {
-  const currentMonth = data[0];
-
-  if (!currentMonth) {
-    return null;
-  }
-
-  const metrics = [
-    { label: "Inbound", value: currentMonth.inbound, className: "-inbound" },
-    { label: "Outbound", value: currentMonth.outbound, className: "-outbound" },
-    { label: "Active", value: currentMonth.active, className: "-active" },
-  ];
-  const maximum = Math.max(...metrics.map((metric) => metric.value));
-  const movementTotal = metrics.reduce((sum, metric) => sum + metric.value, 0);
+export function MovementChart({ data, period }: { data: ChartDatum[]; period: string }) {
+  const maximum = Math.max(...data.map((item) => item.value), 0);
+  const movementTotal = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="movement-chart" role="group" aria-label={`${currentMonth.month} workforce movement`}>
+    <div className="movement-chart" role="group" aria-label={`${period} workforce movement`}>
       <span className="movement-chart__period">{period}</span>
       <div className="movement-chart__summary">
-        {metrics.map((metric) => {
-          const percentage = movementTotal > 0 ? (metric.value / movementTotal) * 100 : 0;
-          const detail = `${metric.label}: ${metric.value} employees, ${percentage.toFixed(1)}% of the displayed movement total.`;
+        {data.map((item, index) => {
+          const percentage = movementTotal > 0 ? (item.value / movementTotal) * 100 : 0;
+          const detail = `${item.label}: ${item.displayValue ?? item.value.toLocaleString()} employees, ${percentage.toFixed(1)}% of the displayed workforce groups.`;
+          const className = `-series-${(index % 3) + 1}`;
 
-          return <div className="movement-chart__metric chart-data-point" key={metric.label} tabIndex={0} data-tooltip={detail} aria-label={detail} onPointerMove={positionChartTooltip}>
+          return <div className="movement-chart__metric chart-data-point" key={item.label} tabIndex={0} data-tooltip={detail} aria-label={detail} onPointerMove={positionChartTooltip}>
             <div className="movement-chart__metric-label">
-              <span><i className={metric.className} />{metric.label}</span>
-              <strong>{metric.value}</strong>
+              <span><i className={className} />{item.label}</span>
+              <strong>{item.displayValue ?? item.value.toLocaleString()}</strong>
             </div>
             <div className="movement-chart__track">
-              <span className={metric.className} style={{ width: `${maximum > 0 ? (metric.value / maximum) * 100 : 0}%` }} />
+              <span className={className} style={{ width: `${maximum > 0 ? (item.value / maximum) * 100 : 0}%` }} />
             </div>
           </div>;
         })}

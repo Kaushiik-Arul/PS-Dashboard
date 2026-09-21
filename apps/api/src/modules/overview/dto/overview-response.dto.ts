@@ -70,26 +70,9 @@ export class RetirementRiskRowDto {
   fiveYears!: number;
 }
 
-export class WorkforceMovementDto {
-  @ApiProperty()
-  monthStart!: string;
-
-  @ApiProperty()
-  throughDate!: string;
-
-  @ApiProperty({ type: Number, nullable: true })
-  inbound!: number | null;
-
-  @ApiProperty({ type: Number, nullable: true })
-  outbound!: number | null;
-
-  @ApiProperty({ type: Number, nullable: true })
-  active!: number | null;
-}
-
 export class OverviewChartsDto {
   @ApiProperty({ type: DistributionChartDto })
-  headcountByRange!: DistributionChartDto;
+  headcountByPsGroup!: DistributionChartDto;
 
   @ApiProperty({ type: DistributionChartDto })
   genderDistribution!: DistributionChartDto;
@@ -109,8 +92,8 @@ export class OverviewChartsDto {
   @ApiProperty({ type: [RetirementRiskRowDto] })
   retirementRisk!: RetirementRiskRowDto[];
 
-  @ApiProperty({ type: WorkforceMovementDto })
-  workforceMovement!: WorkforceMovementDto;
+  @ApiProperty({ type: DistributionChartDto })
+  workforceMovement!: DistributionChartDto;
 }
 
 export class OverviewResponseDto {

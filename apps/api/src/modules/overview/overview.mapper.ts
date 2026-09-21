@@ -4,7 +4,6 @@ import {
   KpiValueDto,
   OverviewResponseDto,
   RetirementRiskRowDto,
-  WorkforceMovementDto,
 } from './dto/overview-response.dto';
 
 type JsonRecord = Record<string, unknown>;
@@ -117,33 +116,6 @@ function mapRetirementRisk(value: unknown): RetirementRiskRowDto[] {
   });
 }
 
-function mapWorkforceMovement(value: unknown): WorkforceMovementDto {
-  const source = requireRecord(value, 'charts.workforce_movement');
-
-  return {
-    monthStart: requireString(
-      source.month_start,
-      'charts.workforce_movement.month_start',
-    ),
-    throughDate: requireString(
-      source.through_date,
-      'charts.workforce_movement.through_date',
-    ),
-    inbound: nullableNumber(
-      source.inbound,
-      'charts.workforce_movement.inbound',
-    ),
-    outbound: nullableNumber(
-      source.outbound,
-      'charts.workforce_movement.outbound',
-    ),
-    active: nullableNumber(
-      source.active,
-      'charts.workforce_movement.active',
-    ),
-  };
-}
-
 export function mapOverviewResponse(value: unknown): OverviewResponseDto {
   const dashboard = requireRecord(value, 'dashboard');
   const kpis = requireRecord(dashboard.kpis, 'kpis');
@@ -167,9 +139,9 @@ export function mapOverviewResponse(value: unknown): OverviewResponseDto {
       crl: mapKpi(kpis.crl, 'kpis.crl'),
     },
     charts: {
-      headcountByRange: mapDistribution(
-        charts.headcount_by_range,
-        'charts.headcount_by_range',
+      headcountByPsGroup: mapDistribution(
+        charts.headcount_by_ps_group,
+        'charts.headcount_by_ps_group',
       ),
       genderDistribution: mapDistribution(
         charts.gender_distribution,
@@ -192,7 +164,10 @@ export function mapOverviewResponse(value: unknown): OverviewResponseDto {
         'charts.tenure_profile',
       ),
       retirementRisk: mapRetirementRisk(charts.retirement_risk),
-      workforceMovement: mapWorkforceMovement(charts.workforce_movement),
+      workforceMovement: mapDistribution(
+        charts.workforce_movement,
+        'charts.workforce_movement',
+      ),
     },
   };
 }

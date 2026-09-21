@@ -74,11 +74,28 @@ function formatKpiValue(metric: KpiValue, format: KpiDefinition["format"]) {
   return value;
 }
 
-function mapChartData(data: OverviewChartDatum[]): ChartDatum[] {
+function formatCompositionValue(item: OverviewChartDatum) {
+  const headcount = item.value.toLocaleString("en-US");
+
+  if (item.percentage === null) return headcount;
+
+  const percentage = item.percentage.toLocaleString("en-US", {
+    maximumFractionDigits: 1,
+  });
+
+  return `${headcount} (${percentage}%)`;
+}
+
+function mapChartData(
+  data: OverviewChartDatum[],
+  includePercentage = false,
+): ChartDatum[] {
   return data.map((item) => ({
     label: item.label,
     value: item.value,
-    displayValue: item.value.toLocaleString("en-US"),
+    displayValue: includePercentage
+      ? formatCompositionValue(item)
+      : item.value.toLocaleString("en-US"),
   }));
 }
 
@@ -88,7 +105,7 @@ function mapDonutData(data: OverviewChartDatum[]) {
     value: item.value,
     displayValue: item.percentage === null
       ? item.value.toLocaleString("en-US")
-      : `${item.percentage.toLocaleString("en-US", { maximumFractionDigits: 1 })}%`,
+      : formatCompositionValue(item),
     color: chartColors[index % chartColors.length],
   }));
 }
@@ -112,27 +129,16 @@ export function OverviewDashboard({ data }: { data: OverviewResponse }) {
     icon: definition.icon,
     iconColor: definition.iconColor,
   }));
-  const rangeData = mapChartData(data.charts.headcountByRange.data);
+  const psGroupData = mapChartData(data.charts.headcountByPsGroup.data, true);
   const genderData = mapDonutData(data.charts.genderDistribution.data);
-  const functionData = mapChartData(data.charts.headcountByFunction.data);
+  const functionData = mapChartData(data.charts.headcountByFunction.data, true);
   const locationData = mapDonutData(data.charts.headcountByLocation.data);
   const ageData = mapChartData(data.charts.ageProfile.data);
   const tenureData = mapChartData(data.charts.tenureProfile.data);
+  const movementData = mapChartData(data.charts.workforceMovement.data);
   const totalLabel = data.kpis.totalHeadcount.value === null
     ? "N/A"
     : data.kpis.totalHeadcount.value.toLocaleString("en-US");
-  const movement = data.charts.workforceMovement;
-  const hasMovement = movement.inbound !== null
-    && movement.outbound !== null
-    && movement.active !== null;
-  const movementData = hasMovement
-    ? [{
-        month: formatDate(movement.monthStart, { month: "short" }),
-        inbound: movement.inbound as number,
-        outbound: movement.outbound as number,
-        active: movement.active as number,
-      }]
-    : [];
 
   return (
     <main className="overview-page">
@@ -158,14 +164,14 @@ export function OverviewDashboard({ data }: { data: OverviewResponse }) {
           <p>Distribution of employees across organizational dimensions</p>
         </div>
         <div className="chart-grid chart-grid--composition">
-          <ChartCard title="Headcount by range" description="Employees by salary level and group">
-            {rangeData.length > 0 ? <HorizontalBarChart data={rangeData} /> : <ChartUnavailable />}
+          <ChartCard title="Headcount by function" description="Employees across business functions">
+            {functionData.length > 0 ? <HorizontalBarChart data={functionData} /> : <ChartUnavailable />}
           </ChartCard>
           <ChartCard title="Gender distribution" description="Share of total workforce">
             {genderData.length > 0 ? <DonutChart data={genderData} total={totalLabel} /> : <ChartUnavailable />}
           </ChartCard>
-          <ChartCard title="Headcount by function" description="Employees across business functions">
-            {functionData.length > 0 ? <HorizontalBarChart data={functionData} /> : <ChartUnavailable />}
+          <ChartCard title="Headcount by PS group" description="Employees across PS groups">
+            {psGroupData.length > 0 ? <HorizontalBarChart data={psGroupData} /> : <ChartUnavailable />}
           </ChartCard>
           <ChartCard title="Headcount by location" description="Employees across major sites">
             {locationData.length > 0 ? <DonutChart data={locationData} total={totalLabel} /> : <ChartUnavailable />}
@@ -185,8 +191,8 @@ export function OverviewDashboard({ data }: { data: OverviewResponse }) {
           <ChartCard title="Tenure profile" description="Headcount by completed service">
             {tenureData.length > 0 ? <VerticalBarChart data={tenureData} tone="turquoise" /> : <ChartUnavailable />}
           </ChartCard>
-          <ChartCard title="Workforce movement" description={`Inbound, outbound, and active employees through ${formatDate(movement.throughDate, { day: "numeric", month: "long", year: "numeric" })}`}>
-            {hasMovement ? <MovementChart data={movementData} period={asOfLabel} /> : <ChartUnavailable />}
+          <ChartCard title="Workforce movement" description="Current workforce by employee group">
+            {movementData.length > 0 ? <MovementChart data={movementData} period={asOfLabel} /> : <ChartUnavailable />}
           </ChartCard>
           <ChartCard title="Retirement risk" description="Employees reaching retirement eligibility">
             {data.charts.retirementRisk.length > 0

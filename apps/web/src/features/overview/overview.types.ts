@@ -33,25 +33,17 @@ export type RetirementRiskRow = {
   fiveYears: number;
 };
 
-export type WorkforceMovement = {
-  monthStart: string;
-  throughDate: string;
-  inbound: number | null;
-  outbound: number | null;
-  active: number | null;
-};
-
 export type OverviewResponse = {
   asOfDate: string;
   kpis: OverviewKpis;
   charts: {
-    headcountByRange: OverviewDistributionChart;
+    headcountByPsGroup: OverviewDistributionChart;
     genderDistribution: OverviewDistributionChart;
     headcountByFunction: OverviewDistributionChart;
     headcountByLocation: OverviewDistributionChart;
     ageProfile: OverviewDistributionChart;
     tenureProfile: OverviewDistributionChart;
     retirementRisk: RetirementRiskRow[];
-    workforceMovement: WorkforceMovement;
+    workforceMovement: OverviewDistributionChart;
   };
 };

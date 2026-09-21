@@ -28,22 +28,15 @@ export declare class RetirementRiskRowDto {
     threeYears: number;
     fiveYears: number;
 }
-export declare class WorkforceMovementDto {
-    monthStart: string;
-    throughDate: string;
-    inbound: number | null;
-    outbound: number | null;
-    active: number | null;
-}
 export declare class OverviewChartsDto {
-    headcountByRange: DistributionChartDto;
+    headcountByPsGroup: DistributionChartDto;
     genderDistribution: DistributionChartDto;
     headcountByFunction: DistributionChartDto;
     headcountByLocation: DistributionChartDto;
     ageProfile: DistributionChartDto;
     tenureProfile: DistributionChartDto;
     retirementRisk: RetirementRiskRowDto[];
-    workforceMovement: WorkforceMovementDto;
+    workforceMovement: DistributionChartDto;
 }
 export declare class OverviewResponseDto {
     asOfDate: string;

@@ -4,7 +4,6 @@ import type {
   OverviewDistributionChart,
   OverviewResponse,
   RetirementRiskRow,
-  WorkforceMovement,
 } from "./overview.types";
 
 type JsonRecord = Record<string, unknown>;
@@ -107,30 +106,6 @@ function parseRetirementRisk(value: unknown): RetirementRiskRow[] {
   });
 }
 
-function parseWorkforceMovement(value: unknown): WorkforceMovement {
-  const source = requireRecord(value, "charts.workforceMovement");
-
-  return {
-    monthStart: requireString(
-      source.monthStart,
-      "charts.workforceMovement.monthStart",
-    ),
-    throughDate: requireString(
-      source.throughDate,
-      "charts.workforceMovement.throughDate",
-    ),
-    inbound: nullableNumber(
-      source.inbound,
-      "charts.workforceMovement.inbound",
-    ),
-    outbound: nullableNumber(
-      source.outbound,
-      "charts.workforceMovement.outbound",
-    ),
-    active: nullableNumber(source.active, "charts.workforceMovement.active"),
-  };
-}
-
 function parseOverviewResponse(value: unknown): OverviewResponse {
   const response = requireRecord(value, "response");
   const kpis = requireRecord(response.kpis, "kpis");
@@ -160,9 +135,9 @@ function parseOverviewResponse(value: unknown): OverviewResponse {
       crl: parseKpi(kpis.crl, "kpis.crl"),
     },
     charts: {
-      headcountByRange: parseDistribution(
-        charts.headcountByRange,
-        "charts.headcountByRange",
+      headcountByPsGroup: parseDistribution(
+        charts.headcountByPsGroup,
+        "charts.headcountByPsGroup",
       ),
       genderDistribution: parseDistribution(
         charts.genderDistribution,
@@ -182,7 +157,10 @@ function parseOverviewResponse(value: unknown): OverviewResponse {
         "charts.tenureProfile",
       ),
       retirementRisk: parseRetirementRisk(charts.retirementRisk),
-      workforceMovement: parseWorkforceMovement(charts.workforceMovement),
+      workforceMovement: parseDistribution(
+        charts.workforceMovement,
+        "charts.workforceMovement",
+      ),
     },
   };
 }

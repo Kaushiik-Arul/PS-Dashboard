@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OverviewResponseDto = exports.OverviewChartsDto = exports.WorkforceMovementDto = exports.RetirementRiskRowDto = exports.DistributionChartDto = exports.ChartDatumDto = exports.OverviewKpisDto = exports.KpiValueDto = void 0;
+exports.OverviewResponseDto = exports.OverviewChartsDto = exports.RetirementRiskRowDto = exports.DistributionChartDto = exports.ChartDatumDto = exports.OverviewKpisDto = exports.KpiValueDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class KpiValueDto {
     value;
@@ -126,36 +126,8 @@ __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", Number)
 ], RetirementRiskRowDto.prototype, "fiveYears", void 0);
-class WorkforceMovementDto {
-    monthStart;
-    throughDate;
-    inbound;
-    outbound;
-    active;
-}
-exports.WorkforceMovementDto = WorkforceMovementDto;
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", String)
-], WorkforceMovementDto.prototype, "monthStart", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)(),
-    __metadata("design:type", String)
-], WorkforceMovementDto.prototype, "throughDate", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ type: Number, nullable: true }),
-    __metadata("design:type", Object)
-], WorkforceMovementDto.prototype, "inbound", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ type: Number, nullable: true }),
-    __metadata("design:type", Object)
-], WorkforceMovementDto.prototype, "outbound", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ type: Number, nullable: true }),
-    __metadata("design:type", Object)
-], WorkforceMovementDto.prototype, "active", void 0);
 class OverviewChartsDto {
-    headcountByRange;
+    headcountByPsGroup;
     genderDistribution;
     headcountByFunction;
     headcountByLocation;
@@ -168,7 +140,7 @@ exports.OverviewChartsDto = OverviewChartsDto;
 __decorate([
     (0, swagger_1.ApiProperty)({ type: DistributionChartDto }),
     __metadata("design:type", DistributionChartDto)
-], OverviewChartsDto.prototype, "headcountByRange", void 0);
+], OverviewChartsDto.prototype, "headcountByPsGroup", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ type: DistributionChartDto }),
     __metadata("design:type", DistributionChartDto)
@@ -194,8 +166,8 @@ __decorate([
     __metadata("design:type", Array)
 ], OverviewChartsDto.prototype, "retirementRisk", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ type: WorkforceMovementDto }),
-    __metadata("design:type", WorkforceMovementDto)
+    (0, swagger_1.ApiProperty)({ type: DistributionChartDto }),
+    __metadata("design:type", DistributionChartDto)
 ], OverviewChartsDto.prototype, "workforceMovement", void 0);
 class OverviewResponseDto {
     asOfDate;

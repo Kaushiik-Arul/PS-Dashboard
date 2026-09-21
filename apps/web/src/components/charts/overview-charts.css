@@ -426,9 +426,9 @@
   gap: 1rem;
 }
 
-.movement-chart .-inbound { background-color: var(--accent-major__enabled__default__fill); }
-.movement-chart .-outbound { background-color: var(--emphasis-03-major__enabled__default__fill); }
-.movement-chart .-active { background-color: var(--emphasis-01-major__enabled__default__fill); }
+.movement-chart .-series-1 { background-color: var(--accent-major__enabled__default__fill); }
+.movement-chart .-series-2 { background-color: var(--emphasis-03-major__enabled__default__fill); }
+.movement-chart .-series-3 { background-color: var(--emphasis-01-major__enabled__default__fill); }
 
 .movement-chart__metric-label {
   align-items: center;
@@ -468,11 +468,22 @@
 
 @container (min-width: 25rem) {
   .donut-chart {
-    grid-template-columns: 8.5rem minmax(8rem, 1fr);
+    grid-template-columns: 11rem minmax(8rem, 18rem);
+    justify-content: center;
     justify-items: stretch;
     min-height: 12rem;
   }
-  .donut-chart__graphic { justify-self: center; }
+
+  .donut-chart__graphic {
+    height: 11rem;
+    justify-self: center;
+    width: 11rem;
+  }
+
+  .donut-chart__center {
+    height: 6.5rem;
+    width: 6.5rem;
+  }
 }
 
 @container (min-width: 30rem) {
