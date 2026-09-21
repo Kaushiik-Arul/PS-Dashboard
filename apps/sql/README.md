@@ -6,8 +6,8 @@ Source tables: public.employee_namelist, public.employee_status
 
 | Function | Arguments | Return type | Purpose |
 | --- | --- | --- | --- |
-| public.get_workforce_kpis() | Optional DATE | JSONB | Overview KPI values |
-| public.get_workforce_charts() | Optional DATE | JSONB | Overview chart data |
+| public.get_workforce_kpis() | Optional DATE and six TEXT filters | JSONB | Overview KPI values |
+| public.get_workforce_charts() | Optional DATE and six TEXT filters | JSONB | Overview chart data |
 
 ## Rules
 
@@ -19,7 +19,10 @@ Source tables: public.employee_namelist, public.employee_status
 - Missing source data produces null/unavailable results, not invented values.
 - The API returns an object containing kpis and charts.
 - The functions return JSON objects, not formatted JSON text.
-- These functions accept an optional calculation date and no dashboard filters.
+- These functions accept an optional calculation date and dashboard filters.
+- Overview filters are optional exact matches for function, organizational unit,
+  range, location, gender, and direct/indirect values after trimming whitespace.
+- Employee-status KPI filters join employee_status to employee_namelist by pers_no.
 - Update this contract and the response DTOs when output fields change.
 - Store function definitions in apps/sql/functions.
 - Apply database changes through versioned migrations.

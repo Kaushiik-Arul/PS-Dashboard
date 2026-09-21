@@ -19,14 +19,33 @@ let OverviewService = OverviewService_1 = class OverviewService {
     constructor(repository) {
         this.repository = repository;
     }
-    async getOverview() {
+    async getOverview(filters = {}) {
+        const normalizedFilters = this.normalizeFilters(filters);
         try {
-            return await this.repository.getOverview();
+            return await this.repository.getOverview(normalizedFilters);
         }
         catch {
             this.logger.error('Overview database query failed');
             throw new common_1.InternalServerErrorException('Unable to load the workforce overview');
         }
+    }
+    normalizeFilters(filters) {
+        const normalize = (value, label) => {
+            if (value === undefined || value === '')
+                return null;
+            if (typeof value !== 'string' || value.length > 200) {
+                throw new common_1.BadRequestException(`${label} filter is invalid`);
+            }
+            return value.trim() || null;
+        };
+        return {
+            functionName: normalize(filters.functionName, 'Function'),
+            orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
+            range: normalize(filters.range, 'Range'),
+            location: normalize(filters.location, 'Location'),
+            gender: normalize(filters.gender, 'Gender'),
+            directOrIndirect: normalize(filters.directOrIndirect, 'Direct or indirect'),
+        };
     }
 };
 exports.OverviewService = OverviewService;

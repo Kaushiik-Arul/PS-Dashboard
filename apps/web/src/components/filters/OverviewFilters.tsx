@@ -14,6 +14,8 @@ export interface DashboardFilters {
   hrbp: string;
 }
 
+export type DashboardFilterKey = keyof DashboardFilters;
+
 export const emptyDashboardFilters: DashboardFilters = {
   businessUnit: "All",
   functionName: "All",
@@ -26,7 +28,7 @@ export const emptyDashboardFilters: DashboardFilters = {
 };
 
 const filterFields: Array<{
-  key: keyof DashboardFilters;
+  key: DashboardFilterKey;
   label: string;
   options: string[];
 }> = [
@@ -49,6 +51,8 @@ interface OverviewFiltersProps {
   onPeriodChange?: (period: string) => void;
   onApply: () => void;
   onClear: () => void;
+  fields?: readonly DashboardFilterKey[];
+  options?: Partial<Record<DashboardFilterKey, string[]>>;
 }
 
 export function OverviewFilters({
@@ -60,9 +64,27 @@ export function OverviewFilters({
   onPeriodChange,
   onApply,
   onClear,
+  fields,
+  options,
 }: OverviewFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const activeFilters = filterFields.filter((field) => activeValue[field.key] !== "All");
+  const visibleFields = fields
+    ? filterFields.filter((field) => fields.includes(field.key))
+    : filterFields;
+  const activeFilters = visibleFields.filter((field) => activeValue[field.key] !== "All");
+  const hasPendingChanges = visibleFields.some(
+    (field) => value[field.key] !== activeValue[field.key],
+  );
+  const getFieldOptions = (field: (typeof filterFields)[number]) => {
+    const available = options?.[field.key]
+      ?? field.options.filter((option) => option !== "All");
+    const selected = value[field.key];
+    return [
+      "All",
+      ...(selected !== "All" && !available.includes(selected) ? [selected] : []),
+      ...available,
+    ];
+  };
 
   return (
     <section className="overview-filters -primary" aria-labelledby="overview-filters-title">
@@ -109,7 +131,7 @@ export function OverviewFilters({
         {isExpanded && (
           <div className="overview-filters__content" id="overview-filter-controls">
             <div className="overview-filters__grid">
-              {filterFields.map((field) => (
+              {visibleFields.map((field) => (
                 <div className="a-dropdown overview-filters__field" key={field.key}>
                   <label htmlFor={`filter-${field.key}`}>{field.label}</label>
                   <select
@@ -117,7 +139,7 @@ export function OverviewFilters({
                     value={value[field.key]}
                     onChange={(event) => onChange({ ...value, [field.key]: event.target.value })}
                   >
-                    {field.options.map((option) => <option key={option}>{option}</option>)}
+                    {getFieldOptions(field).map((option) => <option key={option}>{option}</option>)}
                   </select>
                 </div>
               ))}
@@ -125,7 +147,9 @@ export function OverviewFilters({
 
             <div className="overview-filters__footer">
               <p className="overview-filters__status" aria-live="polite">
-                {activeFilters.length === 0
+                {hasPendingChanges
+                  ? "Changes not applied. Click Apply filters to update the dashboard."
+                  : activeFilters.length === 0
                   ? "Showing all employees"
                   : `Filtered by ${activeFilters.map((field) => `${field.label}: ${activeValue[field.key]}`).join("; ")}`}
               </p>

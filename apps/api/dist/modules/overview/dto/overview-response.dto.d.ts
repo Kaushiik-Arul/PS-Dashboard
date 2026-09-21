@@ -38,8 +38,17 @@ export declare class OverviewChartsDto {
     retirementRisk: RetirementRiskRowDto[];
     workforceMovement: DistributionChartDto;
 }
+export declare class OverviewFilterOptionsDto {
+    functionName: string[];
+    orgUnit: string[];
+    range: string[];
+    location: string[];
+    gender: string[];
+    directOrIndirect: string[];
+}
 export declare class OverviewResponseDto {
     asOfDate: string;
     kpis: OverviewKpisDto;
     charts: OverviewChartsDto;
+    filterOptions: OverviewFilterOptionsDto;
 }

@@ -2,6 +2,7 @@ import "server-only";
 import type {
   KpiValue,
   OverviewDistributionChart,
+  OverviewQueryFilters,
   OverviewResponse,
   RetirementRiskRow,
 } from "./overview.types";
@@ -106,10 +107,20 @@ function parseRetirementRisk(value: unknown): RetirementRiskRow[] {
   });
 }
 
+function parseStringArray(value: unknown, field: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`Overview API returned an invalid ${field}`);
+  }
+  return value.map((item, index) =>
+    requireString(item, `${field}[${index}]`),
+  );
+}
+
 function parseOverviewResponse(value: unknown): OverviewResponse {
   const response = requireRecord(value, "response");
   const kpis = requireRecord(response.kpis, "kpis");
   const charts = requireRecord(response.charts, "charts");
+  const filterOptions = requireRecord(response.filterOptions, "filterOptions");
 
   return {
     asOfDate: requireString(response.asOfDate, "asOfDate"),
@@ -162,6 +173,17 @@ function parseOverviewResponse(value: unknown): OverviewResponse {
         "charts.workforceMovement",
       ),
     },
+    filterOptions: {
+      functionName: parseStringArray(filterOptions.functionName, "filterOptions.functionName"),
+      orgUnit: parseStringArray(filterOptions.orgUnit, "filterOptions.orgUnit"),
+      range: parseStringArray(filterOptions.range, "filterOptions.range"),
+      location: parseStringArray(filterOptions.location, "filterOptions.location"),
+      gender: parseStringArray(filterOptions.gender, "filterOptions.gender"),
+      directOrIndirect: parseStringArray(
+        filterOptions.directOrIndirect,
+        "filterOptions.directOrIndirect",
+      ),
+    },
   };
 }
 
@@ -185,8 +207,15 @@ function getApiBaseUrl(): string {
   return url.toString().replace(/\/$/, "");
 }
 
-export async function getOverview(): Promise<OverviewResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/overview`, {
+export async function getOverview(
+  filters: OverviewQueryFilters = {},
+): Promise<OverviewResponse> {
+  const searchParams = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+  const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  const response = await fetch(`${getApiBaseUrl()}/overview${query}`, {
     cache: "no-store",
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(10_000),

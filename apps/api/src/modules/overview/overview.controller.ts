@@ -1,4 +1,4 @@
-import { Controller, Get, Header } from '@nestjs/common';
+import { Controller, Get, Header, Query } from '@nestjs/common';
 import {
   ApiInternalServerErrorResponse,
   ApiOkResponse,
@@ -6,6 +6,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { OverviewResponseDto } from './dto/overview-response.dto';
+import { OverviewFilterDto } from './dto/overview-filter.dto';
 import { OverviewService } from './overview.service';
 
 @ApiTags('Overview')
@@ -23,7 +24,7 @@ export class OverviewController {
   @ApiInternalServerErrorResponse({
     description: 'Unable to load the workforce overview',
   })
-  getOverview(): Promise<OverviewResponseDto> {
-    return this.service.getOverview();
+  getOverview(@Query() filters: OverviewFilterDto): Promise<OverviewResponseDto> {
+    return this.service.getOverview(filters);
   }
 }

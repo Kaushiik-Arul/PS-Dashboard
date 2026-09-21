@@ -56,6 +56,12 @@ body {
   padding-block: 1rem;
 }
 
+.overview-page__filtering {
+  color: var(--base-major__enabled__default__fill);
+  font-size: 0.75rem;
+  margin: 0 0 var(--app-space-2);
+}
+
 .placeholder-page {
   padding-block: var(--app-space-8);
 }

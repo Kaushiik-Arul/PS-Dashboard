@@ -96,6 +96,26 @@ export class OverviewChartsDto {
   workforceMovement!: DistributionChartDto;
 }
 
+export class OverviewFilterOptionsDto {
+  @ApiProperty({ type: [String] })
+  functionName!: string[];
+
+  @ApiProperty({ type: [String] })
+  orgUnit!: string[];
+
+  @ApiProperty({ type: [String] })
+  range!: string[];
+
+  @ApiProperty({ type: [String] })
+  location!: string[];
+
+  @ApiProperty({ type: [String] })
+  gender!: string[];
+
+  @ApiProperty({ type: [String] })
+  directOrIndirect!: string[];
+}
+
 export class OverviewResponseDto {
   @ApiProperty({ format: 'date' })
   asOfDate!: string;
@@ -105,4 +125,7 @@ export class OverviewResponseDto {
 
   @ApiProperty({ type: OverviewChartsDto })
   charts!: OverviewChartsDto;
+
+  @ApiProperty({ type: OverviewFilterOptionsDto })
+  filterOptions!: OverviewFilterOptionsDto;
 }

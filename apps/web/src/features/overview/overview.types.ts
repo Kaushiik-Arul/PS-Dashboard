@@ -33,6 +33,24 @@ export type RetirementRiskRow = {
   fiveYears: number;
 };
 
+export type OverviewQueryFilters = {
+  functionName?: string;
+  orgUnit?: string;
+  range?: string;
+  location?: string;
+  gender?: string;
+  directOrIndirect?: string;
+};
+
+export type OverviewFilterOptions = {
+  functionName: string[];
+  orgUnit: string[];
+  range: string[];
+  location: string[];
+  gender: string[];
+  directOrIndirect: string[];
+};
+
 export type OverviewResponse = {
   asOfDate: string;
   kpis: OverviewKpis;
@@ -46,4 +64,5 @@ export type OverviewResponse = {
     retirementRisk: RetirementRiskRow[];
     workforceMovement: OverviewDistributionChart;
   };
+  filterOptions: OverviewFilterOptions;
 };

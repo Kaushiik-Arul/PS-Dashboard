@@ -1,3 +1,7 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { startTransition, useRef, useState } from "react";
 import {
   ChartCard,
   DonutChart,
@@ -7,12 +11,20 @@ import {
   VerticalBarChart,
   type ChartDatum,
 } from "@/components/charts/OverviewCharts";
+import {
+  emptyDashboardFilters,
+  OverviewFilters,
+  type DashboardFilterKey,
+  type DashboardFilters,
+} from "@/components/filters/OverviewFilters";
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
 import { KpiGrid } from "@/components/kpi/KpiGrid";
 import type {
   KpiValue,
   OverviewChartDatum,
+  OverviewFilterOptions,
   OverviewKpis,
+  OverviewQueryFilters,
   OverviewResponse,
 } from "./overview.types";
 
@@ -46,6 +58,43 @@ const chartColors = [
   "var(--data-visualization-5)",
   "var(--data-visualization-6)",
 ] as const;
+
+const overviewFilterFields: readonly DashboardFilterKey[] = [
+  "functionName",
+  "orgUnit",
+  "range",
+  "location",
+  "gender",
+  "employmentType",
+];
+
+function toDashboardFilters(filters: OverviewQueryFilters): DashboardFilters {
+  return {
+    ...emptyDashboardFilters,
+    functionName: filters.functionName ?? "All",
+    orgUnit: filters.orgUnit ?? "All",
+    range: filters.range ?? "All",
+    location: filters.location ?? "All",
+    gender: filters.gender ?? "All",
+    employmentType: filters.directOrIndirect ?? "All",
+  };
+}
+
+function toSearchParams(filters: DashboardFilters) {
+  const searchParams = new URLSearchParams();
+  const mappings = [
+    ["functionName", filters.functionName],
+    ["orgUnit", filters.orgUnit],
+    ["range", filters.range],
+    ["location", filters.location],
+    ["gender", filters.gender],
+    ["directOrIndirect", filters.employmentType],
+  ] as const;
+  mappings.forEach(([key, value]) => {
+    if (value !== "All") searchParams.set(key, value);
+  });
+  return searchParams;
+}
 
 function formatDate(value: string, options?: Intl.DateTimeFormatOptions) {
   const date = new Date(`${value}T00:00:00Z`);
@@ -114,7 +163,20 @@ function ChartUnavailable() {
   return <p role="status">Data is not available for the selected reporting period.</p>;
 }
 
-export function OverviewDashboard({ data }: { data: OverviewResponse }) {
+export function OverviewDashboard({
+  data,
+  activeFilters,
+}: {
+  data: OverviewResponse;
+  activeFilters: OverviewQueryFilters;
+}) {
+  const router = useRouter();
+  const appliedFilters = toDashboardFilters(activeFilters);
+  const [draftFilters, setDraftFilters] = useState(appliedFilters);
+  const [filterOptions, setFilterOptions] = useState(data.filterOptions);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const optionRequestId = useRef(0);
   const asOfLabel = formatDate(data.asOfDate, {
     day: "numeric",
     month: "long",
@@ -140,8 +202,57 @@ export function OverviewDashboard({ data }: { data: OverviewResponse }) {
     ? "N/A"
     : data.kpis.totalHeadcount.value.toLocaleString("en-US");
 
+  const applyFilters = (filters: DashboardFilters) => {
+    const searchParams = toSearchParams(filters);
+    setIsFiltering(true);
+    startTransition(() => {
+      router.push(searchParams.size > 0 ? `/?${searchParams.toString()}` : "/");
+    });
+  };
+
+  const refreshFilterOptions = async (filters: DashboardFilters) => {
+    const requestId = ++optionRequestId.current;
+    setIsLoadingOptions(true);
+    try {
+      const searchParams = toSearchParams(filters);
+      const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+      const response = await fetch(`/api/overview/filter-options${query}`);
+      if (!response.ok) return;
+      const nextOptions = (await response.json()) as OverviewFilterOptions;
+      if (requestId === optionRequestId.current) setFilterOptions(nextOptions);
+    } catch {
+      // Keep the current options; Apply still uses server-side validation.
+    } finally {
+      if (requestId === optionRequestId.current) setIsLoadingOptions(false);
+    }
+  };
+
   return (
     <main className="overview-page">
+      <OverviewFilters
+        value={draftFilters}
+        activeValue={appliedFilters}
+        fields={overviewFilterFields}
+        options={{
+          functionName: filterOptions.functionName,
+          orgUnit: filterOptions.orgUnit,
+          range: filterOptions.range,
+          location: filterOptions.location,
+          gender: filterOptions.gender,
+          employmentType: filterOptions.directOrIndirect,
+        }}
+        onChange={(filters) => {
+          setDraftFilters(filters);
+          void refreshFilterOptions(filters);
+        }}
+        onApply={() => applyFilters(draftFilters)}
+        onClear={() => {
+          setDraftFilters(emptyDashboardFilters);
+          applyFilters(emptyDashboardFilters);
+        }}
+      />
+      {isLoadingOptions && <p className="overview-page__filtering" role="status">Updating filter choices...</p>}
+      {isFiltering && <p className="overview-page__filtering" role="status">Updating dashboard...</p>}
       <section className="kpi-section" aria-labelledby="workforce-summary-title">
         <div className="kpi-section__header">
           <div>

@@ -13,6 +13,9 @@ function requireArray(value, field) {
     }
     return value;
 }
+function mapStringArray(value, field) {
+    return requireArray(value, field).map((item, index) => requireString(item, `${field}[${index}]`));
+}
 function requireString(value, field) {
     if (typeof value !== 'string' || value.length === 0) {
         throw new Error(`Overview result contains an invalid ${field}`);
@@ -72,6 +75,7 @@ function mapOverviewResponse(value) {
     const dashboard = requireRecord(value, 'dashboard');
     const kpis = requireRecord(dashboard.kpis, 'kpis');
     const charts = requireRecord(dashboard.charts, 'charts');
+    const filterOptions = requireRecord(dashboard.filterOptions, 'filterOptions');
     return {
         asOfDate: requireString(kpis.as_of_date, 'kpis.as_of_date'),
         kpis: {
@@ -95,6 +99,14 @@ function mapOverviewResponse(value) {
             tenureProfile: mapDistribution(charts.tenure_profile, 'charts.tenure_profile'),
             retirementRisk: mapRetirementRisk(charts.retirement_risk),
             workforceMovement: mapDistribution(charts.workforce_movement, 'charts.workforce_movement'),
+        },
+        filterOptions: {
+            functionName: mapStringArray(filterOptions.functionName, 'filterOptions.functionName'),
+            orgUnit: mapStringArray(filterOptions.orgUnit, 'filterOptions.orgUnit'),
+            range: mapStringArray(filterOptions.range, 'filterOptions.range'),
+            location: mapStringArray(filterOptions.location, 'filterOptions.location'),
+            gender: mapStringArray(filterOptions.gender, 'filterOptions.gender'),
+            directOrIndirect: mapStringArray(filterOptions.directOrIndirect, 'filterOptions.directOrIndirect'),
         },
     };
 }

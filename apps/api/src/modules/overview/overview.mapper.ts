@@ -24,6 +24,12 @@ function requireArray(value: unknown, field: string): unknown[] {
   return value;
 }
 
+function mapStringArray(value: unknown, field: string): string[] {
+  return requireArray(value, field).map((item, index) =>
+    requireString(item, `${field}[${index}]`),
+  );
+}
+
 function requireString(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`Overview result contains an invalid ${field}`);
@@ -120,6 +126,10 @@ export function mapOverviewResponse(value: unknown): OverviewResponseDto {
   const dashboard = requireRecord(value, 'dashboard');
   const kpis = requireRecord(dashboard.kpis, 'kpis');
   const charts = requireRecord(dashboard.charts, 'charts');
+  const filterOptions = requireRecord(
+    dashboard.filterOptions,
+    'filterOptions',
+  );
 
   return {
     asOfDate: requireString(kpis.as_of_date, 'kpis.as_of_date'),
@@ -167,6 +177,23 @@ export function mapOverviewResponse(value: unknown): OverviewResponseDto {
       workforceMovement: mapDistribution(
         charts.workforce_movement,
         'charts.workforce_movement',
+      ),
+    },
+    filterOptions: {
+      functionName: mapStringArray(
+        filterOptions.functionName,
+        'filterOptions.functionName',
+      ),
+      orgUnit: mapStringArray(filterOptions.orgUnit, 'filterOptions.orgUnit'),
+      range: mapStringArray(filterOptions.range, 'filterOptions.range'),
+      location: mapStringArray(
+        filterOptions.location,
+        'filterOptions.location',
+      ),
+      gender: mapStringArray(filterOptions.gender, 'filterOptions.gender'),
+      directOrIndirect: mapStringArray(
+        filterOptions.directOrIndirect,
+        'filterOptions.directOrIndirect',
       ),
     },
   };

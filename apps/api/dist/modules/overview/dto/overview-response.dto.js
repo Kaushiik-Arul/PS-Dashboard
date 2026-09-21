@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OverviewResponseDto = exports.OverviewChartsDto = exports.RetirementRiskRowDto = exports.DistributionChartDto = exports.ChartDatumDto = exports.OverviewKpisDto = exports.KpiValueDto = void 0;
+exports.OverviewResponseDto = exports.OverviewFilterOptionsDto = exports.OverviewChartsDto = exports.RetirementRiskRowDto = exports.DistributionChartDto = exports.ChartDatumDto = exports.OverviewKpisDto = exports.KpiValueDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class KpiValueDto {
     value;
@@ -169,10 +169,44 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: DistributionChartDto }),
     __metadata("design:type", DistributionChartDto)
 ], OverviewChartsDto.prototype, "workforceMovement", void 0);
+class OverviewFilterOptionsDto {
+    functionName;
+    orgUnit;
+    range;
+    location;
+    gender;
+    directOrIndirect;
+}
+exports.OverviewFilterOptionsDto = OverviewFilterOptionsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: [String] }),
+    __metadata("design:type", Array)
+], OverviewFilterOptionsDto.prototype, "functionName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: [String] }),
+    __metadata("design:type", Array)
+], OverviewFilterOptionsDto.prototype, "orgUnit", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: [String] }),
+    __metadata("design:type", Array)
+], OverviewFilterOptionsDto.prototype, "range", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: [String] }),
+    __metadata("design:type", Array)
+], OverviewFilterOptionsDto.prototype, "location", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: [String] }),
+    __metadata("design:type", Array)
+], OverviewFilterOptionsDto.prototype, "gender", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: [String] }),
+    __metadata("design:type", Array)
+], OverviewFilterOptionsDto.prototype, "directOrIndirect", void 0);
 class OverviewResponseDto {
     asOfDate;
     kpis;
     charts;
+    filterOptions;
 }
 exports.OverviewResponseDto = OverviewResponseDto;
 __decorate([
@@ -187,4 +221,8 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: OverviewChartsDto }),
     __metadata("design:type", OverviewChartsDto)
 ], OverviewResponseDto.prototype, "charts", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: OverviewFilterOptionsDto }),
+    __metadata("design:type", OverviewFilterOptionsDto)
+], OverviewResponseDto.prototype, "filterOptions", void 0);
 //# sourceMappingURL=overview-response.dto.js.map
