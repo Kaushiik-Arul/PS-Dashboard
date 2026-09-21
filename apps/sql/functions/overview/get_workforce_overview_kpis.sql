@@ -173,9 +173,7 @@ BEGIN
                                                 AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
                                         )
                             )
-                            AND (es.start_date IS NULL OR es.start_date <= p_as_of_date)
-              AND (es.end_date IS NULL OR es.end_date >= p_as_of_date)
-              AND (p_function IS NULL
+                              AND (p_function IS NULL
                   OR BTRIM(e.function) = p_function)
               AND (p_organizational_unit IS NULL
                   OR BTRIM(e.organizational_unit) = p_organizational_unit)

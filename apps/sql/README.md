@@ -14,8 +14,9 @@ Source tables: public.employee_namelist, public.employee_status
 - Both functions are read-only. Workforce KPIs and charts use employee_namelist;
   maternity, sabbatical, and CRL KPIs use active employee_status records.
 - Date-based calculations use CURRENT_DATE.
-- An employee_status record is active when start_date is null or on/before the
-  calculation date and end_date is null or on/after the calculation date.
+- Maternity, Sabbatical and CRL KPIs count every stored employee_status record
+  within the viewer's authorized workforce scope, regardless of its start and
+  end dates.
 - Missing source data produces null/unavailable results, not invented values.
 - The API returns an object containing kpis and charts.
 - The functions return JSON objects, not formatted JSON text.
