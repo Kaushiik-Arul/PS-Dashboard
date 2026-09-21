@@ -1,4 +1,5 @@
 import "server-only";
+import { getSessionHeaders } from "@/auth/server-session";
 import type {
   KpiValue,
   OverviewDistributionChart,
@@ -215,9 +216,10 @@ export async function getOverview(
     if (value) searchParams.set(key, value);
   });
   const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  const sessionHeaders = await getSessionHeaders();
   const response = await fetch(`${getApiBaseUrl()}/overview${query}`, {
     cache: "no-store",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...sessionHeaders },
     signal: AbortSignal.timeout(10_000),
   });
 

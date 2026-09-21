@@ -19,6 +19,9 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { RequirePermission } from '../../common/authorization/require-permission.decorator';
+import { CurrentUser } from '../auth/auth.decorators';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import {
   CreateEmployeeStatusDto,
   EmployeeStatusResponseDto,
@@ -28,6 +31,7 @@ import { HrbpPointService } from './hrbp-point.service';
 
 @ApiTags('HRBP Point')
 @Controller('hrbp-point/employee-statuses')
+@RequirePermission('hrbp-point:view')
 export class HrbpPointController {
   constructor(private readonly service: HrbpPointService) {}
 
@@ -46,8 +50,9 @@ export class HrbpPointController {
   @ApiConflictResponse({ description: 'Employee status already exists' })
   createEmployeeStatus(
     @Body() input: CreateEmployeeStatusDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<EmployeeStatusResponseDto> {
-    return this.service.createEmployeeStatus(input);
+    return this.service.createEmployeeStatus(input, user.accountId);
   }
 
   @Patch(':persNo')
@@ -57,8 +62,9 @@ export class HrbpPointController {
   updateEmployeeStatus(
     @Param('persNo') persNo: string,
     @Body() input: UpdateEmployeeStatusDto,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<EmployeeStatusResponseDto> {
-    return this.service.updateEmployeeStatus(persNo, input);
+    return this.service.updateEmployeeStatus(persNo, input, user.accountId);
   }
 
   @Delete(':persNo')

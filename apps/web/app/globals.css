@@ -231,18 +231,6 @@ body {
   white-space: nowrap;
 }
 
-.app-shell__role-select {
-  background-color: var(--background);
-  border: 1px solid var(--base-major__enabled__default__fill);
-  color: var(--base-major__enabled__default__fill);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.875rem;
-  height: 2.5rem;
-  padding-inline: 0.5rem;
-  width: 7rem;
-}
-
 /* Collapsed nav state: hide profile details and center avatar */
 .m-side-navigation .app-shell__user-profile {
   background-color: transparent;

@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OverviewController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const require_permission_decorator_1 = require("../../common/authorization/require-permission.decorator");
+const auth_decorators_1 = require("../auth/auth.decorators");
 const overview_response_dto_1 = require("./dto/overview-response.dto");
 const overview_filter_dto_1 = require("./dto/overview-filter.dto");
 const overview_service_1 = require("./overview.service");
@@ -23,8 +25,8 @@ let OverviewController = class OverviewController {
     constructor(service) {
         this.service = service;
     }
-    getOverview(filters) {
-        return this.service.getOverview(filters);
+    getOverview(filters, user) {
+        return this.service.getOverview(filters, user.accountId);
     }
 };
 exports.OverviewController = OverviewController;
@@ -40,13 +42,15 @@ __decorate([
         description: 'Unable to load the workforce overview',
     }),
     __param(0, (0, common_1.Query)()),
+    __param(1, (0, auth_decorators_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [overview_filter_dto_1.OverviewFilterDto]),
+    __metadata("design:paramtypes", [overview_filter_dto_1.OverviewFilterDto, Object]),
     __metadata("design:returntype", Promise)
 ], OverviewController.prototype, "getOverview", null);
 exports.OverviewController = OverviewController = __decorate([
     (0, swagger_1.ApiTags)('Overview'),
     (0, common_1.Controller)('overview'),
+    (0, require_permission_decorator_1.RequirePermission)('workforce:view'),
     __metadata("design:paramtypes", [overview_service_1.OverviewService])
 ], OverviewController);
 //# sourceMappingURL=overview.controller.js.map

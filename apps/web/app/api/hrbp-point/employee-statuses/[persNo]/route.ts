@@ -9,7 +9,10 @@ type RouteContext = { params: Promise<{ persNo: string }> };
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const { persNo } = await params;
-    const updated = await updateEmployeeStatus(persNo, await request.json());
+    const csrfToken = request.headers.get("x-csrf-token");
+    const updated = await updateEmployeeStatus(persNo, await request.json(), {
+      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+    });
     return Response.json(updated);
   } catch (error) {
     if (error instanceof EmployeeStatusApiError) {
@@ -22,10 +25,13 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
+export async function DELETE(request: Request, { params }: RouteContext) {
   try {
     const { persNo } = await params;
-    await deleteEmployeeStatus(persNo);
+    const csrfToken = request.headers.get("x-csrf-token");
+    await deleteEmployeeStatus(persNo, {
+      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+    });
     return new Response(null, { status: 204 });
   } catch (error) {
     if (error instanceof EmployeeStatusApiError) {

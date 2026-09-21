@@ -5,6 +5,6 @@ export declare class OverviewService {
     private readonly repository;
     private readonly logger;
     constructor(repository: OverviewRepository);
-    getOverview(filters?: OverviewFilterDto): Promise<OverviewResponseDto>;
+    getOverview(filters: OverviewFilterDto, accountId: string): Promise<OverviewResponseDto>;
     private normalizeFilters;
 }

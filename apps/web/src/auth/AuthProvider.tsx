@@ -1,22 +1,71 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import type { UserRole } from "./roles";
 
-interface AuthContextValue {
+export type AuthUser = {
+  accountId: string;
+  persNo: string | null;
+  displayName: string;
+  loginEmail: string;
   role: UserRole;
-  setRole: (role: UserRole) => void;
+  roles: UserRole[];
+  mustChangePassword: boolean;
+};
+
+async function fetchSession(): Promise<AuthUser | null> {
+  try {
+    const response = await fetch("/api/auth/me", { cache: "no-store" });
+    return response.ok ? ((await response.json()) as AuthUser) : null;
+  } catch {
+    return null;
+  }
 }
 
-const initialRole: UserRole = "hrbp";
+interface AuthContextValue {
+  role: UserRole | null;
+  user: AuthUser | null;
+  isLoading: boolean;
+  refreshSession: () => Promise<AuthUser | null>;
+}
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<UserRole>(initialRole);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  async function refreshSession(): Promise<AuthUser | null> {
+    const nextUser = await fetchSession();
+    setUser(nextUser);
+    setIsLoading(false);
+    return nextUser;
+  }
+
+  useEffect(() => {
+    let isActive = true;
+
+    void fetchSession().then((nextUser) => {
+      if (!isActive) return;
+      setUser(nextUser);
+      setIsLoading(false);
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ role, setRole }}>
+    <AuthContext.Provider
+      value={{ role: user?.role ?? null, user, isLoading, refreshSession }}
+    >
       {children}
     </AuthContext.Provider>
   );

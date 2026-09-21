@@ -25,7 +25,7 @@ export class EmployeeStatusResponseDto {
   @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
 
-  @ApiProperty({ example: 'hrbp' })
+  @ApiProperty({ example: 'Kaushiik Arul' })
   updatedBy!: string;
 }
 
@@ -41,9 +41,6 @@ export class CreateEmployeeStatusDto {
 
   @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
   endDate?: string | null;
-
-  @ApiProperty({ example: 'hrbp' })
-  updatedBy!: string;
 }
 
 export class UpdateEmployeeStatusDto {
@@ -55,7 +52,4 @@ export class UpdateEmployeeStatusDto {
 
   @ApiPropertyOptional({ type: String, format: 'date', nullable: true })
   endDate?: string | null;
-
-  @ApiProperty({ example: 'hrbp' })
-  updatedBy!: string;
 }

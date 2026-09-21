@@ -1,0 +1,103 @@
+.page {
+  align-items: center;
+  background-color: var(--base-major__enabled__default__fill);
+  background-image: var(--sem__asset__supergraphic);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.panel {
+  background: var(--background);
+  margin: auto;
+  max-width: 31rem;
+  padding: 3.5rem;
+  width: 100%;
+}
+
+.brand {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.brand svg {
+  display: inline-block;
+  height: 2.5rem;
+  width: auto;
+}
+
+.eyebrow {
+  color: var(--base-major__enabled__default__fill);
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.title {
+  font-size: 2rem;
+  margin: 0 0 0.75rem;
+}
+
+.description {
+  color: var(--base-major__enabled__default__fill);
+  margin: 0 0 2.5rem;
+}
+
+.form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.field label {
+  font-weight: 700;
+}
+
+.field input {
+  background: var(--background);
+  border: var(--app-border-width) solid var(--base-major__enabled__default__fill);
+  border-radius: 0;
+  min-height: 3rem;
+  padding: 0.75rem;
+  width: 100%;
+}
+
+.field input:focus-visible {
+  outline: 0.125rem solid var(--accent-major__enabled__default__fill);
+  outline-offset: 0.125rem;
+}
+
+.error {
+  color: #b00020;
+  margin: 0;
+}
+
+.submit {
+  font-weight: 700;
+  justify-content: center;
+  min-height: 3rem;
+  text-align: center;
+  width: 100%;
+}
+
+@media (max-width: 40rem) {
+  .page {
+    padding: 1rem;
+  }
+
+  .panel {
+    padding: 2rem 1.5rem;
+  }
+
+  .brand {
+    margin-bottom: 2rem;
+  }
+}

@@ -1,6 +1,6 @@
 export type UserRole =
   | "hrbp"
-  | "manager"
-  | "employee"
   | "admin"
-  | "Range Head";
+  | "range_head"
+  | "department_head"
+  | "sub_department_head";

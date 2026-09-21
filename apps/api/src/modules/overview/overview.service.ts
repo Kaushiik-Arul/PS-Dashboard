@@ -17,11 +17,14 @@ export class OverviewService {
 
   constructor(private readonly repository: OverviewRepository) {}
 
-  async getOverview(filters: OverviewFilterDto = {}): Promise<OverviewResponseDto> {
+  async getOverview(
+    filters: OverviewFilterDto,
+    accountId: string,
+  ): Promise<OverviewResponseDto> {
     const normalizedFilters = this.normalizeFilters(filters);
 
     try {
-      return await this.repository.getOverview(normalizedFilters);
+      return await this.repository.getOverview(normalizedFilters, accountId);
     } catch {
       this.logger.error('Overview database query failed');
       throw new InternalServerErrorException(

@@ -1,4 +1,5 @@
 import "server-only";
+import { getSessionHeaders } from "@/auth/server-session";
 import {
   employeeStatusTypes,
   type CreateEmployeeStatusInput,
@@ -59,11 +60,13 @@ function parseEmployeeStatus(value: unknown): EmployeeStatus {
 }
 
 async function request(path: string, init?: RequestInit): Promise<Response> {
+  const sessionHeaders = await getSessionHeaders();
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     cache: "no-store",
     headers: {
       Accept: "application/json",
+      ...sessionHeaders,
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
       ...init?.headers,
     },
@@ -95,9 +98,11 @@ export async function getEmployeeStatuses(): Promise<EmployeeStatus[]> {
 
 export async function createEmployeeStatus(
   input: CreateEmployeeStatusInput,
+  headers?: HeadersInit,
 ): Promise<EmployeeStatus> {
   const response = await request("/hrbp-point/employee-statuses", {
     method: "POST",
+    headers,
     body: JSON.stringify(input),
   });
   return parseEmployeeStatus(await response.json());
@@ -106,16 +111,21 @@ export async function createEmployeeStatus(
 export async function updateEmployeeStatus(
   persNo: string,
   input: EmployeeStatusInput,
+  headers?: HeadersInit,
 ): Promise<EmployeeStatus> {
   const response = await request(
     `/hrbp-point/employee-statuses/${encodeURIComponent(persNo)}`,
-    { method: "PATCH", body: JSON.stringify(input) },
+    { method: "PATCH", headers, body: JSON.stringify(input) },
   );
   return parseEmployeeStatus(await response.json());
 }
 
-export async function deleteEmployeeStatus(persNo: string): Promise<void> {
+export async function deleteEmployeeStatus(
+  persNo: string,
+  headers?: HeadersInit,
+): Promise<void> {
   await request(`/hrbp-point/employee-statuses/${encodeURIComponent(persNo)}`, {
     method: "DELETE",
+    headers,
   });
 }

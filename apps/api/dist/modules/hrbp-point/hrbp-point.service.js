@@ -23,9 +23,9 @@ let HrbpPointService = HrbpPointService_1 = class HrbpPointService {
     async getEmployeeStatuses() {
         return this.runDatabaseOperation(() => this.repository.getEmployeeStatuses(), 'Unable to load employee statuses');
     }
-    async createEmployeeStatus(input) {
+    async createEmployeeStatus(input, actorAccountId) {
         const persNo = this.validatePersNo(input?.persNo);
-        const values = this.validateValues(input);
+        const values = this.validateValues(input, actorAccountId);
         return this.runDatabaseOperation(async () => {
             if (!(await this.repository.employeeExists(persNo))) {
                 throw new common_1.NotFoundException('Employee number was not found');
@@ -37,9 +37,9 @@ let HrbpPointService = HrbpPointService_1 = class HrbpPointService {
             return created;
         }, 'Unable to create employee status');
     }
-    async updateEmployeeStatus(persNoInput, input) {
+    async updateEmployeeStatus(persNoInput, input, actorAccountId) {
         const persNo = this.validatePersNo(persNoInput);
-        const values = this.validateValues(input);
+        const values = this.validateValues(input, actorAccountId);
         return this.runDatabaseOperation(async () => {
             const updated = await this.repository.updateEmployeeStatus(persNo, values);
             if (!updated) {
@@ -62,7 +62,7 @@ let HrbpPointService = HrbpPointService_1 = class HrbpPointService {
         }
         return value;
     }
-    validateValues(input) {
+    validateValues(input, actorAccountId) {
         if (!input || !employee_status_dto_1.employeeStatusTypes.includes(input.statusType)) {
             throw new common_1.BadRequestException('Status type is invalid');
         }
@@ -71,10 +71,12 @@ let HrbpPointService = HrbpPointService_1 = class HrbpPointService {
         if (endDate && (!startDate || endDate < startDate)) {
             throw new common_1.BadRequestException('End date must be on or after the start date');
         }
-        if (input.updatedBy !== 'hrbp') {
-            throw new common_1.BadRequestException('Updated by must be hrbp');
-        }
-        return { statusType: input.statusType, startDate, endDate, updatedBy: 'hrbp' };
+        return {
+            statusType: input.statusType,
+            startDate,
+            endDate,
+            updatedBy: actorAccountId,
+        };
     }
     validateDate(value, label) {
         if (value === undefined || value === null || value === '')

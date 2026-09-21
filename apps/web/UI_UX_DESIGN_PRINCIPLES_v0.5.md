@@ -1,6 +1,6 @@
 # UI/UX Design Principles
 
-> **Status:** Draft baseline v0.5  
+> **Status:** Draft baseline v0.6
 > **Scope:** Web application, Phase 1, light mode only  
 > **Authority:** This file is the source of truth for UI and UX decisions. All pages and components must comply unless an exception is documented.
 
@@ -177,6 +177,49 @@ The retrieved guidance does not provide an official numerical z-index scale or a
 - Dialogs are for short focused decisions or tasks, not long workflows.
 
 Every interactive component must define default, hover, focus-visible, active, selected, disabled, loading, success, warning, and error states where applicable.
+
+## 10.1 Forms
+
+These rules incorporate the [Bosch Digital Design System Forms pattern](https://brandguide.bosch.com/document/219/en#/patterns/forms), retrieved on 2026-09-21.
+
+### Structure and layout
+
+- Organise fields into logical groups with headings where a form contains more than one theme.
+- Use one primary column to preserve a natural reading flow. Use two columns only for closely related fields and reflow them into one column on small viewports.
+- Do not mix horizontal and vertical field arrangements within the same group.
+- Request only information essential to the task.
+- Left-align fields and size them for the expected input where the page layout permits.
+- Use 1.5rem between text fields, 3rem between groups, 2rem between the final field and its action, and 0.75rem between related columns.
+
+### Fields and instructions
+
+- Use persistent, programmatically associated labels. Placeholder text supplements a label only when an input format example is necessary.
+- Mark every required field with an asterisk. Do not append `Optional` to optional-field labels.
+- Place supportive text below the label when users need context or formatting guidance.
+- Avoid unnecessary character and formatting restrictions. Explain syntax requirements close to the affected field.
+- Disable automatic capitalisation for email fields and other inputs where capitalisation creates friction.
+- Preserve entered values when validation or submission fails.
+
+### Actions and validation
+
+- Use a Primary Button for the main submit action and place it after the fields.
+- On desktop and tablet, left-align the action for a single-page form. Right-align it for a dialog, wizard, or action that clearly advances to another step.
+- On mobile, primary form actions span the available content width.
+- Support submitting with the Enter key from an active field.
+- Show an incorrect field's error state and a nearby corrective message. Focus or scroll to a single invalid field; use a summary at the top when multiple fields fail.
+- Do not validate prematurely. Once an invalid field is being corrected, update or remove its inline error promptly.
+- Notify users of submission success or failure in an accessible way.
+
+### Authentication forms
+
+- The sign-in form is a responsive, full-screen embedded form with one primary column and only email and password fields.
+- Both sign-in fields are required and must use visible labels, appropriate input types, and browser autocomplete attributes.
+- Use `autocapitalize="none"` and `spellcheck="false"` for the email field.
+- Keep the email value after an unsuccessful sign-in so the user can correct it. Do not clear the password solely because authentication failed.
+- Credential failures deliberately use one generic message, such as `Invalid email or password.` This security exception prevents account enumeration and takes precedence over adaptive error wording.
+- While a sign-in request is in progress, the project may temporarily disable its submit action and expose a loading label to prevent duplicate authentication requests. This is a documented exception to the general recommendation against disabled form actions.
+- Announce authentication failures with an alert and move focus to the message or affected form group when needed for error recovery.
+- Password-creation and password-change forms must explain requirements before submission and provide accessible requirement status. A strength indicator may supplement, but must not replace, the requirements.
 
 ## 11. Dashboards and tables
 
@@ -369,3 +412,4 @@ A screen is ready when:
 | 0.3 | 2026-09-02 | Recorded guideline limitations, training templates, chart placement, and non-invention rules for unavailable numeric values |
 | 0.4 | 2026-09-02 | Added documented column-chart anatomy, behaviour, dimensions, responsiveness, and colour-system precedence |
 | 0.5 | 2026-09-02 | Corrected unsupported token, focus, and layer claims; separated missing Bosch guidance from project decisions |
+| 0.6 | 2026-09-21 | Added Bosch Forms pattern rules and authentication-specific form decisions |

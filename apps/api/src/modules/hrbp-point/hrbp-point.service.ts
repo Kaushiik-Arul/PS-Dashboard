@@ -38,9 +38,10 @@ export class HrbpPointService {
 
   async createEmployeeStatus(
     input: CreateEmployeeStatusDto,
+    actorAccountId: string,
   ): Promise<EmployeeStatusResponseDto> {
     const persNo = this.validatePersNo(input?.persNo);
-    const values = this.validateValues(input);
+    const values = this.validateValues(input, actorAccountId);
 
     return this.runDatabaseOperation(async () => {
       if (!(await this.repository.employeeExists(persNo))) {
@@ -59,9 +60,10 @@ export class HrbpPointService {
   async updateEmployeeStatus(
     persNoInput: string,
     input: UpdateEmployeeStatusDto,
+    actorAccountId: string,
   ): Promise<EmployeeStatusResponseDto> {
     const persNo = this.validatePersNo(persNoInput);
-    const values = this.validateValues(input);
+    const values = this.validateValues(input, actorAccountId);
 
     return this.runDatabaseOperation(async () => {
       const updated = await this.repository.updateEmployeeStatus(persNo, values);
@@ -93,7 +95,10 @@ export class HrbpPointService {
     return value;
   }
 
-  private validateValues(input: UpdateEmployeeStatusDto): ValidatedStatusValues {
+  private validateValues(
+    input: UpdateEmployeeStatusDto,
+    actorAccountId: string,
+  ): ValidatedStatusValues {
     if (!input || !employeeStatusTypes.includes(input.statusType)) {
       throw new BadRequestException('Status type is invalid');
     }
@@ -107,11 +112,12 @@ export class HrbpPointService {
       );
     }
 
-    if (input.updatedBy !== 'hrbp') {
-      throw new BadRequestException('Updated by must be hrbp');
-    }
-
-    return { statusType: input.statusType, startDate, endDate, updatedBy: 'hrbp' };
+    return {
+      statusType: input.statusType,
+      startDate,
+      endDate,
+      updatedBy: actorAccountId,
+    };
   }
 
   private validateDate(value: unknown, label: string): string | null {

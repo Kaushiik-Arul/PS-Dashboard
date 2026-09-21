@@ -15,6 +15,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HrbpPointController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
+const require_permission_decorator_1 = require("../../common/authorization/require-permission.decorator");
+const auth_decorators_1 = require("../auth/auth.decorators");
 const employee_status_dto_1 = require("./dto/employee-status.dto");
 const hrbp_point_service_1 = require("./hrbp-point.service");
 let HrbpPointController = class HrbpPointController {
@@ -25,11 +27,11 @@ let HrbpPointController = class HrbpPointController {
     getEmployeeStatuses() {
         return this.service.getEmployeeStatuses();
     }
-    createEmployeeStatus(input) {
-        return this.service.createEmployeeStatus(input);
+    createEmployeeStatus(input, user) {
+        return this.service.createEmployeeStatus(input, user.accountId);
     }
-    updateEmployeeStatus(persNo, input) {
-        return this.service.updateEmployeeStatus(persNo, input);
+    updateEmployeeStatus(persNo, input, user) {
+        return this.service.updateEmployeeStatus(persNo, input, user.accountId);
     }
     deleteEmployeeStatus(persNo) {
         return this.service.deleteEmployeeStatus(persNo);
@@ -52,8 +54,9 @@ __decorate([
     (0, swagger_1.ApiNotFoundResponse)({ description: 'Employee number was not found' }),
     (0, swagger_1.ApiConflictResponse)({ description: 'Employee status already exists' }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, auth_decorators_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [employee_status_dto_1.CreateEmployeeStatusDto]),
+    __metadata("design:paramtypes", [employee_status_dto_1.CreateEmployeeStatusDto, Object]),
     __metadata("design:returntype", Promise)
 ], HrbpPointController.prototype, "createEmployeeStatus", null);
 __decorate([
@@ -63,8 +66,9 @@ __decorate([
     (0, swagger_1.ApiNotFoundResponse)({ description: 'Employee status was not found' }),
     __param(0, (0, common_1.Param)('persNo')),
     __param(1, (0, common_1.Body)()),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, employee_status_dto_1.UpdateEmployeeStatusDto]),
+    __metadata("design:paramtypes", [String, employee_status_dto_1.UpdateEmployeeStatusDto, Object]),
     __metadata("design:returntype", Promise)
 ], HrbpPointController.prototype, "updateEmployeeStatus", null);
 __decorate([
@@ -81,6 +85,7 @@ __decorate([
 exports.HrbpPointController = HrbpPointController = __decorate([
     (0, swagger_1.ApiTags)('HRBP Point'),
     (0, common_1.Controller)('hrbp-point/employee-statuses'),
+    (0, require_permission_decorator_1.RequirePermission)('hrbp-point:view'),
     __metadata("design:paramtypes", [hrbp_point_service_1.HrbpPointService])
 ], HrbpPointController);
 //# sourceMappingURL=hrbp-point.controller.js.map

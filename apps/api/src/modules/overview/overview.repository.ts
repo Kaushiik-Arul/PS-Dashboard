@@ -12,7 +12,10 @@ type OverviewRow = {
 export class OverviewRepository {
   constructor(private readonly database: DatabaseService) {}
 
-  async getOverview(filters: NormalizedOverviewFilters): Promise<OverviewResponseDto> {
+  async getOverview(
+    filters: NormalizedOverviewFilters,
+    accountId: string,
+  ): Promise<OverviewResponseDto> {
     const result = await this.database.query<OverviewRow>(`
       WITH settings AS (
         SELECT CURRENT_DATE AS as_of_date
@@ -26,13 +29,26 @@ export class OverviewRepository {
           NULLIF(BTRIM(e.gender_key), '') AS gender_name,
           NULLIF(BTRIM(e.direct_or_indirect), '') AS direct_or_indirect
         FROM public.employee_namelist e
+        WHERE EXISTS (
+          SELECT 1
+          FROM public.master_access access
+          WHERE access.account_id = $7::UUID
+            AND (
+              access.role IN ('hrbp', 'admin')
+              OR (access.role = 'range_head'
+                AND BTRIM(e.range) = BTRIM(access.assigned_range))
+              OR (access.role IN ('department_head', 'sub_department_head')
+                AND BTRIM(e.range) = BTRIM(access.assigned_range)
+                AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
+            )
+        )
       )
       SELECT JSONB_BUILD_OBJECT(
         'kpis', public.get_workforce_kpis(
-          settings.as_of_date, $1, $2, $3, $4, $5, $6
+          settings.as_of_date, $1, $2, $3, $4, $5, $6, $7::UUID
         ),
         'charts', public.get_workforce_charts(
-          settings.as_of_date, $1, $2, $3, $4, $5, $6
+          settings.as_of_date, $1, $2, $3, $4, $5, $6, $7::UUID
         ),
         'filterOptions', JSONB_BUILD_OBJECT(
           'functionName', TO_JSONB(ARRAY(
@@ -111,6 +127,7 @@ export class OverviewRepository {
       filters.location,
       filters.gender,
       filters.directOrIndirect,
+      accountId,
     ]);
 
     const dashboard = result.rows[0]?.dashboard;

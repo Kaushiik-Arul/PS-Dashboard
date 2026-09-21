@@ -13,7 +13,7 @@ const employeeStatus: EmployeeStatusResponseDto = {
   startDate: '2026-09-01',
   endDate: '2026-09-30',
   updatedAt: '2026-09-21T10:00:00.000Z',
-  updatedBy: 'hrbp',
+  updatedBy: 'Kaushiik Arul',
 };
 
 describe('HrbpPointService', () => {
@@ -47,8 +47,7 @@ describe('HrbpPointService', () => {
         statusType: 'Maternity',
         startDate: '2026-09-01',
         endDate: '2026-09-30',
-        updatedBy: 'hrbp',
-      }),
+      }, 'account-id'),
     ).resolves.toEqual(employeeStatus);
   });
 
@@ -59,8 +58,7 @@ describe('HrbpPointService', () => {
       service.createEmployeeStatus({
         persNo: '99999',
         statusType: 'CRL',
-        updatedBy: 'hrbp',
-      }),
+      }, 'account-id'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -72,21 +70,19 @@ describe('HrbpPointService', () => {
       service.createEmployeeStatus({
         persNo: '12345',
         statusType: 'CRL',
-        updatedBy: 'hrbp',
-      }),
+      }, 'account-id'),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it.each([
-    ['invalid employee number', { persNo: '12x', statusType: 'CRL', updatedBy: 'hrbp' }],
-    ['invalid status', { persNo: '12345', statusType: 'Holiday', updatedBy: 'hrbp' }],
-    ['invalid audit role', { persNo: '12345', statusType: 'CRL', updatedBy: 'admin' }],
-    ['invalid calendar date', { persNo: '12345', statusType: 'CRL', startDate: '2026-02-31', updatedBy: 'hrbp' }],
-    ['end date without start date', { persNo: '12345', statusType: 'CRL', endDate: '2026-09-01', updatedBy: 'hrbp' }],
-    ['reversed date range', { persNo: '12345', statusType: 'CRL', startDate: '2026-09-02', endDate: '2026-09-01', updatedBy: 'hrbp' }],
+    ['invalid employee number', { persNo: '12x', statusType: 'CRL' }],
+    ['invalid status', { persNo: '12345', statusType: 'Holiday' }],
+    ['invalid calendar date', { persNo: '12345', statusType: 'CRL', startDate: '2026-02-31' }],
+    ['end date without start date', { persNo: '12345', statusType: 'CRL', endDate: '2026-09-01' }],
+    ['reversed date range', { persNo: '12345', statusType: 'CRL', startDate: '2026-09-02', endDate: '2026-09-01' }],
   ])('rejects %s', async (_label, input) => {
     await expect(
-      service.createEmployeeStatus(input as never),
+      service.createEmployeeStatus(input as never, 'account-id'),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -98,8 +94,7 @@ describe('HrbpPointService', () => {
         statusType: 'Maternity',
         startDate: '2026-09-01',
         endDate: '2026-09-30',
-        updatedBy: 'hrbp',
-      }),
+      }, 'account-id'),
     ).resolves.toEqual(employeeStatus);
   });
 
@@ -110,8 +105,7 @@ describe('HrbpPointService', () => {
     await expect(
       service.updateEmployeeStatus('12345', {
         statusType: 'CRL',
-        updatedBy: 'hrbp',
-      }),
+      }, 'account-id'),
     ).rejects.toBeInstanceOf(NotFoundException);
     await expect(service.deleteEmployeeStatus('12345')).rejects.toBeInstanceOf(
       NotFoundException,

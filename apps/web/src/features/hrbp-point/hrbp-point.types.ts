@@ -20,7 +20,6 @@ export interface EmployeeStatusInput {
   statusType: EmployeeStatusType;
   startDate: string | null;
   endDate: string | null;
-  updatedBy: "hrbp";
 }
 
 export interface CreateEmployeeStatusInput extends EmployeeStatusInput {

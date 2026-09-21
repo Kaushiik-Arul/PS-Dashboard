@@ -4,5 +4,5 @@ import { OverviewResponseDto } from './dto/overview-response.dto';
 export declare class OverviewRepository {
     private readonly database;
     constructor(database: DatabaseService);
-    getOverview(filters: NormalizedOverviewFilters): Promise<OverviewResponseDto>;
+    getOverview(filters: NormalizedOverviewFilters, accountId: string): Promise<OverviewResponseDto>;
 }

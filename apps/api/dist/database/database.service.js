@@ -33,6 +33,22 @@ let DatabaseService = DatabaseService_1 = class DatabaseService {
     query(queryText, values = []) {
         return this.pool.query(queryText, values);
     }
+    async transaction(operation) {
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            const result = await operation(client);
+            await client.query('COMMIT');
+            return result;
+        }
+        catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        }
+        finally {
+            client.release();
+        }
+    }
     async onApplicationShutdown() {
         await this.pool.end();
     }

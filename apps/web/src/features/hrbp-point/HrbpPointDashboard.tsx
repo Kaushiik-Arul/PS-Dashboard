@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/auth/AuthProvider";
+import { getCsrfToken } from "@/auth/csrf";
 import { hasPermission } from "@/auth/permissions";
 import {
   employeeStatusTypes,
@@ -112,15 +113,18 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
       : "/api/hrbp-point/employee-statuses";
 
     try {
+      const csrfToken = getCsrfToken();
       const response = await fetch(url, {
         method: isEditing ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        },
         body: JSON.stringify({
           ...(!isEditing ? { persNo: form.persNo } : {}),
           statusType: form.statusType,
           startDate: form.startDate || null,
           endDate: form.endDate || null,
-          updatedBy: role,
         }),
       });
       if (!response.ok) {
@@ -151,7 +155,11 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
     setIsDeleting(true);
     setDeleteError("");
     try {
-      const response = await fetch(`/api/hrbp-point/employee-statuses/${encodeURIComponent(deleteTarget.persNo)}`, { method: "DELETE" });
+      const csrfToken = getCsrfToken();
+      const response = await fetch(`/api/hrbp-point/employee-statuses/${encodeURIComponent(deleteTarget.persNo)}`, {
+        method: "DELETE",
+        headers: csrfToken ? { "X-CSRF-Token": csrfToken } : {},
+      });
       if (!response.ok) {
         setDeleteError(await getErrorMessage(response));
         return;

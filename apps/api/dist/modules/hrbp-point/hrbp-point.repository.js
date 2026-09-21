@@ -28,11 +28,20 @@ function mapEmployeeStatus(row) {
         updatedAt: row.updated_at instanceof Date
             ? row.updated_at.toISOString()
             : new Date(row.updated_at).toISOString(),
-        updatedBy: row.updated_by,
+        updatedBy: row.updated_by_display_name ?? row.updated_by,
     };
 }
 const returningColumns = `
   pers_no, status_type, start_date, end_date, updated_at, updated_by
+`;
+const selectingColumns = `
+  status.pers_no,
+  status.status_type,
+  status.start_date,
+  status.end_date,
+  status.updated_at,
+  status.updated_by,
+  account.display_name AS updated_by_display_name
 `;
 let HrbpPointRepository = class HrbpPointRepository {
     database;
@@ -41,9 +50,11 @@ let HrbpPointRepository = class HrbpPointRepository {
     }
     async getEmployeeStatuses() {
         const result = await this.database.query(`
-      SELECT ${returningColumns}
-      FROM public.employee_status
-      ORDER BY pers_no;
+      SELECT ${selectingColumns}
+      FROM public.employee_status status
+      LEFT JOIN public.auth_accounts account
+        ON account.account_id::text = status.updated_by
+      ORDER BY status.pers_no;
     `);
         return result.rows.map(mapEmployeeStatus);
     }
@@ -54,11 +65,17 @@ let HrbpPointRepository = class HrbpPointRepository {
         return result.rows[0]?.exists ?? false;
     }
     async createEmployeeStatus(persNo, values) {
-        const result = await this.database.query(`INSERT INTO public.employee_status (
-        pers_no, status_type, start_date, end_date, updated_by
-      ) VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (pers_no) DO NOTHING
-      RETURNING ${returningColumns};`, [
+        const result = await this.database.query(`WITH status AS (
+        INSERT INTO public.employee_status (
+          pers_no, status_type, start_date, end_date, updated_by
+        ) VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (pers_no) DO NOTHING
+        RETURNING ${returningColumns}
+      )
+      SELECT ${selectingColumns}
+      FROM status
+      LEFT JOIN public.auth_accounts account
+        ON account.account_id::text = status.updated_by;`, [
             persNo,
             values.statusType,
             values.startDate,
@@ -68,14 +85,20 @@ let HrbpPointRepository = class HrbpPointRepository {
         return result.rows[0] ? mapEmployeeStatus(result.rows[0]) : null;
     }
     async updateEmployeeStatus(persNo, values) {
-        const result = await this.database.query(`UPDATE public.employee_status
-      SET status_type = $2,
-          start_date = $3,
-          end_date = $4,
-          updated_at = CURRENT_TIMESTAMP,
-          updated_by = $5
-      WHERE pers_no = $1
-      RETURNING ${returningColumns};`, [
+        const result = await this.database.query(`WITH status AS (
+        UPDATE public.employee_status
+        SET status_type = $2,
+            start_date = $3,
+            end_date = $4,
+            updated_at = CURRENT_TIMESTAMP,
+            updated_by = $5
+        WHERE pers_no = $1
+        RETURNING ${returningColumns}
+      )
+      SELECT ${selectingColumns}
+      FROM status
+      LEFT JOIN public.auth_accounts account
+        ON account.account_id::text = status.updated_by;`, [
             persNo,
             values.statusType,
             values.startDate,

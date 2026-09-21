@@ -19,10 +19,10 @@ let OverviewService = OverviewService_1 = class OverviewService {
     constructor(repository) {
         this.repository = repository;
     }
-    async getOverview(filters = {}) {
+    async getOverview(filters, accountId) {
         const normalizedFilters = this.normalizeFilters(filters);
         try {
-            return await this.repository.getOverview(normalizedFilters);
+            return await this.repository.getOverview(normalizedFilters, accountId);
         }
         catch {
             this.logger.error('Overview database query failed');

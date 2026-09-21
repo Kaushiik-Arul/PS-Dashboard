@@ -13,11 +13,9 @@ export declare class CreateEmployeeStatusDto {
     statusType: EmployeeStatusType;
     startDate?: string | null;
     endDate?: string | null;
-    updatedBy: string;
 }
 export declare class UpdateEmployeeStatusDto {
     statusType: EmployeeStatusType;
     startDate?: string | null;
     endDate?: string | null;
-    updatedBy: string;
 }

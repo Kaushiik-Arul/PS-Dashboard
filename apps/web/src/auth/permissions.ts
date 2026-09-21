@@ -4,18 +4,24 @@ export type Permission =
   | "exportCharts"
   | "manageEmployeeStatus"
   | "viewHrbpPoint"
-  | "successionPlanningPoint";
+  | "viewEmployee360"
+  | "viewTalentPipeline"
+  | "successionPlanningPoint"
+  | "manageAccessPoint";
 
 export const permissions: Record<Permission, readonly UserRole[]> = {
   exportCharts: ["hrbp"],
   manageEmployeeStatus: ["hrbp"],
   viewHrbpPoint: ["hrbp"],
-  successionPlanningPoint: ["hrbp", "Range Head"]
+  viewEmployee360: ["hrbp", "admin"],
+  viewTalentPipeline: ["hrbp", "admin"],
+  successionPlanningPoint: ["hrbp", "admin"],
+  manageAccessPoint: ["hrbp"],
 };
 
 export function hasPermission(
-  role: UserRole,
+  role: UserRole | null,
   permission: Permission
 ) {
-  return permissions[permission].includes(role);
+  return role !== null && permissions[permission].includes(role);
 }

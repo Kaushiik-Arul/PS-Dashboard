@@ -1,0 +1,84 @@
+.access-point {
+  margin-inline: auto;
+  max-width: 70.75rem;
+  padding-block: var(--app-space-4) var(--app-space-8);
+  width: 100%;
+}
+
+.access-point__heading {
+  align-items: end;
+  display: flex;
+  gap: var(--app-space-4);
+  justify-content: space-between;
+}
+
+.access-point__heading h1,
+.access-point__dialog h2 {
+  font: var(--sem__typography__bold__xl);
+  margin: 0;
+}
+
+.access-point__heading p,
+.access-point__dialog p {
+  color: var(--base-major__enabled__default__fill);
+  margin-block: var(--app-space-1) 0;
+}
+
+.access-point__table { min-width: 68rem; }
+.access-point__table td strong { display: block; }
+.access-point__secondary { color: var(--base-major__enabled__default__fill); display: block; font-size: 0.75rem; }
+.access-point__actions { display: flex; gap: var(--app-space-1); justify-content: flex-end; }
+.access-point__actions .a-button { height: 2.5rem; width: 2.5rem; }
+.access-point__empty { padding-block: var(--app-space-8) !important; text-align: center !important; }
+.access-point__status { font-weight: 700; text-transform: capitalize; }
+.access-point__status--inactive { color: var(--base-major__enabled__default__fill); }
+.access-point__status--locked { color: var(--signal__error__enabled__default__fill, #b00020); }
+
+.access-point__dialog {
+  background: var(--background);
+  border: var(--app-border-width) solid var(--base-major__enabled__default__fill);
+  border-radius: var(--app-radius-2);
+  color: var(--plain-pure__enabled__default__front);
+  max-height: calc(100vh - 2rem);
+  max-width: calc(100vw - 2rem);
+  overflow: auto;
+  padding: 0;
+  width: 40rem;
+}
+
+.access-point__dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.access-point__dialog-header { align-items: center; border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; justify-content: space-between; padding: var(--app-space-4); }
+.access-point__dialog-body { display: grid; gap: var(--app-space-6); padding: var(--app-space-6); }
+.access-point__dialog--confirm { width: 34rem; }
+.access-point__dialog--confirm .access-point__dialog-body { gap: var(--app-space-2); }
+.access-point__dialog-footer { border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; gap: var(--app-space-2); justify-content: flex-end; padding: var(--app-space-4); }
+
+.access-point__search { display: grid; gap: var(--app-space-2); }
+.access-point__search > label,
+.access-point__field > span { font-size: 0.875rem; font-weight: 700; }
+.access-point__search-controls { display: grid; gap: var(--app-space-3); grid-template-columns: 1fr auto; }
+.access-point__search input,
+.access-point__field input,
+.access-point__field select { background: var(--background); border: var(--app-border-width) solid var(--base-major__enabled__default__fill); color: inherit; min-height: 3rem; padding-inline: var(--app-space-3); width: 100%; }
+.access-point__field { display: grid; gap: var(--app-space-1); }
+.access-point__field small { color: var(--base-major__enabled__default__fill); }
+
+.access-point__results { border: var(--app-border-width) solid var(--base-major__disabled__default__fill); list-style: none; margin: 0; max-height: 13rem; overflow-y: auto; padding: 0; }
+.access-point__results button { background: var(--background); color: inherit; display: grid; gap: var(--app-space-1); padding: var(--app-space-3); text-align: left; width: 100%; }
+.access-point__results button:hover { background: var(--base-minor__enabled__default__fill); }
+.access-point__results span { color: var(--base-major__enabled__default__fill); font-size: 0.875rem; }
+
+.access-point__employee { background: var(--base-minor__enabled__default__fill); display: grid; gap: var(--app-space-4); grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--app-space-4); }
+.access-point__employee div { display: grid; gap: var(--app-space-1); min-width: 0; }
+.access-point__employee span { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
+.access-point__employee strong { overflow-wrap: anywhere; }
+.access-point__notice { background: var(--base-minor__enabled__default__fill); padding: var(--app-space-3); }
+.access-point__error { color: var(--signal__error__enabled__default__fill, #b00020) !important; font-weight: 700; margin: 0 !important; }
+
+@media (max-width: 40rem) {
+  .access-point__heading { align-items: stretch; flex-direction: column; }
+  .access-point__heading .a-button { width: 100%; }
+  .access-point__search-controls,
+  .access-point__employee { grid-template-columns: 1fr; }
+  .access-point__dialog-footer .a-button { flex: 1; }
+}

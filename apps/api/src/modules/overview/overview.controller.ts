@@ -5,12 +5,16 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { RequirePermission } from '../../common/authorization/require-permission.decorator';
+import { CurrentUser } from '../auth/auth.decorators';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import { OverviewResponseDto } from './dto/overview-response.dto';
 import { OverviewFilterDto } from './dto/overview-filter.dto';
 import { OverviewService } from './overview.service';
 
 @ApiTags('Overview')
 @Controller('overview')
+@RequirePermission('workforce:view')
 export class OverviewController {
   constructor(private readonly service: OverviewService) {}
 
@@ -24,7 +28,10 @@ export class OverviewController {
   @ApiInternalServerErrorResponse({
     description: 'Unable to load the workforce overview',
   })
-  getOverview(@Query() filters: OverviewFilterDto): Promise<OverviewResponseDto> {
-    return this.service.getOverview(filters);
+  getOverview(
+    @Query() filters: OverviewFilterDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<OverviewResponseDto> {
+    return this.service.getOverview(filters, user.accountId);
   }
 }

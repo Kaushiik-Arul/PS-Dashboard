@@ -47,7 +47,7 @@ __decorate([
     __metadata("design:type", String)
 ], EmployeeStatusResponseDto.prototype, "updatedAt", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'hrbp' }),
+    (0, swagger_1.ApiProperty)({ example: 'Kaushiik Arul' }),
     __metadata("design:type", String)
 ], EmployeeStatusResponseDto.prototype, "updatedBy", void 0);
 class CreateEmployeeStatusDto {
@@ -55,7 +55,6 @@ class CreateEmployeeStatusDto {
     statusType;
     startDate;
     endDate;
-    updatedBy;
 }
 exports.CreateEmployeeStatusDto = CreateEmployeeStatusDto;
 __decorate([
@@ -74,15 +73,10 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)({ type: String, format: 'date', nullable: true }),
     __metadata("design:type", Object)
 ], CreateEmployeeStatusDto.prototype, "endDate", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ example: 'hrbp' }),
-    __metadata("design:type", String)
-], CreateEmployeeStatusDto.prototype, "updatedBy", void 0);
 class UpdateEmployeeStatusDto {
     statusType;
     startDate;
     endDate;
-    updatedBy;
 }
 exports.UpdateEmployeeStatusDto = UpdateEmployeeStatusDto;
 __decorate([
@@ -97,8 +91,4 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)({ type: String, format: 'date', nullable: true }),
     __metadata("design:type", Object)
 ], UpdateEmployeeStatusDto.prototype, "endDate", void 0);
-__decorate([
-    (0, swagger_1.ApiProperty)({ example: 'hrbp' }),
-    __metadata("design:type", String)
-], UpdateEmployeeStatusDto.prototype, "updatedBy", void 0);
 //# sourceMappingURL=employee-status.dto.js.map

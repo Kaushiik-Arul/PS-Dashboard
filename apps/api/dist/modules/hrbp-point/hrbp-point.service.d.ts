@@ -5,8 +5,8 @@ export declare class HrbpPointService {
     private readonly logger;
     constructor(repository: HrbpPointRepository);
     getEmployeeStatuses(): Promise<EmployeeStatusResponseDto[]>;
-    createEmployeeStatus(input: CreateEmployeeStatusDto): Promise<EmployeeStatusResponseDto>;
-    updateEmployeeStatus(persNoInput: string, input: UpdateEmployeeStatusDto): Promise<EmployeeStatusResponseDto>;
+    createEmployeeStatus(input: CreateEmployeeStatusDto, actorAccountId: string): Promise<EmployeeStatusResponseDto>;
+    updateEmployeeStatus(persNoInput: string, input: UpdateEmployeeStatusDto, actorAccountId: string): Promise<EmployeeStatusResponseDto>;
     deleteEmployeeStatus(persNoInput: string): Promise<void>;
     private validatePersNo;
     private validateValues;

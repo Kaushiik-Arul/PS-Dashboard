@@ -5,7 +5,10 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const created = await createEmployeeStatus(await request.json());
+    const csrfToken = request.headers.get("x-csrf-token");
+    const created = await createEmployeeStatus(await request.json(), {
+      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+    });
     return Response.json(created, { status: 201 });
   } catch (error) {
     if (error instanceof EmployeeStatusApiError) {
