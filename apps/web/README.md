@@ -1,4 +1,11 @@
+# PS Dashboard Web
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Feature documentation
+
+- [Namelist Updation](../../NAMELIST_IMPORT.md) documents the HRBP upload,
+  preview, row-editing, confirmation, and backend integration workflow.
 
 ## Getting Started
 

@@ -85,6 +85,8 @@ Schema file: `apps/sql/auth_creation.sql`
 
 ## Namelist import
 
+Full cross-stack documentation: [Namelist Updation](../../NAMELIST_IMPORT.md).
+
 Apply `namelist_import_staging_migration.sql` after `auth_creation.sql` and
 `namelist_creation.sql` before enabling Namelist Updation. It creates expiring,
 account-owned preview data used between upload and confirmation requests.

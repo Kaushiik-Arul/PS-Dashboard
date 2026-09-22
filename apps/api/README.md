@@ -25,6 +25,11 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Feature documentation
+
+- [Namelist Updation](../../NAMELIST_IMPORT.md) documents the monthly CSV/XLSX
+  import API, validation rules, staging model, security, and file ownership.
+
 ## Project setup
 
 ```bash
