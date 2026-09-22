@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { validateEnvironment } from './config/environment';
 import { AccessPointModule } from './modules/access-point/access-point.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { Employee360Module } from './modules/employee-360/employee-360.module';
 import { HrbpPointModule } from './modules/hrbp-point/hrbp-point.module';
 import { OverviewModule } from './modules/overview/overview.module';
 
@@ -17,6 +18,7 @@ import { OverviewModule } from './modules/overview/overview.module';
     }),
     AuthModule,
     AccessPointModule,
+    Employee360Module,
     HrbpPointModule,
     OverviewModule,
   ],
