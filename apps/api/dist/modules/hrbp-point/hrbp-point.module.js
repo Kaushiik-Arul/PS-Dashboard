@@ -18,13 +18,16 @@ const namelist_import_service_1 = require("./namelist-import/namelist-import.ser
 const rbin_cleaning_controller_1 = require("./rbin-cleaning/rbin-cleaning.controller");
 const rbin_cleaning_repository_1 = require("./rbin-cleaning/rbin-cleaning.repository");
 const rbin_cleaning_service_1 = require("./rbin-cleaning/rbin-cleaning.service");
+const rbin_mappings_controller_1 = require("./rbin-mappings/rbin-mappings.controller");
+const rbin_mappings_repository_1 = require("./rbin-mappings/rbin-mappings.repository");
+const rbin_mappings_service_1 = require("./rbin-mappings/rbin-mappings.service");
 let HrbpPointModule = class HrbpPointModule {
 };
 exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
-        controllers: [hrbp_point_controller_1.HrbpPointController, namelist_import_controller_1.NamelistImportController, rbin_cleaning_controller_1.RbinCleaningController],
+        controllers: [hrbp_point_controller_1.HrbpPointController, namelist_import_controller_1.NamelistImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController],
         providers: [
             hrbp_point_service_1.HrbpPointService,
             hrbp_point_repository_1.HrbpPointRepository,
@@ -32,6 +35,8 @@ exports.HrbpPointModule = HrbpPointModule = __decorate([
             namelist_import_repository_1.NamelistImportRepository,
             rbin_cleaning_service_1.RbinCleaningService,
             rbin_cleaning_repository_1.RbinCleaningRepository,
+            rbin_mappings_service_1.RbinMappingsService,
+            rbin_mappings_repository_1.RbinMappingsRepository,
         ],
     })
 ], HrbpPointModule);

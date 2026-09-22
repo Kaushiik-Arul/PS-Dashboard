@@ -29,6 +29,7 @@ live employee namelist remains the responsibility of Namelist Updation.
 - Allows complete staged rows to be edited while the batch is a draft.
 - Revalidates the whole batch after an edit so duplicate detection remains correct.
 - Retains staging batches permanently and lists them under Saved datasets.
+- Provides HRBP CRUD management for Range and Function mappings.
 - Supports server-side filters, search, pagination, and 25/50/100 rows per page.
 - Finalizes only batches with zero invalid rows.
 - Produces an ordered 29-column XLSX workbook and audits every export.
@@ -170,6 +171,29 @@ be `range` or `range_value`; Function may be `function` or `function_value`.
 
 Mapping keys are matched after trimming and lowercasing. Manual edits in a
 staging row do not update either mapping table.
+
+### Mapping management in HRBP Point
+
+HRBP Point includes a full-width **Organizational Unit mappings** section below
+the Namelist workflows. It contains two independent tables in one desktop row:
+
+- **Range mappings** searches Organizational Unit or Range and filters by Range.
+- **Function mappings** searches Organizational Unit or Function and filters by Function.
+
+Each table loads eight rows initially and has independent filtering, pagination,
+and an icon-only search button. Selecting the search icon expands only that
+table's search field. Filter options come from all values in that mapping table,
+not only the visible page. Add and Edit open a focused mapping dialog; Delete
+requires explicit confirmation.
+
+Organizational Unit and mapped value are required, trimmed text with a maximum
+length of 200 characters. Each Organizational Unit may occur once in each table,
+case-insensitively. A duplicate returns `409 Conflict`. UI-created or edited
+records use `manual` as `source_file_name` so they remain distinguishable from
+CSV-loaded mappings.
+
+Mapping CRUD affects **future RBIN uploads only**. Existing staging batches keep
+their original mapped values, comparison baselines, and manual corrections.
 
 ## Source file contract
 
@@ -373,6 +397,33 @@ count uses the same predicates as the row query.
 The PATCH body must contain exactly the 29 output keys, each as text. The API
 trims every value before validation.
 
+### Mapping CRUD API
+
+NestJS prefix: `/api/v1/hrbp-point/rbin-mappings`
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /:kind` | Search and page one mapping table. |
+| `POST /:kind` | Create one mapping. |
+| `PATCH /:kind/:mappingId` | Update Organizational Unit and mapped value. |
+| `DELETE /:kind/:mappingId` | Delete one mapping. |
+
+`kind` must be `ranges` or `functions`. GET accepts `search`, `filter`, `page`,
+and `pageSize`; the API defaults to eight rows and limits page size to 100.
+Search is case-insensitive and table-specific. Filter is an exact,
+case-insensitive match on Range or Function and combines with search before
+pagination. Mutation bodies contain exactly:
+
+```json
+{
+  "organizationalUnit": "PS/MG-IN",
+  "value": "PS"
+}
+```
+
+All mapping endpoints require `namelist:transform`. POST, PATCH, and DELETE also
+require the existing session-bound CSRF token through the web proxy.
+
 ## Web application behavior
 
 The HRBP Point panel provides:
@@ -395,6 +446,7 @@ The HRBP Point panel provides:
   - Location
   - Direct or Indirect
 - An All 29 fields view.
+- Side-by-side Range and Function mapping tables with independent search, pagination, and CRUD actions.
 - Cell-level issue and changed-value highlighting.
 - A focused side editor for draft rows.
 - Finalization and real XLSX browser download.
@@ -455,6 +507,7 @@ filters, pagination, and actions remain available.
 | `apps/api/src/modules/hrbp-point/rbin-cleaning/rbin-cleaning.service.ts` | Workflow orchestration, input validation, full-batch revalidation, and XLSX generation. |
 | `apps/api/src/modules/hrbp-point/rbin-cleaning/rbin-cleaning.controller.ts` | Multipart, JSON, query, finalize, and streamed-export endpoints. |
 | `apps/api/src/modules/hrbp-point/rbin-cleaning/rbin-cleaning.spec.ts` | Focused parser and transformation regression tests. |
+| `apps/api/src/modules/hrbp-point/rbin-mappings/*` | Mapping types, search/paging repository, CRUD service/controller, and focused tests. |
 | `apps/api/src/common/authorization/permissions.ts` | `namelist:transform` and `namelist:export` declarations and role grants. |
 | `apps/api/src/modules/hrbp-point/hrbp-point.module.ts` | Controller, service, and repository registration. |
 
@@ -466,12 +519,18 @@ filters, pagination, and actions remain available.
 | `apps/web/src/features/hrbp-point/rbin-cleaning.types.ts` | Browser-side API and view model contract. |
 | `apps/web/src/features/hrbp-point/rbin-cleaning.http.ts` | Browser HTTP client, CSRF propagation, and XLSX download. |
 | `apps/web/src/features/hrbp-point/rbin-cleaning.api.ts` | Server-only authenticated NestJS forwarding and error translation. |
+| `apps/web/src/features/hrbp-point/RbinMappingsPanel.tsx` | Two-table mapping search, pagination, add, edit, and delete UI. |
+| `apps/web/src/features/hrbp-point/rbin-mappings.types.ts` | Browser mapping and CRUD client contract. |
+| `apps/web/src/features/hrbp-point/rbin-mappings.http.ts` | Browser mapping CRUD client and CSRF propagation. |
+| `apps/web/src/features/hrbp-point/rbin-mappings.api.ts` | Authenticated server-to-Nest mapping forwarding. |
 | `apps/web/src/features/hrbp-point/hrbp-point.css` | Responsive RBIN panel, dialog, alert, grid, editor, search, and pagination styles. |
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/route.ts` | Batch list and multipart upload proxy. |
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/[batchId]/rows/route.ts` | Search/filter/pagination proxy. |
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/[batchId]/rows/[rowNumber]/route.ts` | Draft row edit proxy. |
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/[batchId]/finalize/route.ts` | Finalization proxy. |
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/[batchId]/export/route.ts` | Binary XLSX export proxy preserving content headers. |
+| `apps/web/app/api/hrbp-point/rbin-mappings/[kind]/route.ts` | Mapping list/search and create proxy. |
+| `apps/web/app/api/hrbp-point/rbin-mappings/[kind]/[mappingId]/route.ts` | Mapping update and delete proxy. |
 
 ## Verification
 
@@ -479,6 +538,7 @@ Run the focused checks from the repository root:
 
 ```powershell
 npm test --prefix apps/api -- rbin-cleaning.spec.ts
+npm test --prefix apps/api -- rbin-mappings.service.spec.ts
 npm run build --prefix apps/api
 npm run build --prefix apps/web
 ```
@@ -497,6 +557,8 @@ End-to-end smoke test:
 10. Export the XLSX and confirm it contains 29 ordered columns.
 11. Confirm the finalized batch is retained and can be exported again.
 12. Confirm `employee_namelist` was not modified.
+13. Add, search, edit, and delete one test mapping in each mapping table.
+14. Confirm an existing staged batch does not change after mapping maintenance.
 
 Useful database checks:
 

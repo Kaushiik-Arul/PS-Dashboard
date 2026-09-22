@@ -9,10 +9,13 @@ import { NamelistImportService } from './namelist-import/namelist-import.service
 import { RbinCleaningController } from './rbin-cleaning/rbin-cleaning.controller';
 import { RbinCleaningRepository } from './rbin-cleaning/rbin-cleaning.repository';
 import { RbinCleaningService } from './rbin-cleaning/rbin-cleaning.service';
+import { RbinMappingsController } from './rbin-mappings/rbin-mappings.controller';
+import { RbinMappingsRepository } from './rbin-mappings/rbin-mappings.repository';
+import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [HrbpPointController, NamelistImportController, RbinCleaningController],
+  controllers: [HrbpPointController, NamelistImportController, RbinCleaningController, RbinMappingsController],
   providers: [
     HrbpPointService,
     HrbpPointRepository,
@@ -20,6 +23,8 @@ import { RbinCleaningService } from './rbin-cleaning/rbin-cleaning.service';
     NamelistImportRepository,
     RbinCleaningService,
     RbinCleaningRepository,
+    RbinMappingsService,
+    RbinMappingsRepository,
   ],
 })
 export class HrbpPointModule {}

@@ -4,6 +4,8 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import { httpNamelistImportClient } from "./namelist-import.http";
 import { RbinNamelistCleaningPanel } from "./RbinNamelistCleaningPanel";
+import { RbinMappingsPanel } from "./RbinMappingsPanel";
+import { httpRbinMappingsClient } from "./rbin-mappings.http";
 import {
   namelistColumns,
   type NamelistColumn,
@@ -177,6 +179,7 @@ export function NamelistImportPanel() {
       </section>
 
       <RbinNamelistCleaningPanel />
+      <RbinMappingsPanel client={httpRbinMappingsClient} />
     </div>
 
     <dialog className="namelist-dialog" ref={dialogRef} onClose={() => setEditingRow(null)}>

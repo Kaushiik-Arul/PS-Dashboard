@@ -239,6 +239,26 @@
 .rbin-batch-row em[data-status="ready_for_export"] { border-color: #007bc0; color: #005691; }
 .rbin-batch-row em[data-status="exported"] { border-color: #00884a; color: #006c3b; }
 
+.rbin-mappings-panel { background: var(--background); border: var(--app-border-width) solid var(--base-major__disabled__default__fill); border-block-start: 0.25rem solid var(--bosch-blue-50, #007bc0); border-radius: var(--app-radius-2); grid-column: 1 / -1; overflow: hidden; }
+.rbin-mappings-panel > .hrbp-page__heading { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); }
+.rbin-mappings-panel > .hrbp-page__heading h2 { font: var(--sem__typography__bold__xl); margin: 0; }
+.rbin-mappings-panel__tables { display: grid; gap: var(--app-space-4); grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--app-space-4); }
+.rbin-mapping-table.data-table-card { border-radius: 0; margin-block-start: 0; }
+.rbin-mapping-table__header { min-height: 5rem; }
+.rbin-mapping-table__filter select { background: var(--background); border: var(--app-border-width) solid var(--base-major__enabled__default__fill); color: inherit; font: inherit; height: 2.5rem; max-width: 9rem; padding-inline: var(--app-space-2); }
+.rbin-mapping-table__search { background: var(--base-minor__enabled__default__fill); border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; padding: var(--app-space-2) var(--app-space-4); }
+.rbin-mapping-table__search[hidden] { display: none; }
+.rbin-mapping-table__search input { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); min-height: 2.5rem; min-width: 0; padding-inline: var(--app-space-2); width: 100%; }
+.rbin-mapping-table__message { color: #b00020; font-size: 0.75rem; margin: 0; padding: 0 var(--app-space-4) var(--app-space-2); }
+.rbin-mapping-table__scroll { min-height: 23.5rem; }
+.rbin-mapping-table .data-table { min-width: 100%; table-layout: fixed; }
+.rbin-mapping-table .data-table th, .rbin-mapping-table .data-table td { height: 2.75rem; overflow: hidden; text-overflow: ellipsis; }
+.rbin-mapping-table th:last-child, .rbin-mapping-table td:last-child { text-align: end; width: 5.5rem; }
+.rbin-mapping-table td.hrbp-table__actions { padding-block: 0; }
+.rbin-mapping-table__empty { color: var(--base-major__enabled__default__fill); margin: 0; padding: var(--app-space-4); text-align: center; }
+.rbin-mapping-table__pagination { align-items: center; border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; gap: var(--app-space-2); justify-content: center; min-height: 3.5rem; }
+.rbin-mapping-dialog { width: min(32rem, calc(100vw - 2rem)); }
+
 .namelist-dialog {
   background: var(--background);
   border: 0;
@@ -419,6 +439,8 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
   .rbin-segments { display: flex; max-width: 100%; }
   .rbin-dialog .namelist-dialog__footer > div { grid-template-columns: 1fr; }
   .rbin-cell-panel { width: 100%; }
+  .rbin-mappings-panel__tables { grid-template-columns: 1fr; }
+  .rbin-mappings-panel__tables { padding: var(--app-space-2); }
 }
 
 @media (max-width: 48rem) {
