@@ -7,6 +7,8 @@ exports.permissions = [
     'hrbp-point:view',
     'hrbp-point:manage',
     'namelist:import',
+    'namelist:transform',
+    'namelist:export',
     'access-point:manage',
     'workforce:edit',
     'workforce:export',

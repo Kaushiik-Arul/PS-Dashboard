@@ -67,6 +67,20 @@
   margin: 0;
 }
 
+.employee-360__view-profile {
+  align-items: center;
+  display: inline-flex;
+  height: 2rem;
+  justify-content: center;
+  padding: 0;
+  width: 2rem;
+}
+
+.employee-360__view-profile .a-button__icon {
+  line-height: 1;
+  margin: 0;
+}
+
 @media (max-width: 599px) {
   .employee-360 { padding: var(--app-space-3); }
   .employee-360__toolbar { grid-template-columns: 1fr 1fr; padding: var(--app-space-3); }

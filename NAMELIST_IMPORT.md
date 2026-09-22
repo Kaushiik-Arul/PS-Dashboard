@@ -10,8 +10,10 @@ The feature is available from HRBP Point. It accepts CSV and XLSX files, stages
 preview data in PostgreSQL, and keeps the live namelist unchanged until the user
 selects **Push namelist**.
 
-The adjacent **RBIN Namelist to PS Namelist** section is currently a UI
-placeholder. It does not upload, convert, or persist data.
+The adjacent **RBIN Namelist to PS Namelist** workflow accepts a mixed Active,
+Inbound, and Outbound source file, retains the raw upload, stages only PS rows,
+and exports a cleaned 29-column workbook without writing to
+`public.employee_namelist`.
 
 ## Completed capability
 
@@ -169,12 +171,47 @@ HRBP Point contains three coordinated sections:
 
 - **Employee leave status** provides the existing status CRUD workflow.
 - **Namelist updation** provides the active monthly import workflow.
-- **RBIN Namelist to PS Namelist** is a non-functional placeholder for a future conversion workflow.
+- **RBIN Namelist to PS Namelist** provides the active cleaning, comparison, editing, finalization, and XLSX export workflow.
 
 Namelist Updation shows the reporting month, file constraints, selected file,
 validation counts, filtered rows, pagination, and confirmation state. The
 preview defaults to eight key columns for readability and offers an **All 29
 fields** view. Editing a row opens an in-dialog side panel containing all fields.
+
+## RBIN cleaning workflow
+
+RBIN cleaning requires the 28 source fields exactly once but accepts them in
+any order. The standard RBIN export labels both final HRBP columns
+`Global-Id of HRBP`; when no explicit HRBP2 header exists, the second occurrence
+is treated as `hrbp2_global_id`. Every uploaded source row is retained in
+`public.rbin_namelist`; only
+rows whose trimmed, case-insensitive `Organisational Area(PA)` value is `PS` are
+copied to permanent staging. `Other Designation` is not included in the cleaned
+output.
+
+Range and Function are derived independently from their Organizational Unit
+mapping tables. Both values are required for every staged employee, including
+Outbound employees. Missing mappings remain editable, appear in the preview
+alert, and prevent finalization until resolved. Staged rows are compared by
+`pers_no` with the frozen `employee_namelist` baseline and classified as New,
+Changed, or Unchanged.
+
+The account-owned backend endpoints are rooted at
+`/api/v1/hrbp-point/rbin-cleaning`:
+
+| Method and path | Behavior |
+| --- | --- |
+| `POST /batches` | Retain the raw upload and create permanent transformed staging. |
+| `GET /batches` | List the authenticated HRBP's retained batches. |
+| `GET /batches/:batchId/rows` | Return filtered, paginated staged rows and summary counts. |
+| `PATCH /batches/:batchId/rows/:rowNumber` | Save a complete edited row and revalidate the batch. |
+| `POST /batches/:batchId/finalize` | Lock a valid draft for export. |
+| `POST /batches/:batchId/export` | Generate, audit, and download the 29-column XLSX file. |
+
+RBIN mutations require the session-bound CSRF token. Transformation requires
+`namelist:transform`; export additionally requires `namelist:export`. Export
+records and staging batches are retained permanently, and the workflow never
+updates `public.employee_namelist`.
 
 ## File responsibilities
 

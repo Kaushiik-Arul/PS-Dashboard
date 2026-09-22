@@ -117,6 +117,200 @@ DELETE FROM public.namelist_import_previews
 WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP;
 ```
 
+## RBIN cleaning data foundation
+
+`rbin_namelist_creation.sql` is the fresh-install schema for the RBIN cleaning
+workflow. Apply it after `auth_creation.sql` and `namelist_creation.sql`. Do not
+apply it to a database that already contains the preliminary RBIN tables.
+
+Existing databases with the preliminary `rbin_namelist` and
+`rbin_namelist_imports` tables must apply `rbin_cleaning_migration.sql` once:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/rbin_cleaning_migration.sql"
+```
+
+Back up the database before applying the migration. It intentionally stops if
+a legacy `imported_by` value cannot be matched to an account UUID, personnel
+number, or login email. It also stops if raw RBIN rows exist without an import
+audit record. Correct those records and rerun the complete migration; its
+transaction rolls back all partial changes after an error.
+
+The RBIN tables have separate retention semantics:
+
+| Table | Retention and purpose |
+| --- | --- |
+| `rbin_namelist_imports` | Permanent audit record for every raw upload. |
+| `rbin_namelist` | Latest successful raw-file snapshot; replaced atomically by a later upload. |
+| `org_unit_range_mappings` | Persistent Organizational Unit to Range lookup. |
+| `org_unit_function_mappings` | Persistent Organizational Unit to Function lookup. |
+| `rbin_staging_batches` | Permanent transformed batch and validation counters. |
+| `rbin_staging_rows` | Original and currently edited 29-column PS rows. |
+| `rbin_staging_exports` | Permanent record of every XLSX download. |
+
+Raw rows are keyed by import and source row rather than `pers_no`, allowing the
+database to retain duplicate or malformed employee numbers for validation. The
+raw JSONB value is authoritative; nullable typed columns support querying valid
+values. Staging and export records have no expiry or automatic deletion.
+RBIN cleaning requires both a Range and Function for every staged employee,
+including Outbound employees. This is intentionally stricter than the existing
+live Namelist Updation rule. A missing lookup makes the staged row invalid. The
+preview must show a mapping alert summarizing every affected Organizational
+Unit and whether Range, Function, or both were not found. The affected cells
+remain editable; a manual correction applies only to that staged row and does
+not change either mapping table.
+
+### Load Organizational Unit mappings
+
+The Range CSV must have the headers `organizational_unit,range`. The Function
+CSV must have `organizational_unit,function`. Load each file in a separate
+transaction using `psql`; replace the example paths and source file names.
+
+The preferred loader validates both CSVs first, creates or migrates the RBIN
+schema when needed, and transactionally upserts both mappings. Its defaults are
+the approved local file paths:
+
+```powershell
+& .\infra\scripts\load-rbin-mappings.ps1
+```
+
+Override paths when the files move:
+
+```powershell
+& .\infra\scripts\load-rbin-mappings.ps1 `
+  -FunctionCsv "C:\path\OrgUnit Function Mapping.csv" `
+  -RangeCsv "C:\path\OrgUnit - Range Mapping.csv"
+```
+
+The script reads `DATABASE_URL` from `apps/api/.env` unless `-DatabaseUrl` is
+provided. It recognizes `organizational_unit`, `organisational_unit`,
+`org_unit`, or `orgunit` after normalizing spaces and punctuation. Range headers
+may be `range` or `range_value`; Function headers may be `function` or
+`function_value`. Blank values and conflicting duplicate Organizational Units
+stop the load before PostgreSQL is changed.
+
+The following manual SQL is retained as a fallback.
+
+Range mapping:
+
+```sql
+BEGIN;
+
+CREATE TEMP TABLE range_mapping_load (
+  organizational_unit TEXT,
+  range_value TEXT
+) ON COMMIT DROP;
+
+\copy range_mapping_load (organizational_unit, range_value) FROM 'C:/approved/org-unit-range.csv' WITH (FORMAT csv, HEADER true)
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM range_mapping_load
+    WHERE NULLIF(BTRIM(organizational_unit), '') IS NULL
+       OR NULLIF(BTRIM(range_value), '') IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Range mapping contains a blank Organizational Unit or Range.';
+  END IF;
+
+  IF EXISTS (
+    SELECT LOWER(BTRIM(organizational_unit))
+    FROM range_mapping_load
+    GROUP BY LOWER(BTRIM(organizational_unit))
+    HAVING COUNT(DISTINCT BTRIM(range_value)) > 1
+  ) THEN
+    RAISE EXCEPTION 'Range mapping contains conflicting values for an Organizational Unit.';
+  END IF;
+END;
+$$;
+
+INSERT INTO public.org_unit_range_mappings (
+  organizational_unit,
+  range_value,
+  source_file_name
+)
+SELECT MIN(BTRIM(organizational_unit)), MIN(BTRIM(range_value)), 'org-unit-range.csv'
+FROM range_mapping_load
+GROUP BY LOWER(BTRIM(organizational_unit))
+ON CONFLICT (LOWER(BTRIM(organizational_unit))) DO UPDATE
+SET range_value = EXCLUDED.range_value,
+  source_file_name = EXCLUDED.source_file_name,
+  updated_at = CURRENT_TIMESTAMP;
+
+COMMIT;
+```
+
+Function mapping:
+
+```sql
+BEGIN;
+
+CREATE TEMP TABLE function_mapping_load (
+  organizational_unit TEXT,
+  function_value TEXT
+) ON COMMIT DROP;
+
+\copy function_mapping_load (organizational_unit, function_value) FROM 'C:/approved/org-unit-function.csv' WITH (FORMAT csv, HEADER true)
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM function_mapping_load
+    WHERE NULLIF(BTRIM(organizational_unit), '') IS NULL
+       OR NULLIF(BTRIM(function_value), '') IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Function mapping contains a blank Organizational Unit or Function.';
+  END IF;
+
+  IF EXISTS (
+    SELECT LOWER(BTRIM(organizational_unit))
+    FROM function_mapping_load
+    GROUP BY LOWER(BTRIM(organizational_unit))
+    HAVING COUNT(DISTINCT BTRIM(function_value)) > 1
+  ) THEN
+    RAISE EXCEPTION 'Function mapping contains conflicting values for an Organizational Unit.';
+  END IF;
+END;
+$$;
+
+INSERT INTO public.org_unit_function_mappings (
+  organizational_unit,
+  function_value,
+  source_file_name
+)
+SELECT MIN(BTRIM(organizational_unit)), MIN(BTRIM(function_value)), 'org-unit-function.csv'
+FROM function_mapping_load
+GROUP BY LOWER(BTRIM(organizational_unit))
+ON CONFLICT (LOWER(BTRIM(organizational_unit))) DO UPDATE
+SET function_value = EXCLUDED.function_value,
+  source_file_name = EXCLUDED.source_file_name,
+  updated_at = CURRENT_TIMESTAMP;
+
+COMMIT;
+```
+
+Verify the loaded mappings and identify Organizational Units missing either
+lookup before enabling upload logic:
+
+```sql
+SELECT COUNT(*) AS range_mapping_count
+FROM public.org_unit_range_mappings;
+
+SELECT COUNT(*) AS function_mapping_count
+FROM public.org_unit_function_mappings;
+
+SELECT DISTINCT BTRIM(raw.organizational_unit) AS organizational_unit
+FROM public.rbin_namelist raw
+LEFT JOIN public.org_unit_range_mappings range_map
+  ON LOWER(BTRIM(range_map.organizational_unit)) = LOWER(BTRIM(raw.organizational_unit))
+LEFT JOIN public.org_unit_function_mappings function_map
+  ON LOWER(BTRIM(function_map.organizational_unit)) = LOWER(BTRIM(raw.organizational_unit))
+WHERE LOWER(BTRIM(raw.organisational_area_pa)) = 'ps'
+  AND (range_map.mapping_id IS NULL OR function_map.mapping_id IS NULL)
+ORDER BY organizational_unit;
+```
+
 ### Initial account bootstrap
 
 Install the API-owned Argon2 dependency from the repository root:

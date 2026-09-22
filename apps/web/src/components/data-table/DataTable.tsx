@@ -10,6 +10,7 @@ export interface DataTableColumn<Row extends object> {
   label: string;
   group: string;
   filterable?: boolean;
+  exportable?: boolean;
   render?: (value: Row[keyof Row], row: Row) => ReactNode;
 }
 
@@ -108,9 +109,10 @@ export function DataTable<Row extends object>({
   }, [isExpanded]);
 
   const downloadCsv = () => {
-    const header = columns.map((column) => escapeCsvValue(column.label)).join(",");
+    const exportColumns = columns.filter((column) => column.exportable !== false);
+    const header = exportColumns.map((column) => escapeCsvValue(column.label)).join(",");
     const body = filteredRows.map((row) =>
-      columns.map((column) => escapeCsvValue(row[column.key])).join(","),
+      exportColumns.map((column) => escapeCsvValue(row[column.key])).join(","),
     );
     const csv = [header, ...body].join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));

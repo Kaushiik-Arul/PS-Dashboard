@@ -2,6 +2,7 @@
 
 import { useRef, useState, type ChangeEvent } from "react";
 import { httpNamelistImportClient } from "./namelist-import.http";
+import { RbinNamelistCleaningPanel } from "./RbinNamelistCleaningPanel";
 import {
   namelistColumns,
   type NamelistColumn,
@@ -170,16 +171,7 @@ export function NamelistImportPanel() {
         </div>
       </section>
 
-      <section className="namelist-panel namelist-panel--rbin" aria-labelledby="rbin-namelist-title">
-        <div className="namelist-panel__header">
-          <div><p className="namelist-panel__eyebrow">Data conversion</p><h2 id="rbin-namelist-title">RBIN Namelist to PS Namelist</h2><p>Prepare RBIN employee data for the PS namelist format.</p></div>
-          <span className="namelist-panel__mode namelist-panel__mode--pending"><i className="a-icon boschicon-bosch-ic-hourglass" aria-hidden="true" /> Coming soon</span>
-        </div>
-        <div className="namelist-placeholder">
-          <i className="a-icon boschicon-bosch-ic-document-settings" aria-hidden="true" />
-          <div><strong>Conversion workflow</strong><p>The upload and conversion controls will be added in the next phase.</p></div>
-        </div>
-      </section>
+      <RbinNamelistCleaningPanel />
     </div>
 
     <dialog className="namelist-dialog" ref={dialogRef} onClose={() => setEditingRow(null)}>

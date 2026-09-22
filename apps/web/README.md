@@ -4,8 +4,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Feature documentation
 
-- [Namelist Updation](../../NAMELIST_IMPORT.md) documents the HRBP upload,
-  preview, row-editing, confirmation, and backend integration workflow.
+- [Namelist workflows](../../NAMELIST_IMPORT.md) documents HRBP monthly import
+    and RBIN-to-PS cleaning, comparison, editing, finalization, and export.
 
 ## Getting Started
 

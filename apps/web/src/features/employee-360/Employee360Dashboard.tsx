@@ -1,7 +1,8 @@
 "use client";
 
 import { startTransition, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   emptyDashboardFilters,
   type DashboardFilterKey,
@@ -14,6 +15,8 @@ import type {
   Employee360Row,
 } from "./employee-360.types";
 import "./employee-360.css";
+
+type Employee360TableRow = Employee360Row & { viewProfile: string };
 
 const filterFields = [
   "functionName", "orgUnit", "range", "location", "gender", "employmentType",
@@ -28,7 +31,7 @@ const filterLabels: Record<(typeof filterFields)[number], string> = {
   employmentType: "Direct / indirect",
 };
 
-const columns: DataTableColumn<Employee360Row>[] = [
+const employeeColumns: DataTableColumn<Employee360TableRow>[] = [
   { key: "persNo", label: "Pers.No.", group: "Identity" },
   { key: "personnelNumber", label: "Personnel Number", group: "Identity" },
   { key: "employeeGroup", label: "Employee Group", group: "Employment" },
@@ -89,6 +92,8 @@ export function Employee360Dashboard({
   activeQuery: Employee360Query;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const appliedFilters = toDashboardFilters(activeQuery);
   const [draftFilters, setDraftFilters] = useState(appliedFilters);
   const [search, setSearch] = useState(activeQuery.search ?? "");
@@ -106,6 +111,30 @@ export function Employee360Dashboard({
     gender: data.filterOptions.gender,
     employmentType: data.filterOptions.directOrIndirect,
   };
+  const returnTo = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
+  const rows: Employee360TableRow[] = data.employees.map((employee) => ({
+    ...employee,
+    viewProfile: "",
+  }));
+  const columns: DataTableColumn<Employee360TableRow>[] = [
+    {
+      key: "viewProfile",
+      label: "",
+      group: "Action",
+      exportable: false,
+      render: (_value, employee) => (
+        <Link
+          className="a-button a-button--integrated employee-360__view-profile"
+          href={`/employee-360/${encodeURIComponent(employee.persNo)}?returnTo=${encodeURIComponent(returnTo)}`}
+          aria-label={`View ${employee.personnelNumber ?? employee.persNo} profile`}
+          title="View employee profile"
+        >
+          <i className="a-icon a-button__icon boschicon-bosch-ic-watch-on" aria-hidden="true" />
+        </Link>
+      ),
+    },
+    ...employeeColumns,
+  ];
 
   const navigate = (filters: DashboardFilters, searchValue: string) => {
     const params = toSearchParams(filters, searchValue);
@@ -186,7 +215,7 @@ export function Employee360Dashboard({
         title="Employee details"
         description={`${data.employees.length} employees found. Your own employee record is excluded.`}
         columns={columns}
-        rows={data.employees}
+        rows={rows}
         getRowKey={(row) => row.persNo}
         downloadFileName="employee-360"
         pageSizeOptions={[10, 25, 50]}

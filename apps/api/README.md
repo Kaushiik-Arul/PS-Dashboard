@@ -27,8 +27,8 @@
 
 ## Feature documentation
 
-- [Namelist Updation](../../NAMELIST_IMPORT.md) documents the monthly CSV/XLSX
-  import API, validation rules, staging model, security, and file ownership.
+- [Namelist workflows](../../NAMELIST_IMPORT.md) documents the monthly import
+  and RBIN cleaning APIs, validation rules, staging models, security, and ownership.
 
 ## Project setup
 
