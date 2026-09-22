@@ -3,6 +3,7 @@ import type { UserRole } from "./roles";
 export type Permission =
   | "exportCharts"
   | "manageEmployeeStatus"
+  | "manageNamelist"
   | "viewHrbpPoint"
   | "viewEmployee360"
   | "viewTalentPipeline"
@@ -12,6 +13,7 @@ export type Permission =
 export const permissions: Record<Permission, readonly UserRole[]> = {
   exportCharts: ["hrbp"],
   manageEmployeeStatus: ["hrbp"],
+  manageNamelist: ["hrbp"],
   viewHrbpPoint: ["hrbp"],
   viewEmployee360: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   viewTalentPipeline: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],

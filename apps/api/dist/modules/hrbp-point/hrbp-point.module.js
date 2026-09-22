@@ -12,14 +12,22 @@ const database_module_1 = require("../../database/database.module");
 const hrbp_point_controller_1 = require("./hrbp-point.controller");
 const hrbp_point_repository_1 = require("./hrbp-point.repository");
 const hrbp_point_service_1 = require("./hrbp-point.service");
+const namelist_import_controller_1 = require("./namelist-import/namelist-import.controller");
+const namelist_import_repository_1 = require("./namelist-import/namelist-import.repository");
+const namelist_import_service_1 = require("./namelist-import/namelist-import.service");
 let HrbpPointModule = class HrbpPointModule {
 };
 exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
-        controllers: [hrbp_point_controller_1.HrbpPointController],
-        providers: [hrbp_point_service_1.HrbpPointService, hrbp_point_repository_1.HrbpPointRepository],
+        controllers: [hrbp_point_controller_1.HrbpPointController, namelist_import_controller_1.NamelistImportController],
+        providers: [
+            hrbp_point_service_1.HrbpPointService,
+            hrbp_point_repository_1.HrbpPointRepository,
+            namelist_import_service_1.NamelistImportService,
+            namelist_import_repository_1.NamelistImportRepository,
+        ],
     })
 ], HrbpPointModule);
 //# sourceMappingURL=hrbp-point.module.js.map

@@ -4,6 +4,7 @@ export const permissions = [
   'workforce:view',
   'hrbp-point:view',
   'hrbp-point:manage',
+  'namelist:import',
   'access-point:manage',
   'workforce:edit',
   'workforce:export',

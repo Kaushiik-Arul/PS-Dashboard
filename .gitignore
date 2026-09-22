@@ -50,6 +50,7 @@ next-env.d.ts
 !apps/sql/auth_account_uuid_migration.sql
 !apps/sql/access_point_multi_assignment_migration.sql
 !apps/sql/overview_access_scope_migration.sql
+!apps/sql/namelist_import_staging_migration.sql
 !apps/sql/functions/
 !apps/sql/functions/overview/
 !apps/sql/functions/overview/*.sql

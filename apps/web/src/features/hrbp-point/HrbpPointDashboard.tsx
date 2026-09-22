@@ -10,6 +10,7 @@ import {
   type EmployeeStatus,
   type EmployeeStatusType,
 } from "./hrbp-point.types";
+import { NamelistImportPanel } from "./NamelistImportPanel";
 import "@/components/data-table/data-table.css";
 import "./hrbp-point.css";
 
@@ -67,6 +68,7 @@ async function getErrorMessage(response: Response) {
 export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatus[] }) {
   const { role } = useAuth();
   const canManage = hasPermission(role, "manageEmployeeStatus");
+  const canManageNamelist = hasPermission(role, "manageNamelist");
   const [rows, setRows] = useState(() => sortRows(initialRows));
   const [editingPersNo, setEditingPersNo] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EmployeeStatus | null>(null);
@@ -176,39 +178,44 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
 
   return (
     <main className="hrbp-page">
-      <section className="hrbp-page__heading" aria-labelledby="leave-status-title">
-        <div>
-          <h1 id="leave-status-title">Employee leave status</h1>
-          <p>Maintain current maternity, sabbatical, CRL, and absconding records.</p>
+      <section className="hrbp-status-panel" aria-labelledby="leave-status-title">
+        <div className="hrbp-page__heading">
+          <div>
+            <p className="hrbp-section__eyebrow">Employee status maintenance</p>
+            <h1 id="leave-status-title">Employee leave status</h1>
+            <p>Maintain current maternity, sabbatical, CRL, and absconding records.</p>
+          </div>
+          {canManage && <button className="a-button a-button--primary" type="button" onClick={openCreate}>
+            <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
+            <span className="a-button__label">Add employee status</span>
+          </button>}
         </div>
-        {canManage && <button className="a-button a-button--primary" type="button" onClick={openCreate}>
-          <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
-          <span className="a-button__label">Add employee status</span>
-        </button>}
+
+        <section className="data-table-card hrbp-status-table" aria-label="Employee leave status records">
+          <div className="data-table-card__header"><div>
+            <h2 className="data-table-card__title">Current records</h2>
+            <p className="data-table-card__description">{rows.length} employee status {rows.length === 1 ? "record" : "records"}</p>
+          </div></div>
+          <div className="data-table-scroll">
+            <table className="data-table hrbp-table">
+              <thead><tr className="data-table__column-header">
+                <th scope="col">Employee number</th><th scope="col">Status</th><th scope="col">Start date</th><th scope="col">End date</th><th scope="col">Updated at</th><th scope="col">Updated by</th>
+                {canManage && <th scope="col"><span className="visually-hidden">Actions</span></th>}
+              </tr></thead>
+              <tbody>{rows.length > 0 ? rows.map((row) => <tr key={row.persNo}>
+                <td>{row.persNo}</td><td>{row.statusType}</td><td>{formatDate(row.startDate)}</td><td>{formatDate(row.endDate)}</td>
+                <td>{formatTimestamp(row.updatedAt)}</td><td>{row.updatedBy}</td>
+                {canManage && <td className="hrbp-table__actions">
+                  <button className="a-button a-button--integrated -small" type="button" title={`Edit ${row.persNo}`} aria-label={`Edit employee ${row.persNo}`} onClick={() => openEdit(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-edit" aria-hidden="true" /></button>
+                  <button className="a-button a-button--integrated -small" type="button" title={`Delete ${row.persNo}`} aria-label={`Delete employee ${row.persNo}`} onClick={() => openDelete(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-delete" aria-hidden="true" /></button>
+                </td>}
+              </tr>) : <tr><td className="hrbp-table__empty" colSpan={canManage ? 7 : 6}>No employee leave statuses have been added.</td></tr>}</tbody>
+            </table>
+          </div>
+        </section>
       </section>
 
-      <section className="data-table-card" aria-label="Employee leave status records">
-        <div className="data-table-card__header"><div>
-          <h2 className="data-table-card__title">Current records</h2>
-          <p className="data-table-card__description">{rows.length} employee status {rows.length === 1 ? "record" : "records"}</p>
-        </div></div>
-        <div className="data-table-scroll">
-          <table className="data-table hrbp-table">
-            <thead><tr className="data-table__column-header">
-              <th scope="col">Employee number</th><th scope="col">Status</th><th scope="col">Start date</th><th scope="col">End date</th><th scope="col">Updated at</th><th scope="col">Updated by</th>
-              {canManage && <th scope="col"><span className="visually-hidden">Actions</span></th>}
-            </tr></thead>
-            <tbody>{rows.length > 0 ? rows.map((row) => <tr key={row.persNo}>
-              <td>{row.persNo}</td><td>{row.statusType}</td><td>{formatDate(row.startDate)}</td><td>{formatDate(row.endDate)}</td>
-              <td>{formatTimestamp(row.updatedAt)}</td><td>{row.updatedBy}</td>
-              {canManage && <td className="hrbp-table__actions">
-                <button className="a-button a-button--integrated -small" type="button" title={`Edit ${row.persNo}`} aria-label={`Edit employee ${row.persNo}`} onClick={() => openEdit(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-edit" aria-hidden="true" /></button>
-                <button className="a-button a-button--integrated -small" type="button" title={`Delete ${row.persNo}`} aria-label={`Delete employee ${row.persNo}`} onClick={() => openDelete(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-delete" aria-hidden="true" /></button>
-              </td>}
-            </tr>) : <tr><td className="hrbp-table__empty" colSpan={canManage ? 7 : 6}>No employee leave statuses have been added.</td></tr>}</tbody>
-          </table>
-        </div>
-      </section>
+      {canManageNamelist && <NamelistImportPanel />}
 
       <dialog className="hrbp-dialog" ref={editorRef} onClose={() => setFormError("")}>
         <form method="dialog" onSubmit={submitForm}>

@@ -15,9 +15,9 @@ import type {
 } from "./employee-360.types";
 import "./employee-360.css";
 
-const filterFields: readonly DashboardFilterKey[] = [
+const filterFields = [
   "functionName", "orgUnit", "range", "location", "gender", "employmentType",
-];
+] as const satisfies readonly DashboardFilterKey[];
 
 const filterLabels: Record<(typeof filterFields)[number], string> = {
   functionName: "Function",

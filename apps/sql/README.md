@@ -83,6 +83,38 @@ Schema file: `apps/sql/auth_creation.sql`
 - After the multi-assignment migration, apply
   `overview_access_scope_migration.sql` before enabling Overview for Head roles.
 
+## Namelist import
+
+Apply `namelist_import_staging_migration.sql` after `auth_creation.sql` and
+`namelist_creation.sql` before enabling Namelist Updation. It creates expiring,
+account-owned preview data used between upload and confirmation requests.
+
+The import accepts CSV and XLSX files with all 29 `employee_namelist` columns.
+Column order may differ; header matching is case-insensitive and normalizes
+spaces and hyphens to underscores. Every value is required except `function`,
+which may be blank only when `employee_group` is `outbound`. A successful Push
+replaces the complete `employee_namelist` within one transaction.
+
+Install the API parser dependencies after pulling this change:
+
+```powershell
+npm install --prefix apps/api
+```
+
+Apply the staging migration once:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_import_staging_migration.sql"
+```
+
+Preview sessions expire after 24 hours. A scheduled cleanup may run:
+
+```sql
+DELETE FROM public.namelist_import_previews
+WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP;
+```
+
 ### Initial account bootstrap
 
 Install the API-owned Argon2 dependency from the repository root:
