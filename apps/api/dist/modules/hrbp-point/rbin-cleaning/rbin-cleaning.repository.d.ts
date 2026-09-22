@@ -9,7 +9,7 @@ export declare class RbinCleaningRepository {
     createBatch(actorAccountId: string, file: UploadedRbinFile, rawRows: ParsedRbinRow[], stagedRows: RbinStagedRow[]): Promise<string>;
     listBatches(actorAccountId: string): Promise<RbinBatchSummary[]>;
     getSummary(batchId: string, actorAccountId: string): Promise<RbinBatchSummary | null>;
-    getRows(batchId: string, actorAccountId: string, filter: RbinRowFilter, page: number, pageSize: number): Promise<RbinPreviewPage | null>;
+    getRows(batchId: string, actorAccountId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string): Promise<RbinPreviewPage | null>;
     getAllRows(batchId: string, actorAccountId: string): Promise<RbinStagedRow[] | null>;
     updateRows(batchId: string, actorAccountId: string, rows: RbinStagedRow[]): Promise<void>;
     finalize(batchId: string, actorAccountId: string): Promise<void>;

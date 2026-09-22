@@ -1,14 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import { namelistColumns, type NamelistColumn } from "./namelist-import.types";
 import { httpRbinCleaningClient } from "./rbin-cleaning.http";
 import type { RbinBatchSummary, RbinPreviewPage, RbinPreviewRow, RbinRowFilter } from "./rbin-cleaning.types";
 
-const pageSize = 25;
+const pageSizeOptions = [25, 50, 100] as const;
 const filters: readonly RbinRowFilter[] = ["all", "valid", "invalid", "new", "changed", "unchanged"];
-const keyColumns: readonly NamelistColumn[] = ["pers_no", "employee_group", "organizational_unit", "range", "function", "designation_text"];
+const keyColumns: readonly NamelistColumn[] = [
+  "pers_no",
+  "personnel_number",
+  "employee_group",
+  "ps_group",
+  "organizational_unit",
+  "range",
+  "function",
+  "location",
+  "direct_or_indirect",
+];
 const labels = Object.fromEntries(namelistColumns.map((column) => [column, column.split("_").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ")])) as Record<NamelistColumn, string>;
+
+function displayValue(column: NamelistColumn, value: string) {
+  return column === "direct_or_indirect" ? formatDirectOrIndirect(value) : value;
+}
 
 type EditingCell = { rowNumber: number; column: NamelistColumn; value: string };
 
@@ -30,6 +45,10 @@ export function RbinNamelistCleaningPanel() {
   const [preview, setPreview] = useState<RbinPreviewPage | null>(null);
   const [filter, setFilter] = useState<RbinRowFilter>("all");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [showSavedDatasets, setShowSavedDatasets] = useState(false);
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [editing, setEditing] = useState<EditingCell | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,6 +82,8 @@ export function RbinNamelistCleaningPanel() {
   const showPreview = (nextPreview: RbinPreviewPage) => {
     setPreview(nextPreview);
     setFilter(nextPreview.filter);
+    setSearchInput(nextPreview.search);
+    setSearch(nextPreview.search);
     setPage(nextPreview.page);
     setEditing(null);
     dialogRef.current?.showModal();
@@ -73,7 +94,7 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true);
     setMessage("");
     try {
-      showPreview(await httpRbinCleaningClient.createPreview(file));
+      showPreview(await httpRbinCleaningClient.createPreview(file, pageSize));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The preview could not be prepared.");
     } finally { setBusy(false); }
@@ -82,7 +103,7 @@ export function RbinNamelistCleaningPanel() {
   const openBatch = async (batchId: string) => {
     setBusy(true);
     setMessage("");
-    try { showPreview(await httpRbinCleaningClient.getRows(batchId, "all", 1, pageSize)); }
+    try { showPreview(await httpRbinCleaningClient.getRows(batchId, "all", 1, pageSize, "")); }
     catch (error) { setMessage(error instanceof Error ? error.message : "The batch could not be opened."); }
     finally { setBusy(false); }
   };
@@ -92,8 +113,32 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true);
     setEditing(null);
     try {
-      const next = await httpRbinCleaningClient.getRows(preview.id, nextFilter, nextPage, pageSize);
+      const next = await httpRbinCleaningClient.getRows(preview.id, nextFilter, nextPage, pageSize, search);
       setPreview(next); setFilter(nextFilter); setPage(nextPage);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The rows could not be refreshed."); }
+    finally { setBusy(false); }
+  };
+
+  const searchRows = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!preview) return;
+    const nextSearch = searchInput.trim();
+    setBusy(true);
+    setEditing(null);
+    try {
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, pageSize, nextSearch);
+      setPreview(next); setSearch(nextSearch); setPage(1);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The rows could not be searched."); }
+    finally { setBusy(false); }
+  };
+
+  const changePageSize = async (nextPageSize: number) => {
+    if (!preview) return;
+    setBusy(true);
+    setEditing(null);
+    try {
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, nextPageSize, search);
+      setPreview(next); setPageSize(nextPageSize); setPage(1);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The rows could not be refreshed."); }
     finally { setBusy(false); }
   };
@@ -103,7 +148,7 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true);
     try {
       const changedRow = { ...row, values: { ...row.values, [editing.column]: editing.value } };
-      const next = await httpRbinCleaningClient.updateRow(preview.id, changedRow, filter, currentPage, pageSize);
+      const next = await httpRbinCleaningClient.updateRow(preview.id, changedRow, filter, currentPage, pageSize, search);
       setPreview(next); setEditing(null); setBatches(await httpRbinCleaningClient.listBatches());
     } catch (error) { setMessage(error instanceof Error ? error.message : "The cell could not be saved."); }
     finally { setBusy(false); }
@@ -113,9 +158,9 @@ export function RbinNamelistCleaningPanel() {
     if (!preview) return;
     setBusy(true); setMessage("");
     try {
-      const next = await httpRbinCleaningClient.finalize(preview.id);
+      const next = await httpRbinCleaningClient.finalize(preview.id, pageSize);
       setPreview(next); setBatches(await httpRbinCleaningClient.listBatches());
-      setFilter("all"); setPage(1);
+      setFilter("all"); setSearchInput(""); setSearch(""); setPage(1);
       setMessage("Cleaned dataset saved and ready for export.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "The dataset could not be saved."); }
     finally { setBusy(false); }
@@ -126,7 +171,7 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true); setMessage("");
     try {
       const result = await httpRbinCleaningClient.exportBatch(preview.id);
-      const next = await httpRbinCleaningClient.getRows(preview.id, filter, currentPage, pageSize);
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, currentPage, pageSize, search);
       setPreview(next); setBatches(await httpRbinCleaningClient.listBatches());
       setMessage(`${result.fileName} downloaded.`);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The export could not be prepared."); }
@@ -149,13 +194,15 @@ export function RbinNamelistCleaningPanel() {
         {file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><button className="a-button a-button--primary" type="button" disabled={busy} onClick={() => void upload()}><span className="a-button__label">{busy ? "Preparing..." : "Upload and preview"}</span></button></div>}
         {message && <p className="namelist-panel__message" role="status">{message}</p>}
         <div className="rbin-batches" aria-label="Saved cleaning batches">
-          <div className="rbin-batches__heading"><strong>Saved datasets</strong><span>{batches.length}</span></div>
-          {batches.map((batch) => <button className="rbin-batch-row" type="button" key={batch.id} disabled={busy} onClick={() => void openBatch(batch.id)}>
-            <i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" />
-            <span><strong>{batch.fileName}</strong><small>{formatTimestamp(batch.createdAt)} · {batch.stagedRows} staged rows</small></span>
-            <em data-status={batch.status}>{statusLabel(batch.status)}</em>
-            <i className="a-icon boschicon-bosch-ic-forward-right" aria-hidden="true" />
-          </button>)}
+          <button className="rbin-batches__heading" type="button" aria-expanded={showSavedDatasets} aria-controls="rbin-saved-datasets" disabled={batches.length === 0} onClick={() => setShowSavedDatasets((visible) => !visible)}><strong>Saved datasets</strong><span>{batches.length}</span></button>
+          <div id="rbin-saved-datasets" hidden={!showSavedDatasets}>
+            {batches.map((batch) => <button className="rbin-batch-row" type="button" key={batch.id} disabled={busy} onClick={() => void openBatch(batch.id)}>
+              <i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" />
+              <span><strong>{batch.fileName}</strong><small>{formatTimestamp(batch.createdAt)} · {batch.stagedRows} staged rows</small></span>
+              <em data-status={batch.status}>{statusLabel(batch.status)}</em>
+              <i className="a-icon boschicon-bosch-ic-forward-right" aria-hidden="true" />
+            </button>)}
+          </div>
         </div>
       </div>
     </section>
@@ -172,16 +219,16 @@ export function RbinNamelistCleaningPanel() {
           <div className="rbin-mapping-alert__content"><div><h3 id="mapping-alert-title">{preview.mappingAlerts.reduce((total, alert) => total + alert.rowCount, 0)} rows have missing mappings</h3><p>Enter the missing values before saving.</p></div><ul>{preview.mappingAlerts.map((alert) => <li key={alert.organizationalUnit}><strong>{alert.organizationalUnit}</strong><span>{[alert.missingRange && "Range", alert.missingFunction && "Function"].filter(Boolean).join(" + ")}</span></li>)}</ul></div>
         </section>}
         {message && <p className="namelist-dialog__message" role="status">{message}</p>}
-        <div className="namelist-toolbar"><div className="namelist-segments rbin-segments" aria-label="Filter staged rows">{filters.map((value) => <button key={value} type="button" disabled={busy} aria-pressed={filter === value} onClick={() => void loadPage(value, 1)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div><div className="namelist-toolbar__view"><span>{preview.filteredRows} rows</span><label htmlFor="rbin-column-view">View</label><select id="rbin-column-view" value={showAllColumns ? "all" : "key"} onChange={(event) => setShowAllColumns(event.target.value === "all")}><option value="key">Review fields</option><option value="all">All 29 fields</option></select></div></div>
+        <div className="namelist-toolbar"><div className="namelist-segments rbin-segments" aria-label="Filter staged rows">{filters.map((value) => <button key={value} type="button" disabled={busy} aria-pressed={filter === value} onClick={() => void loadPage(value, 1)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div><div className="namelist-toolbar__view"><form className="rbin-search" role="search" onSubmit={(event) => void searchRows(event)}><input type="search" value={searchInput} disabled={busy} aria-label="Search Pers.No. or Personnel Number" placeholder="Pers.No. or Personnel Number" onChange={(event) => setSearchInput(event.target.value)} /><button className="a-button a-button--integrated -small" type="submit" disabled={busy} aria-label="Search staged rows"><i className="a-icon a-button__icon boschicon-bosch-ic-search" aria-hidden="true" /></button></form><span>{preview.filteredRows} rows</span><label htmlFor="rbin-column-view">View</label><select id="rbin-column-view" value={showAllColumns ? "all" : "key"} onChange={(event) => setShowAllColumns(event.target.value === "all")}><option value="key">Review fields</option><option value="all">All 29 fields</option></select></div></div>
         <div className={`namelist-grid rbin-grid ${showAllColumns ? "is-all-columns" : ""}`}><table><thead><tr><th scope="col">Row</th><th scope="col">Status</th>{visibleColumns.map((column) => <th scope="col" key={column}>{labels[column]}</th>)}</tr></thead><tbody>{preview.rows.map((row) => <tr key={row.rowNumber} className={row.issues.length ? "is-invalid" : ""}><td>{row.rowNumber}</td><td><span className={`rbin-comparison is-${row.comparisonStatus}`}>{row.comparisonStatus}</span>{row.issues.length > 0 && <small>{row.issues.length} issues</small>}</td>{visibleColumns.map((column) => {
           const issue = row.issues.find((item) => item.column === column);
           const changed = row.changedColumns.includes(column);
           const mappingSource = column === "range" ? row.rangeSource : column === "function" ? row.functionSource : null;
           return <td key={column} className={`${issue ? "has-issue" : ""} ${changed ? "has-change" : ""}`} title={issue?.message}>
-            <button className="rbin-cell-value" type="button" disabled={!editable || busy} aria-label={editable ? `Edit ${labels[column]} for row ${row.rowNumber}` : undefined} onClick={() => editable && setEditing({ rowNumber: row.rowNumber, column, value: row.values[column] })}><span>{row.values[column] || "-"}</span>{mappingSource && <small data-source={mappingSource}>{mappingSource}</small>}{changed && row.baselineValues && <small>Was: {row.baselineValues[column] || "-"}</small>}{issue && <small>{issue.message}</small>}{editable && <i className="a-icon boschicon-bosch-ic-edit rbin-cell-value__edit" aria-hidden="true" />}</button>
+            <button className="rbin-cell-value" type="button" disabled={!editable || busy} aria-label={editable ? `Edit ${labels[column]} for row ${row.rowNumber}` : undefined} onClick={() => editable && setEditing({ rowNumber: row.rowNumber, column, value: row.values[column] })}><span>{displayValue(column, row.values[column]) || "-"}</span>{mappingSource && <small data-source={mappingSource}>{mappingSource}</small>}{changed && row.baselineValues && <small>Was: {displayValue(column, row.baselineValues[column]) || "-"}</small>}{issue && <small>{issue.message}</small>}{editable && <i className="a-icon boschicon-bosch-ic-edit rbin-cell-value__edit" aria-hidden="true" />}</button>
           </td>;
         })}</tr>)}</tbody></table></div>
-        <div className="namelist-pagination"><button className="a-button a-button--integrated -small" type="button" aria-label="Previous page" disabled={busy || currentPage === 1} onClick={() => void loadPage(filter, currentPage - 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-back-left" aria-hidden="true" /></button><span>Page {currentPage} of {pageCount}</span><button className="a-button a-button--integrated -small" type="button" aria-label="Next page" disabled={busy || currentPage === pageCount} onClick={() => void loadPage(filter, currentPage + 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-forward-right" aria-hidden="true" /></button></div>
+        <div className="namelist-pagination"><label className="namelist-pagination__size" htmlFor="rbin-page-size"><span>Rows per page</span><select id="rbin-page-size" value={pageSize} disabled={busy} onChange={(event) => void changePageSize(Number(event.target.value))}>{pageSizeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label><button className="a-button a-button--integrated -small" type="button" aria-label="Previous page" disabled={busy || currentPage === 1} onClick={() => void loadPage(filter, currentPage - 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-back-left" aria-hidden="true" /></button><span>Page {currentPage} of {pageCount}</span><button className="a-button a-button--integrated -small" type="button" aria-label="Next page" disabled={busy || currentPage === pageCount} onClick={() => void loadPage(filter, currentPage + 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-forward-right" aria-hidden="true" /></button></div>
         {editing && editingRow && <aside className="rbin-cell-panel" aria-labelledby="rbin-cell-editor-title">
           <header><div><span>Row {editing.rowNumber}</span><h3 id="rbin-cell-editor-title">Edit {labels[editing.column]}</h3></div><button className="a-button a-button--integrated" type="button" aria-label="Close cell editor" onClick={() => setEditing(null)}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
           <div className="rbin-cell-panel__context"><span>Organizational Unit</span><strong>{editingRow.values.organizational_unit}</strong></div>

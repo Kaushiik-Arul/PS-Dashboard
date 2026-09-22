@@ -15,6 +15,9 @@ Inbound, and Outbound source file, retains the raw upload, stages only PS rows,
 and exports a cleaned 29-column workbook without writing to
 `public.employee_namelist`.
 
+Full RBIN engineering and operations documentation is available in
+[RBIN Namelist to PS Namelist](RBIN_NAMELIST_CLEANING.md).
+
 ## Completed capability
 
 - Supports CSV and modern XLSX files.
@@ -180,6 +183,10 @@ fields** view. Editing a row opens an in-dialog side panel containing all fields
 
 ## RBIN cleaning workflow
 
+See [RBIN Namelist to PS Namelist](RBIN_NAMELIST_CLEANING.md) for the complete
+process, dependencies, database contract, mapping loader, API/UI behavior,
+security model, verification steps, and troubleshooting guide.
+
 RBIN cleaning requires the 28 source fields exactly once but accepts them in
 any order. The standard RBIN export labels both final HRBP columns
 `Global-Id of HRBP`; when no explicit HRBP2 header exists, the second occurrence
@@ -203,7 +210,7 @@ The account-owned backend endpoints are rooted at
 | --- | --- |
 | `POST /batches` | Retain the raw upload and create permanent transformed staging. |
 | `GET /batches` | List the authenticated HRBP's retained batches. |
-| `GET /batches/:batchId/rows` | Return filtered, paginated staged rows and summary counts. |
+| `GET /batches/:batchId/rows` | Return searched, filtered, paginated staged rows and summary counts. |
 | `PATCH /batches/:batchId/rows/:rowNumber` | Save a complete edited row and revalidate the batch. |
 | `POST /batches/:batchId/finalize` | Lock a valid draft for export. |
 | `POST /batches/:batchId/export` | Generate, audit, and download the 29-column XLSX file. |
@@ -211,7 +218,10 @@ The account-owned backend endpoints are rooted at
 RBIN mutations require the session-bound CSRF token. Transformation requires
 `namelist:transform`; export additionally requires `namelist:export`. Export
 records and staging batches are retained permanently, and the workflow never
-updates `public.employee_namelist`.
+updates `public.employee_namelist`. Preview pagination supports 25, 50, or 100
+rows per page and defaults to 50. The optional `search` query parameter performs
+a case-insensitive substring search across `pers_no` and `personnel_number`
+before pagination.
 
 ## File responsibilities
 

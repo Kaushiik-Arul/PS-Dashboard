@@ -11,6 +11,7 @@ export interface DataTableColumn<Row extends object> {
   group: string;
   filterable?: boolean;
   exportable?: boolean;
+  format?: (value: Row[keyof Row], row: Row) => string;
   render?: (value: Row[keyof Row], row: Row) => ReactNode;
 }
 
@@ -32,6 +33,11 @@ function escapeCsvValue(value: unknown) {
   }
 
   return `"${text.replaceAll('"', '""')}"`;
+}
+
+function columnText<Row extends object>(column: DataTableColumn<Row>, row: Row) {
+  const value = row[column.key];
+  return column.format ? column.format(value, row) : String(value ?? "");
 }
 
 export function DataTable<Row extends object>({
@@ -112,7 +118,7 @@ export function DataTable<Row extends object>({
     const exportColumns = columns.filter((column) => column.exportable !== false);
     const header = exportColumns.map((column) => escapeCsvValue(column.label)).join(",");
     const body = filteredRows.map((row) =>
-      exportColumns.map((column) => escapeCsvValue(row[column.key])).join(","),
+      exportColumns.map((column) => escapeCsvValue(columnText(column, row))).join(","),
     );
     const csv = [header, ...body].join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
@@ -233,9 +239,11 @@ export function DataTable<Row extends object>({
         <div className="data-table__filters" id={filterPanelId} aria-label={`${title} filters`}>
           {filterableColumns.map((column) => {
             const key = String(column.key);
-            const options = Array.from(
-              new Set(rows.map((row) => String(row[column.key] ?? ""))),
-            ).filter(Boolean).sort((first, second) => first.localeCompare(second, undefined, { numeric: true }));
+            const options = Array.from(new Map(
+              rows
+                .map((row) => [String(row[column.key] ?? ""), columnText(column, row)] as const)
+                .filter(([value]) => Boolean(value)),
+            )).sort(([, first], [, second]) => first.localeCompare(second, undefined, { numeric: true }));
 
             return (
               <label className="data-table__filter" key={key}>
@@ -248,7 +256,7 @@ export function DataTable<Row extends object>({
                   }}
                 >
                   <option value="">All</option>
-                  {options.map((option) => <option key={option} value={option}>{option}</option>)}
+                  {options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
             );
@@ -282,7 +290,8 @@ export function DataTable<Row extends object>({
               <tr key={getRowKey(row)}>
                 {columns.map((column) => {
                   const value = row[column.key];
-                  return <td key={String(column.key)}>{column.render ? column.render(value, row) : String(value ?? "-")}</td>;
+                  const text = columnText(column, row);
+                  return <td key={String(column.key)}>{column.render ? column.render(value, row) : text || "-"}</td>;
                 })}
               </tr>
             )) : (

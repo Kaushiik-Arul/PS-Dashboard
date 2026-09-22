@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import type { Employee360Row } from "./employee-360.types";
 import "./employee-profile.css";
 
@@ -85,7 +86,7 @@ export function EmployeeProfileView({
             <Detail label="Function" value={employee.functionName} />
             <Detail label="Cost center" value={employee.costCenter} />
             <Detail label="Employee group" value={employee.employeeGroup} />
-            <Detail label="Direct / indirect" value={employee.directOrIndirect} />
+            <Detail label="Direct / indirect" value={formatDirectOrIndirect(employee.directOrIndirect)} />
           </dl>
         </div>
 

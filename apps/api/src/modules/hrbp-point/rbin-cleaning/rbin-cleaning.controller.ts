@@ -43,9 +43,10 @@ export class RbinCleaningController {
     @Query('filter') filter: string | undefined,
     @Query('page') page: string | undefined,
     @Query('pageSize') pageSize: string | undefined,
+    @Query('search') search: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.getRows(batchId, user.accountId, filter, page, pageSize);
+    return this.service.getRows(batchId, user.accountId, filter, page, pageSize, search);
   }
 
   @Patch('batches/:batchId/rows/:rowNumber')

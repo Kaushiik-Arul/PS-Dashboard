@@ -86,15 +86,18 @@ let RbinCleaningService = RbinCleaningService_1 = class RbinCleaningService {
     listBatches(actorAccountId) {
         return this.runDatabaseOperation(() => this.repository.listBatches(actorAccountId), 'Unable to list RBIN cleaning batches');
     }
-    async getRows(batchId, actorAccountId, filterInput, pageInput, pageSizeInput) {
+    async getRows(batchId, actorAccountId, filterInput, pageInput, pageSizeInput, searchInput) {
         const allowedFilters = ['all', 'valid', 'invalid', 'new', 'changed', 'unchanged'];
         const filter = allowedFilters.includes(filterInput)
             ? filterInput
             : 'all';
         const page = this.positiveInteger(pageInput, 1, 1_000_000);
         const pageSize = this.positiveInteger(pageSizeInput, 25, 100);
+        const search = searchInput?.trim() ?? '';
+        if (search.length > 100)
+            throw new common_1.BadRequestException('Search must not exceed 100 characters.');
         return this.runDatabaseOperation(async () => {
-            const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize);
+            const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize, search);
             if (!result)
                 throw new common_1.NotFoundException('RBIN cleaning batch was not found.');
             return result;

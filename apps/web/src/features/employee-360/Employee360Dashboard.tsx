@@ -9,6 +9,7 @@ import {
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
+import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import type {
   Employee360Query,
   Employee360Response,
@@ -52,7 +53,7 @@ const employeeColumns: DataTableColumn<Employee360TableRow>[] = [
   { key: "hrbp2GlobalId", label: "Global-Id Of HRBP2", group: "HRBP" },
   { key: "officialEmail", label: "Email Official", group: "Contact" },
   { key: "technicalEntryDate", label: "Technical Entry Date", group: "Dates" },
-  { key: "directOrIndirect", label: "Direct or Indirect", group: "Employment" },
+  { key: "directOrIndirect", label: "Direct or Indirect", group: "Employment", format: formatDirectOrIndirect },
 ];
 
 function toDashboardFilters(query: Employee360Query): DashboardFilters {

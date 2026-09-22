@@ -105,6 +105,7 @@ export class RbinCleaningService {
     filterInput: string | undefined,
     pageInput: string | undefined,
     pageSizeInput: string | undefined,
+    searchInput: string | undefined,
   ): Promise<RbinPreviewPage> {
     const allowedFilters: readonly RbinRowFilter[] = ['all', 'valid', 'invalid', 'new', 'changed', 'unchanged'];
     const filter = allowedFilters.includes(filterInput as RbinRowFilter)
@@ -112,8 +113,10 @@ export class RbinCleaningService {
       : 'all';
     const page = this.positiveInteger(pageInput, 1, 1_000_000);
     const pageSize = this.positiveInteger(pageSizeInput, 25, 100);
+    const search = searchInput?.trim() ?? '';
+    if (search.length > 100) throw new BadRequestException('Search must not exceed 100 characters.');
     return this.runDatabaseOperation(async () => {
-      const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize);
+      const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize, search);
       if (!result) throw new NotFoundException('RBIN cleaning batch was not found.');
       return result;
     }, 'Unable to load RBIN cleaning rows');

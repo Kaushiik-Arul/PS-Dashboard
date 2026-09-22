@@ -6,6 +6,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 - [Namelist workflows](../../NAMELIST_IMPORT.md) documents HRBP monthly import
     and RBIN-to-PS cleaning, comparison, editing, finalization, and export.
+- [RBIN Namelist to PS Namelist](../../RBIN_NAMELIST_CLEANING.md) documents the
+    complete RBIN UI workflow, API integration, validation, and operating model.
 
 ## Getting Started
 

@@ -30,8 +30,8 @@ let RbinCleaningController = class RbinCleaningController {
     listBatches(user) {
         return this.service.listBatches(user.accountId);
     }
-    getRows(batchId, filter, page, pageSize, user) {
-        return this.service.getRows(batchId, user.accountId, filter, page, pageSize);
+    getRows(batchId, filter, page, pageSize, search, user) {
+        return this.service.getRows(batchId, user.accountId, filter, page, pageSize, search);
     }
     updateRow(batchId, rowNumber, input, user) {
         return this.service.updateRow(batchId, rowNumber, input, user.accountId);
@@ -73,9 +73,10 @@ __decorate([
     __param(1, (0, common_1.Query)('filter')),
     __param(2, (0, common_1.Query)('page')),
     __param(3, (0, common_1.Query)('pageSize')),
-    __param(4, (0, auth_decorators_1.CurrentUser)()),
+    __param(4, (0, common_1.Query)('search')),
+    __param(5, (0, auth_decorators_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object, Object, Object]),
+    __metadata("design:paramtypes", [String, Object, Object, Object, Object, Object]),
     __metadata("design:returntype", void 0)
 ], RbinCleaningController.prototype, "getRows", null);
 __decorate([

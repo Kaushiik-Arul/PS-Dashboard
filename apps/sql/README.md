@@ -119,6 +119,8 @@ WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP;
 
 ## RBIN cleaning data foundation
 
+Full cross-stack documentation: [RBIN Namelist to PS Namelist](../../RBIN_NAMELIST_CLEANING.md).
+
 `rbin_namelist_creation.sql` is the fresh-install schema for the RBIN cleaning
 workflow. Apply it after `auth_creation.sql` and `namelist_creation.sql`. Do not
 apply it to a database that already contains the preliminary RBIN tables.

@@ -76,6 +76,7 @@ export type RbinBatchSummary = {
 export type RbinPreviewPage = RbinBatchSummary & {
   rows: RbinStagedRow[];
   filter: RbinRowFilter;
+  search: string;
   page: number;
   pageSize: number;
   filteredRows: number;

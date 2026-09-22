@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import "./overview-filters.css";
 
 export interface DashboardFilters {
@@ -15,6 +16,10 @@ export interface DashboardFilters {
 }
 
 export type DashboardFilterKey = keyof DashboardFilters;
+
+function filterOptionLabel(key: DashboardFilterKey, value: string) {
+  return key === "employmentType" ? formatDirectOrIndirect(value) : value;
+}
 
 export const emptyDashboardFilters: DashboardFilters = {
   businessUnit: "All",
@@ -139,7 +144,9 @@ export function OverviewFilters({
                     value={value[field.key]}
                     onChange={(event) => onChange({ ...value, [field.key]: event.target.value })}
                   >
-                    {getFieldOptions(field).map((option) => <option key={option}>{option}</option>)}
+                    {getFieldOptions(field).map((option) => (
+                      <option key={option} value={option}>{filterOptionLabel(field.key, option)}</option>
+                    ))}
                   </select>
                 </div>
               ))}
@@ -151,7 +158,7 @@ export function OverviewFilters({
                   ? "Changes not applied. Click Apply filters to update the dashboard."
                   : activeFilters.length === 0
                   ? "Showing all employees"
-                  : `Filtered by ${activeFilters.map((field) => `${field.label}: ${activeValue[field.key]}`).join("; ")}`}
+                  : `Filtered by ${activeFilters.map((field) => `${field.label}: ${filterOptionLabel(field.key, activeValue[field.key])}`).join("; ")}`}
               </p>
               <div className="overview-filters__actions">
                 <button className="a-button a-button--secondary -small" type="button" onClick={onClear}>

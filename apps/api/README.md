@@ -29,6 +29,8 @@
 
 - [Namelist workflows](../../NAMELIST_IMPORT.md) documents the monthly import
   and RBIN cleaning APIs, validation rules, staging models, security, and ownership.
+- [RBIN Namelist to PS Namelist](../../RBIN_NAMELIST_CLEANING.md) documents the
+  complete cleaning process, packages, transformations, endpoints, export, and operations.
 
 ## Project setup
 

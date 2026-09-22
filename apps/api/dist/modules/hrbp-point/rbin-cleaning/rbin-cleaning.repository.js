@@ -204,36 +204,42 @@ let RbinCleaningRepository = class RbinCleaningRepository {
         const record = result.rows[0];
         return record ? this.mapSummary(record, await this.getMappingAlerts(batchId)) : null;
     }
-    async getRows(batchId, actorAccountId, filter, page, pageSize) {
+    async getRows(batchId, actorAccountId, filter, page, pageSize, search) {
         const summary = await this.getSummary(batchId, actorAccountId);
         if (!summary)
             return null;
-        const filterSql = filter === 'valid'
-            ? 'AND is_valid = TRUE'
-            : filter === 'invalid'
-                ? 'AND is_valid = FALSE'
-                : filter === 'all'
-                    ? ''
-                    : 'AND comparison_status = $4';
-        const countFilterSql = filter === 'valid'
-            ? 'AND row.is_valid = TRUE'
-            : filter === 'invalid'
-                ? 'AND row.is_valid = FALSE'
-                : filter === 'all'
-                    ? ''
-                    : 'AND row.comparison_status = $3';
+        const rowConditions = [];
+        const countConditions = [];
         const values = [batchId, pageSize, (page - 1) * pageSize];
-        if (!['all', 'valid', 'invalid'].includes(filter))
-            values.push(filter);
         const countValues = [batchId, actorAccountId];
-        if (!['all', 'valid', 'invalid'].includes(filter))
+        if (filter === 'valid' || filter === 'invalid') {
+            rowConditions.push(`AND is_valid = ${filter === 'valid' ? 'TRUE' : 'FALSE'}`);
+            countConditions.push(`AND row.is_valid = ${filter === 'valid' ? 'TRUE' : 'FALSE'}`);
+        }
+        else if (filter !== 'all') {
+            values.push(filter);
             countValues.push(filter);
+            rowConditions.push(`AND comparison_status = $${values.length}`);
+            countConditions.push(`AND row.comparison_status = $${countValues.length}`);
+        }
+        if (search) {
+            values.push(search);
+            countValues.push(search);
+            rowConditions.push(`AND (
+        STRPOS(LOWER(COALESCE(current_data->>'pers_no', '')), LOWER($${values.length}::text)) > 0
+        OR STRPOS(LOWER(COALESCE(current_data->>'personnel_number', '')), LOWER($${values.length}::text)) > 0
+      )`);
+            countConditions.push(`AND (
+        STRPOS(LOWER(COALESCE(row.current_data->>'pers_no', '')), LOWER($${countValues.length}::text)) > 0
+        OR STRPOS(LOWER(COALESCE(row.current_data->>'personnel_number', '')), LOWER($${countValues.length}::text)) > 0
+      )`);
+        }
         const [rows, count] = await Promise.all([
             this.database.query(`SELECT source_row_number, original_data, current_data, validation_issues,
            comparison_status, baseline_employee_data, changed_columns, range_source,
            function_source
          FROM public.rbin_staging_rows
-         WHERE batch_id = $1 ${filterSql}
+         WHERE batch_id = $1 ${rowConditions.join(' ')}
          ORDER BY source_row_number LIMIT $2 OFFSET $3`, values),
             this.database.query(`SELECT COUNT(*)::text AS count
          FROM public.rbin_staging_rows row
@@ -241,12 +247,13 @@ let RbinCleaningRepository = class RbinCleaningRepository {
            AND EXISTS (
              SELECT 1 FROM public.rbin_staging_batches batch
              WHERE batch.batch_id = row.batch_id AND batch.uploaded_by = $2
-           ) ${countFilterSql}`, countValues),
+           ) ${countConditions.join(' ')}`, countValues),
         ]);
         return {
             ...summary,
             rows: rows.rows.map(this.mapStoredRow),
             filter,
+            search,
             page,
             pageSize,
             filteredRows: Number(count.rows[0]?.count ?? 0),

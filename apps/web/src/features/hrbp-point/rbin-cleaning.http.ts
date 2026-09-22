@@ -20,8 +20,9 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
   return response;
 }
 
-async function getRows(batchId: string, filter: RbinRowFilter, page: number, pageSize: number): Promise<RbinPreviewPage> {
+async function getRows(batchId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string): Promise<RbinPreviewPage> {
   const query = new URLSearchParams({ filter, page: String(page), pageSize: String(pageSize) });
+  if (search) query.set("search", search);
   return request(`/batches/${encodeURIComponent(batchId)}/rows?${query}`).then(
     (response) => response.json() as Promise<RbinPreviewPage>,
   );
@@ -46,26 +47,26 @@ export const httpRbinCleaningClient: RbinCleaningClient = {
   listBatches() {
     return request("/batches").then((response) => response.json() as Promise<RbinBatchSummary[]>);
   },
-  async createPreview(file) {
+  async createPreview(file, pageSize) {
     const formData = new FormData();
     formData.set("file", file);
     const summary = await request("/batches", { method: "POST", body: formData }).then(
       (response) => response.json() as Promise<RbinBatchSummary>,
     );
-    return getRows(summary.id, "all", 1, 25);
+    return getRows(summary.id, "all", 1, pageSize, "");
   },
   getRows,
-  async updateRow(batchId, row: RbinPreviewRow, filter, page, pageSize) {
+  async updateRow(batchId, row: RbinPreviewRow, filter, page, pageSize, search) {
     await request(`/batches/${encodeURIComponent(batchId)}/rows/${row.rowNumber}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(row.values),
     });
-    return getRows(batchId, filter, page, pageSize);
+    return getRows(batchId, filter, page, pageSize, search);
   },
-  async finalize(batchId) {
+  async finalize(batchId, pageSize) {
     await request(`/batches/${encodeURIComponent(batchId)}/finalize`, { method: "POST" });
-    return getRows(batchId, "all", 1, 25);
+    return getRows(batchId, "all", 1, pageSize, "");
   },
   async exportBatch(batchId) {
     const response = await request(`/batches/${encodeURIComponent(batchId)}/export`, { method: "POST" });
