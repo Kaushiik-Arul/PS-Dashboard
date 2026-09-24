@@ -125,6 +125,48 @@ describe('RBIN cleaning', () => {
     });
   });
 
+  it('applies employee exceptions before validation and baseline comparison', () => {
+    const baseline = transformRbinRows([{
+      rowNumber: 2,
+      values: rawValues(),
+    }], {
+      ranges: new Map([['nap/mfn12', 'NaP']]),
+      functions: new Map([['nap/mfn12', 'MG']]),
+    }, new Map())[0].values;
+    const exceptions = new Map([['12345', new Map([
+      ['range' as const, 'Fixed Range'],
+      ['official_email' as const, 'fixed@example.com'],
+    ])]]);
+
+    const staged = transformRbinRows([{ rowNumber: 2, values: rawValues() }], {
+      ranges: new Map([['nap/mfn12', 'Mapped Range']]),
+      functions: new Map([['nap/mfn12', 'MG']]),
+    }, new Map([['12345', baseline]]), exceptions);
+
+    expect(staged[0].values.range).toBe('Fixed Range');
+    expect(staged[0].rangeSource).toBe('exception');
+    expect(staged[0].issues).not.toEqual(expect.arrayContaining([expect.objectContaining({ column: 'official_email' })]));
+    expect(staged[0].changedColumns).toEqual(expect.arrayContaining(['range', 'official_email']));
+    expect(staged[0].originalValues.range).toBe('Fixed Range');
+  });
+
+  it('uses an Organisational Area exception when selecting PS rows', () => {
+    const exceptions = new Map([['12345', new Map([
+      ['organisational_area_pa' as const, 'PS'],
+    ])]]);
+
+    const staged = transformRbinRows([{
+      rowNumber: 2,
+      values: rawValues({ organisational_area_pa: 'Other' }),
+    }], {
+      ranges: new Map([['nap/mfn12', 'NaP']]),
+      functions: new Map([['nap/mfn12', 'MG']]),
+    }, new Map(), exceptions);
+
+    expect(staged).toHaveLength(1);
+    expect(staged[0].values.organisational_area_pa).toBe('PS');
+  });
+
   it('marks every duplicate employee number invalid', () => {
     const rows = transformRbinRows([
       { rowNumber: 2, values: rawValues() },

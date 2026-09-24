@@ -74,8 +74,11 @@ let RbinCleaningService = RbinCleaningService_1 = class RbinCleaningService {
             const persNos = [...new Set(rawRows
                     .map((row) => row.values.pers_no.trim())
                     .filter(this.isPostgresBigInt))];
-            const baselines = await this.repository.getBaselines(persNos);
-            const stagedRows = (0, rbin_cleaning_transformer_1.transformRbinRows)(rawRows, mappings, baselines);
+            const [baselines, exceptions] = await Promise.all([
+                this.repository.getBaselines(persNos),
+                this.repository.getExceptions(persNos),
+            ]);
+            const stagedRows = (0, rbin_cleaning_transformer_1.transformRbinRows)(rawRows, mappings, baselines, exceptions);
             const batchId = await this.repository.createBatch(actorAccountId, file, rawRows, stagedRows);
             const summary = await this.repository.getSummary(batchId, actorAccountId);
             if (!summary)
@@ -86,7 +89,7 @@ let RbinCleaningService = RbinCleaningService_1 = class RbinCleaningService {
     listBatches(actorAccountId) {
         return this.runDatabaseOperation(() => this.repository.listBatches(actorAccountId), 'Unable to list RBIN cleaning batches');
     }
-    async getRows(batchId, actorAccountId, filterInput, pageInput, pageSizeInput, searchInput) {
+    async getRows(batchId, actorAccountId, filterInput, pageInput, pageSizeInput, searchInput, viewInput) {
         const allowedFilters = ['all', 'valid', 'invalid', 'new', 'changed', 'unchanged'];
         const filter = allowedFilters.includes(filterInput)
             ? filterInput
@@ -94,10 +97,11 @@ let RbinCleaningService = RbinCleaningService_1 = class RbinCleaningService {
         const page = this.positiveInteger(pageInput, 1, 1_000_000);
         const pageSize = this.positiveInteger(pageSizeInput, 25, 100);
         const search = searchInput?.trim() ?? '';
+        const view = viewInput === 'key' ? 'key' : 'all';
         if (search.length > 100)
             throw new common_1.BadRequestException('Search must not exceed 100 characters.');
         return this.runDatabaseOperation(async () => {
-            const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize, search);
+            const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize, search, view);
             if (!result)
                 throw new common_1.NotFoundException('RBIN cleaning batch was not found.');
             return result;
@@ -115,8 +119,8 @@ let RbinCleaningService = RbinCleaningService_1 = class RbinCleaningService {
                 throw new common_1.NotFoundException('RBIN staged row was not found.');
             const persNoChanged = target.values.pers_no !== values.pers_no;
             target.values = values;
-            target.rangeSource = values.range === target.originalValues.range ? 'mapping' : 'manual';
-            target.functionSource = values.function === target.originalValues.function ? 'mapping' : 'manual';
+            target.rangeSource = values.range === target.originalValues.range ? target.rangeSource : 'manual';
+            target.functionSource = values.function === target.originalValues.function ? target.functionSource : 'manual';
             if (!values.range)
                 target.rangeSource = 'missing';
             if (!values.function)

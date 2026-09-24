@@ -3,7 +3,8 @@ import type { NamelistColumn, NamelistRowValues } from "./namelist-import.types"
 export type RbinBatchStatus = "draft" | "ready_for_export" | "exported";
 export type RbinComparisonStatus = "new" | "changed" | "unchanged";
 export type RbinRowFilter = "all" | "valid" | "invalid" | RbinComparisonStatus;
-export type MappingSource = "mapping" | "manual" | "missing";
+export type RbinColumnView = "key" | "all";
+export type MappingSource = "mapping" | "exception" | "manual" | "missing";
 
 export type RbinIssue = {
   column: NamelistColumn;
@@ -60,8 +61,8 @@ export type RbinPreviewPage = RbinBatchSummary & {
 export interface RbinCleaningClient {
   listBatches(): Promise<RbinBatchSummary[]>;
   createPreview(file: File, pageSize: number): Promise<RbinPreviewPage>;
-  getRows(batchId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string): Promise<RbinPreviewPage>;
-  updateRow(batchId: string, row: RbinPreviewRow, filter: RbinRowFilter, page: number, pageSize: number, search: string): Promise<RbinPreviewPage>;
+  getRows(batchId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage>;
+  updateRow(batchId: string, row: RbinPreviewRow, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage>;
   finalize(batchId: string, pageSize: number): Promise<RbinPreviewPage>;
   exportBatch(batchId: string): Promise<{ fileName: string; exportedAt: string }>;
 }

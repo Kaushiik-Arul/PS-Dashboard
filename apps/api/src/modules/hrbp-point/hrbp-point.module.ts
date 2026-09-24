@@ -9,13 +9,16 @@ import { NamelistImportService } from './namelist-import/namelist-import.service
 import { RbinCleaningController } from './rbin-cleaning/rbin-cleaning.controller';
 import { RbinCleaningRepository } from './rbin-cleaning/rbin-cleaning.repository';
 import { RbinCleaningService } from './rbin-cleaning/rbin-cleaning.service';
+import { RbinExceptionsController } from './rbin-exceptions/rbin-exceptions.controller';
+import { RbinExceptionsRepository } from './rbin-exceptions/rbin-exceptions.repository';
+import { RbinExceptionsService } from './rbin-exceptions/rbin-exceptions.service';
 import { RbinMappingsController } from './rbin-mappings/rbin-mappings.controller';
 import { RbinMappingsRepository } from './rbin-mappings/rbin-mappings.repository';
 import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [HrbpPointController, NamelistImportController, RbinCleaningController, RbinMappingsController],
+  controllers: [HrbpPointController, NamelistImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
   providers: [
     HrbpPointService,
     HrbpPointRepository,
@@ -25,6 +28,8 @@ import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
     RbinCleaningRepository,
     RbinMappingsService,
     RbinMappingsRepository,
+    RbinExceptionsService,
+    RbinExceptionsRepository,
   ],
 })
 export class HrbpPointModule {}

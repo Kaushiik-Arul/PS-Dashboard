@@ -11,6 +11,12 @@ export const namelistColumns = [
 export type NamelistColumn = (typeof namelistColumns)[number];
 export type NamelistRowValues = Record<NamelistColumn, string>;
 
+export const rbinExceptionColumns = namelistColumns.filter(
+  (column): column is Exclude<NamelistColumn, 'pers_no' | 'personnel_number'> =>
+    column !== 'pers_no' && column !== 'personnel_number',
+);
+export type RbinExceptionColumn = (typeof rbinExceptionColumns)[number];
+
 export type NamelistIssue = {
   column: NamelistColumn;
   message: string;

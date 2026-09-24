@@ -1,4 +1,4 @@
-import type { NamelistColumn, NamelistRowValues } from '../namelist-import/namelist-import.types';
+import type { NamelistColumn, NamelistRowValues, RbinExceptionColumn } from '../namelist-import/namelist-import.types';
 
 export const rbinSourceColumns = [
   'pers_no', 'personnel_number', 'joining_date', 'pa', 'personnel_area',
@@ -29,10 +29,11 @@ export type RbinIssue = {
   message: string;
 };
 
-export type MappingSource = 'mapping' | 'manual' | 'missing';
+export type MappingSource = 'mapping' | 'exception' | 'manual' | 'missing';
 export type ComparisonStatus = 'new' | 'changed' | 'unchanged';
 export type RbinBatchStatus = 'draft' | 'ready_for_export' | 'exported';
 export type RbinRowFilter = 'all' | 'valid' | 'invalid' | ComparisonStatus;
+export type RbinColumnView = 'key' | 'all';
 
 export type RbinBaselineValues = NamelistRowValues;
 
@@ -91,3 +92,5 @@ export type RbinExport = {
   fileName: string;
   buffer: Buffer;
 };
+
+export type RbinExceptionContext = ReadonlyMap<string, ReadonlyMap<RbinExceptionColumn, string>>;

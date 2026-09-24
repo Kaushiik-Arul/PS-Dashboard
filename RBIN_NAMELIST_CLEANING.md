@@ -195,6 +195,27 @@ CSV-loaded mappings.
 Mapping CRUD affects **future RBIN uploads only**. Existing staging batches keep
 their original mapped values, comparison baselines, and manual corrections.
 
+### Employee column exceptions
+
+The **Employee exceptions** section stores fixed PS Namelist values for an
+individual Pers.No. One employee may have several exception rows, but only one
+row per Namelist column. Add supports several column/value pairs in one atomic
+request; Edit and Delete operate on one stored rule.
+
+All output columns except `pers_no` and `personnel_number` are selectable. The
+identity columns are excluded so exception lookup, duplicate detection, and
+baseline comparison continue using the source employee identity. Pers.No need
+not exist in the current live Namelist, allowing rules for future or inbound
+employees.
+
+Exceptions are applied only while creating a new RBIN staging batch. Processing
+order is normal RBIN transformation, Organizational Unit mappings, employee
+exceptions, validation, and baseline comparison. Therefore an employee Range or
+Function exception overrides the Organizational Unit mapping. The resulting
+values are frozen in the staged batch; a later manual staged edit wins for that
+batch. Editing or deleting a master exception never recalculates existing
+batches or exports.
+
 ## Source file contract
 
 ### Supported formats
@@ -424,6 +445,23 @@ pagination. Mutation bodies contain exactly:
 All mapping endpoints require `namelist:transform`. POST, PATCH, and DELETE also
 require the existing session-bound CSRF token through the web proxy.
 
+### Employee exception CRUD API
+
+NestJS prefix: `/api/v1/hrbp-point/rbin-exceptions`
+
+| Method and path | Behavior |
+| --- | --- |
+| `GET /` | Search, column-filter, and page exception rows. |
+| `POST /` | Atomically create several fixed columns for one Pers.No. |
+| `PATCH /:exceptionId` | Update one employee-column rule. |
+| `DELETE /:exceptionId` | Delete one employee-column rule. |
+
+GET accepts `search`, `filter`, `page`, and `pageSize`. Search covers Pers.No,
+column key, and fixed value. Mutations validate positive BIGINT Pers.No values,
+the 27-column allowlist, nonblank fixed values, date/integer/email formats, and
+duplicate employee-column rules. All endpoints require `namelist:transform`;
+mutations also require CSRF and write security audit events.
+
 ## Web application behavior
 
 The HRBP Point panel provides:
@@ -447,6 +485,7 @@ The HRBP Point panel provides:
   - Direct or Indirect
 - An All 29 fields view.
 - Side-by-side Range and Function mapping tables with independent search, pagination, and CRUD actions.
+- An Employee exceptions table with search, column filtering, eight-row pagination, multi-column Add, Edit, and Delete.
 - Cell-level issue and changed-value highlighting.
 - A focused side editor for draft rows.
 - Finalization and real XLSX browser download.
@@ -493,6 +532,7 @@ filters, pagination, and actions remain available.
 | --- | --- |
 | `apps/sql/rbin_namelist_creation.sql` | Fresh-install audit, raw, mapping, staging, and export schema. |
 | `apps/sql/rbin_cleaning_migration.sql` | Transactional forward migration from the preliminary RBIN schema. |
+| `apps/sql/rbin_employee_exceptions_migration.sql` | Forward migration for employee-column rules, audit events, and exception source values. |
 | `apps/sql/README.md` | Database application order, retention contract, and manual mapping SQL. |
 | `infra/scripts/load-rbin-mappings.ps1` | Validates, creates/migrates, and transactionally upserts both mapping files. |
 
@@ -508,6 +548,7 @@ filters, pagination, and actions remain available.
 | `apps/api/src/modules/hrbp-point/rbin-cleaning/rbin-cleaning.controller.ts` | Multipart, JSON, query, finalize, and streamed-export endpoints. |
 | `apps/api/src/modules/hrbp-point/rbin-cleaning/rbin-cleaning.spec.ts` | Focused parser and transformation regression tests. |
 | `apps/api/src/modules/hrbp-point/rbin-mappings/*` | Mapping types, search/paging repository, CRUD service/controller, and focused tests. |
+| `apps/api/src/modules/hrbp-point/rbin-exceptions/*` | Employee exception CRUD, validation, audit persistence, and focused tests. |
 | `apps/api/src/common/authorization/permissions.ts` | `namelist:transform` and `namelist:export` declarations and role grants. |
 | `apps/api/src/modules/hrbp-point/hrbp-point.module.ts` | Controller, service, and repository registration. |
 
@@ -523,6 +564,10 @@ filters, pagination, and actions remain available.
 | `apps/web/src/features/hrbp-point/rbin-mappings.types.ts` | Browser mapping and CRUD client contract. |
 | `apps/web/src/features/hrbp-point/rbin-mappings.http.ts` | Browser mapping CRUD client and CSRF propagation. |
 | `apps/web/src/features/hrbp-point/rbin-mappings.api.ts` | Authenticated server-to-Nest mapping forwarding. |
+| `apps/web/src/features/hrbp-point/RbinExceptionsPanel.tsx` | Employee exception table, multi-column Add, Edit, and Delete UI. |
+| `apps/web/src/features/hrbp-point/rbin-exceptions.types.ts` | Browser exception and CRUD client contract. |
+| `apps/web/src/features/hrbp-point/rbin-exceptions.http.ts` | Browser exception CRUD client and CSRF propagation. |
+| `apps/web/src/features/hrbp-point/rbin-exceptions.api.ts` | Authenticated server-to-Nest exception forwarding. |
 | `apps/web/src/features/hrbp-point/hrbp-point.css` | Responsive RBIN panel, dialog, alert, grid, editor, search, and pagination styles. |
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/route.ts` | Batch list and multipart upload proxy. |
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/[batchId]/rows/route.ts` | Search/filter/pagination proxy. |
@@ -531,6 +576,8 @@ filters, pagination, and actions remain available.
 | `apps/web/app/api/hrbp-point/rbin-cleaning/batches/[batchId]/export/route.ts` | Binary XLSX export proxy preserving content headers. |
 | `apps/web/app/api/hrbp-point/rbin-mappings/[kind]/route.ts` | Mapping list/search and create proxy. |
 | `apps/web/app/api/hrbp-point/rbin-mappings/[kind]/[mappingId]/route.ts` | Mapping update and delete proxy. |
+| `apps/web/app/api/hrbp-point/rbin-exceptions/route.ts` | Exception list/search/filter and atomic create proxy. |
+| `apps/web/app/api/hrbp-point/rbin-exceptions/[exceptionId]/route.ts` | Exception update and delete proxy. |
 
 ## Verification
 
@@ -539,6 +586,7 @@ Run the focused checks from the repository root:
 ```powershell
 npm test --prefix apps/api -- rbin-cleaning.spec.ts
 npm test --prefix apps/api -- rbin-mappings.service.spec.ts
+npm test --prefix apps/api -- rbin-exceptions.service.spec.ts rbin-cleaning.spec.ts
 npm run build --prefix apps/api
 npm run build --prefix apps/web
 ```
@@ -559,6 +607,9 @@ End-to-end smoke test:
 12. Confirm `employee_namelist` was not modified.
 13. Add, search, edit, and delete one test mapping in each mapping table.
 14. Confirm an existing staged batch does not change after mapping maintenance.
+15. Add several fixed columns for one Pers.No and upload an RBIN file containing that employee.
+16. Confirm fixed values appear in preview and export, then manually edit one and confirm the staged edit wins.
+17. Edit or delete the master exception and confirm the existing batch remains unchanged while a new upload uses the new rule.
 
 Useful database checks:
 

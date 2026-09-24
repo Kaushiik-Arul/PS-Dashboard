@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "r
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import { namelistColumns, type NamelistColumn } from "./namelist-import.types";
 import { httpRbinCleaningClient } from "./rbin-cleaning.http";
-import type { RbinBatchSummary, RbinPreviewPage, RbinPreviewRow, RbinRowFilter } from "./rbin-cleaning.types";
+import type { RbinBatchSummary, RbinColumnView, RbinPreviewPage, RbinPreviewRow, RbinRowFilter } from "./rbin-cleaning.types";
 
 const pageSizeOptions = [25, 50, 100] as const;
 const filters: readonly RbinRowFilter[] = ["all", "valid", "invalid", "new", "changed", "unchanged"];
@@ -63,6 +63,7 @@ export function RbinNamelistCleaningPanel() {
   const pageCount = Math.max(1, Math.ceil((preview?.filteredRows ?? 0) / pageSize));
   const currentPage = Math.min(page, pageCount);
   const visibleColumns = showAllColumns ? namelistColumns : keyColumns;
+  const columnView: RbinColumnView = showAllColumns ? "all" : "key";
   const editable = preview?.status === "draft";
   const editingRow = editing ? preview?.rows.find((row) => row.rowNumber === editing.rowNumber) ?? null : null;
 
@@ -103,7 +104,7 @@ export function RbinNamelistCleaningPanel() {
   const openBatch = async (batchId: string) => {
     setBusy(true);
     setMessage("");
-    try { showPreview(await httpRbinCleaningClient.getRows(batchId, "all", 1, pageSize, "")); }
+    try { showPreview(await httpRbinCleaningClient.getRows(batchId, "all", 1, pageSize, "", columnView)); }
     catch (error) { setMessage(error instanceof Error ? error.message : "The batch could not be opened."); }
     finally { setBusy(false); }
   };
@@ -113,7 +114,7 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true);
     setEditing(null);
     try {
-      const next = await httpRbinCleaningClient.getRows(preview.id, nextFilter, nextPage, pageSize, search);
+      const next = await httpRbinCleaningClient.getRows(preview.id, nextFilter, nextPage, pageSize, search, columnView);
       setPreview(next); setFilter(nextFilter); setPage(nextPage);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The rows could not be refreshed."); }
     finally { setBusy(false); }
@@ -126,9 +127,20 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true);
     setEditing(null);
     try {
-      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, pageSize, nextSearch);
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, pageSize, nextSearch, columnView);
       setPreview(next); setSearch(nextSearch); setPage(1);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The rows could not be searched."); }
+    finally { setBusy(false); }
+  };
+
+  const clearSearch = async () => {
+    if (!preview) return;
+    setBusy(true);
+    setEditing(null);
+    try {
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, pageSize, "", columnView);
+      setPreview(next); setSearchInput(""); setSearch(""); setPage(1);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The search could not be cleared."); }
     finally { setBusy(false); }
   };
 
@@ -137,7 +149,7 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true);
     setEditing(null);
     try {
-      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, nextPageSize, search);
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, nextPageSize, search, columnView);
       setPreview(next); setPageSize(nextPageSize); setPage(1);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The rows could not be refreshed."); }
     finally { setBusy(false); }
@@ -148,9 +160,23 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true);
     try {
       const changedRow = { ...row, values: { ...row.values, [editing.column]: editing.value } };
-      const next = await httpRbinCleaningClient.updateRow(preview.id, changedRow, filter, currentPage, pageSize, search);
+      const next = await httpRbinCleaningClient.updateRow(preview.id, changedRow, filter, currentPage, pageSize, search, columnView);
       setPreview(next); setEditing(null); setBatches(await httpRbinCleaningClient.listBatches());
     } catch (error) { setMessage(error instanceof Error ? error.message : "The cell could not be saved."); }
+    finally { setBusy(false); }
+  };
+
+  const changeColumnView = async (nextView: RbinColumnView) => {
+    if (!preview || filter !== "changed") {
+      setShowAllColumns(nextView === "all");
+      return;
+    }
+    setBusy(true);
+    setEditing(null);
+    try {
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, 1, pageSize, search, nextView);
+      setPreview(next); setShowAllColumns(nextView === "all"); setPage(1);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The column view could not be changed."); }
     finally { setBusy(false); }
   };
 
@@ -171,7 +197,7 @@ export function RbinNamelistCleaningPanel() {
     setBusy(true); setMessage("");
     try {
       const result = await httpRbinCleaningClient.exportBatch(preview.id);
-      const next = await httpRbinCleaningClient.getRows(preview.id, filter, currentPage, pageSize, search);
+      const next = await httpRbinCleaningClient.getRows(preview.id, filter, currentPage, pageSize, search, columnView);
       setPreview(next); setBatches(await httpRbinCleaningClient.listBatches());
       setMessage(`${result.fileName} downloaded.`);
     } catch (error) { setMessage(error instanceof Error ? error.message : "The export could not be prepared."); }
@@ -219,7 +245,7 @@ export function RbinNamelistCleaningPanel() {
           <div className="rbin-mapping-alert__content"><div><h3 id="mapping-alert-title">{preview.mappingAlerts.reduce((total, alert) => total + alert.rowCount, 0)} rows have missing mappings</h3><p>Enter the missing values before saving.</p></div><ul>{preview.mappingAlerts.map((alert) => <li key={alert.organizationalUnit}><strong>{alert.organizationalUnit}</strong><span>{[alert.missingRange && "Range", alert.missingFunction && "Function"].filter(Boolean).join(" + ")}</span></li>)}</ul></div>
         </section>}
         {message && <p className="namelist-dialog__message" role="status">{message}</p>}
-        <div className="namelist-toolbar"><div className="namelist-segments rbin-segments" aria-label="Filter staged rows">{filters.map((value) => <button key={value} type="button" disabled={busy} aria-pressed={filter === value} onClick={() => void loadPage(value, 1)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div><div className="namelist-toolbar__view"><form className="rbin-search" role="search" onSubmit={(event) => void searchRows(event)}><input type="search" value={searchInput} disabled={busy} aria-label="Search Pers.No. or Personnel Number" placeholder="Pers.No. or Personnel Number" onChange={(event) => setSearchInput(event.target.value)} /><button className="a-button a-button--integrated -small" type="submit" disabled={busy} aria-label="Search staged rows"><i className="a-icon a-button__icon boschicon-bosch-ic-search" aria-hidden="true" /></button></form><span>{preview.filteredRows} rows</span><label htmlFor="rbin-column-view">View</label><select id="rbin-column-view" value={showAllColumns ? "all" : "key"} onChange={(event) => setShowAllColumns(event.target.value === "all")}><option value="key">Review fields</option><option value="all">All 29 fields</option></select></div></div>
+        <div className="namelist-toolbar"><div className="namelist-segments rbin-segments" aria-label="Filter staged rows">{filters.map((value) => <button key={value} type="button" disabled={busy} aria-pressed={filter === value} onClick={() => void loadPage(value, 1)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div><div className="namelist-toolbar__view"><form className="rbin-search" role="search" onSubmit={(event) => void searchRows(event)}><input type="search" value={searchInput} disabled={busy} aria-label="Search Pers.No. or Personnel Number" placeholder="Pers.No. or Personnel Number" onChange={(event) => setSearchInput(event.target.value)} /><button className="a-button a-button--integrated -small" type="submit" disabled={busy} aria-label="Search staged rows"><i className="a-icon a-button__icon boschicon-bosch-ic-search" aria-hidden="true" /></button>{search && <button className="a-button a-button--integrated -small" type="button" disabled={busy} aria-label="Clear staged row search" title="Clear search" onClick={() => void clearSearch()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button>}</form><span>{preview.filteredRows} rows</span><label htmlFor="rbin-column-view">View</label><select id="rbin-column-view" value={columnView} disabled={busy} onChange={(event) => void changeColumnView(event.target.value as RbinColumnView)}><option value="key">Review fields</option><option value="all">All 29 fields</option></select></div></div>
         <div className={`namelist-grid rbin-grid ${showAllColumns ? "is-all-columns" : ""}`}><table><thead><tr><th scope="col">Row</th><th scope="col">Status</th>{visibleColumns.map((column) => <th scope="col" key={column}>{labels[column]}</th>)}</tr></thead><tbody>{preview.rows.map((row) => <tr key={row.rowNumber} className={row.issues.length ? "is-invalid" : ""}><td>{row.rowNumber}</td><td><span className={`rbin-comparison is-${row.comparisonStatus}`}>{row.comparisonStatus}</span>{row.issues.length > 0 && <small>{row.issues.length} issues</small>}</td>{visibleColumns.map((column) => {
           const issue = row.issues.find((item) => item.column === column);
           const changed = row.changedColumns.includes(column);

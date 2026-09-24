@@ -53,6 +53,7 @@ next-env.d.ts
 !apps/sql/namelist_import_staging_migration.sql
 !apps/sql/rbin_namelist_creation.sql
 !apps/sql/rbin_cleaning_migration.sql
+!apps/sql/rbin_employee_exceptions_migration.sql
 !apps/sql/functions/
 !apps/sql/functions/overview/
 !apps/sql/functions/overview/*.sql

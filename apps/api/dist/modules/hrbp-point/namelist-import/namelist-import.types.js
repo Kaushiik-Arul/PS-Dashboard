@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.namelistColumns = void 0;
+exports.rbinExceptionColumns = exports.namelistColumns = void 0;
 exports.namelistColumns = [
     'pers_no', 'personnel_number', 'employee_group', 'lp', 'esgrp',
     'employee_subgroup', 'ps_group', 'organizational_unit', 'range', 'function',
@@ -10,4 +10,5 @@ exports.namelistColumns = [
     'hrbp_global_id', 'hrbp2_global_id', 'official_email', 'technical_entry_date',
     'direct_or_indirect',
 ];
+exports.rbinExceptionColumns = exports.namelistColumns.filter((column) => column !== 'pers_no' && column !== 'personnel_number');
 //# sourceMappingURL=namelist-import.types.js.map

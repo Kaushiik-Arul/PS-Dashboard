@@ -6,6 +6,8 @@ import { httpNamelistImportClient } from "./namelist-import.http";
 import { RbinNamelistCleaningPanel } from "./RbinNamelistCleaningPanel";
 import { RbinMappingsPanel } from "./RbinMappingsPanel";
 import { httpRbinMappingsClient } from "./rbin-mappings.http";
+import { RbinExceptionsPanel } from "./RbinExceptionsPanel";
+import { httpRbinExceptionsClient } from "./rbin-exceptions.http";
 import {
   namelistColumns,
   type NamelistColumn,
@@ -180,6 +182,7 @@ export function NamelistImportPanel() {
 
       <RbinNamelistCleaningPanel />
       <RbinMappingsPanel client={httpRbinMappingsClient} />
+      <RbinExceptionsPanel client={httpRbinExceptionsClient} />
     </div>
 
     <dialog className="namelist-dialog" ref={dialogRef} onClose={() => setEditingRow(null)}>

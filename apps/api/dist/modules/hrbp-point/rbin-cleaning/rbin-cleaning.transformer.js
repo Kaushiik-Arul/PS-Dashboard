@@ -91,11 +91,16 @@ function toNamelistValues(row, mappings) {
         direct_or_indirect: raw.direct_or_indirect,
     };
 }
-function transformRbinRows(rows, mappings, baselines) {
+function transformRbinRows(rows, mappings, baselines, exceptions = new Map()) {
     const staged = rows
-        .filter((row) => normalizeLookupKey(row.values.organisational_area_pa) === 'ps')
+        .filter((row) => normalizeLookupKey(exceptions.get(row.values.pers_no)?.get('organisational_area_pa')
+        ?? row.values.organisational_area_pa) === 'ps')
         .map((row) => {
         const values = toNamelistValues(row, mappings);
+        const employeeExceptions = exceptions.get(values.pers_no);
+        employeeExceptions?.forEach((fixedValue, column) => {
+            values[column] = fixedValue;
+        });
         const baselineValues = baselines.get(values.pers_no) ?? null;
         return {
             rowNumber: row.rowNumber,
@@ -104,8 +109,8 @@ function transformRbinRows(rows, mappings, baselines) {
             issues: validateRbinStagedValues(values),
             ...compareWithBaseline(values, baselineValues),
             baselineValues,
-            rangeSource: values.range ? 'mapping' : 'missing',
-            functionSource: values.function ? 'mapping' : 'missing',
+            rangeSource: employeeExceptions?.has('range') ? 'exception' : values.range ? 'mapping' : 'missing',
+            functionSource: employeeExceptions?.has('function') ? 'exception' : values.function ? 'mapping' : 'missing',
         };
     });
     applyDuplicateIssues(staged);

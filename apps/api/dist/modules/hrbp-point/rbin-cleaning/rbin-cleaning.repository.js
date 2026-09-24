@@ -14,6 +14,10 @@ const common_1 = require("@nestjs/common");
 const node_crypto_1 = require("node:crypto");
 const database_service_1 = require("../../../database/database.service");
 const rbin_cleaning_transformer_1 = require("./rbin-cleaning.transformer");
+const reviewColumns = [
+    'pers_no', 'personnel_number', 'employee_group', 'ps_group',
+    'organizational_unit', 'range', 'function', 'location', 'direct_or_indirect',
+];
 function isoTimestamp(value) {
     if (value === null)
         return null;
@@ -119,6 +123,20 @@ let RbinCleaningRepository = class RbinCleaningRepository {
        WHERE employee.pers_no = ANY($1::bigint[])`, [persNos]);
         return new Map(result.rows.map((row) => [row.pers_no, row.row_data]));
     }
+    async getExceptions(persNos) {
+        if (!persNos.length)
+            return new Map();
+        const result = await this.database.query(`SELECT pers_no::text AS pers_no, column_name, fixed_value
+       FROM public.rbin_employee_column_exceptions
+       WHERE pers_no = ANY($1::bigint[])`, [persNos]);
+        const exceptions = new Map();
+        result.rows.forEach((row) => {
+            const employeeRules = exceptions.get(row.pers_no) ?? new Map();
+            employeeRules.set(row.column_name, row.fixed_value.trim());
+            exceptions.set(row.pers_no, employeeRules);
+        });
+        return exceptions;
+    }
     async createBatch(actorAccountId, file, rawRows, stagedRows) {
         const fileHash = (0, node_crypto_1.createHash)('sha256').update(file.buffer).digest('hex');
         const validRows = stagedRows.filter((row) => row.issues.length === 0).length;
@@ -204,7 +222,7 @@ let RbinCleaningRepository = class RbinCleaningRepository {
         const record = result.rows[0];
         return record ? this.mapSummary(record, await this.getMappingAlerts(batchId)) : null;
     }
-    async getRows(batchId, actorAccountId, filter, page, pageSize, search) {
+    async getRows(batchId, actorAccountId, filter, page, pageSize, search, view) {
         const summary = await this.getSummary(batchId, actorAccountId);
         if (!summary)
             return null;
@@ -221,6 +239,12 @@ let RbinCleaningRepository = class RbinCleaningRepository {
             countValues.push(filter);
             rowConditions.push(`AND comparison_status = $${values.length}`);
             countConditions.push(`AND row.comparison_status = $${countValues.length}`);
+            if (filter === 'changed' && view === 'key') {
+                values.push(reviewColumns);
+                countValues.push(reviewColumns);
+                rowConditions.push(`AND changed_columns && $${values.length}::text[]`);
+                countConditions.push(`AND row.changed_columns && $${countValues.length}::text[]`);
+            }
         }
         if (search) {
             values.push(search);

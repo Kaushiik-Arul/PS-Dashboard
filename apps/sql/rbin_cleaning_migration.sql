@@ -233,6 +233,50 @@ CREATE TABLE public.org_unit_function_mappings (
 CREATE UNIQUE INDEX org_unit_function_mappings_key_idx
     ON public.org_unit_function_mappings (LOWER(BTRIM(organizational_unit)));
 
+CREATE TABLE public.rbin_employee_column_exceptions (
+    exception_id           UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
+    pers_no                BIGINT NOT NULL CHECK (pers_no > 0),
+    column_name            TEXT NOT NULL CHECK (column_name IN (
+                               'employee_group', 'lp', 'esgrp', 'employee_subgroup',
+                               'ps_group', 'organizational_unit', 'range', 'function',
+                               'organisational_area_pa', 'gender_key', 'location', 'pa',
+                               'personnel_area', 'psubarea', 'personnel_subarea', 'nt_id',
+                               'global_id', 'cost_center', 'birth_date', 'joining_date',
+                               'entry_for_retirement', 'designation_text', 'hrbp_global_id',
+                               'hrbp2_global_id', 'official_email', 'technical_entry_date',
+                               'direct_or_indirect'
+                           )),
+    fixed_value            TEXT NOT NULL CHECK (
+                               NULLIF(BTRIM(fixed_value), '') IS NOT NULL
+                               AND CHAR_LENGTH(fixed_value) <= 500
+                           ),
+    created_by_account_id  UUID REFERENCES public.auth_accounts(account_id) ON DELETE SET NULL,
+    updated_by_account_id  UUID REFERENCES public.auth_accounts(account_id) ON DELETE SET NULL,
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE (pers_no, column_name),
+    CHECK (updated_at >= created_at)
+);
+
+CREATE INDEX rbin_employee_column_exceptions_pers_no_idx
+    ON public.rbin_employee_column_exceptions (pers_no);
+
+CREATE INDEX rbin_employee_column_exceptions_column_idx
+    ON public.rbin_employee_column_exceptions (column_name, pers_no);
+
+ALTER TABLE public.security_audit_log
+    DROP CONSTRAINT security_audit_log_event_type_check,
+    ADD CONSTRAINT security_audit_log_event_type_check CHECK (
+        event_type IN (
+            'account_created', 'account_activated', 'account_deactivated',
+            'login_succeeded', 'login_failed', 'account_locked', 'logout',
+            'password_changed', 'password_reset', 'role_changed',
+            'sessions_revoked', 'rbin_exception_created',
+            'rbin_exception_updated', 'rbin_exception_deleted'
+        )
+    );
+
 CREATE TABLE public.rbin_staging_batches (
     batch_id                UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
     import_id               BIGINT NOT NULL UNIQUE
@@ -283,8 +327,8 @@ CREATE TABLE public.rbin_staging_rows (
     validation_issues       JSONB NOT NULL DEFAULT '[]'::jsonb
                             CHECK (JSONB_TYPEOF(validation_issues) = 'array'),
     is_valid                BOOLEAN NOT NULL,
-    range_source            TEXT NOT NULL CHECK (range_source IN ('mapping', 'manual', 'missing')),
-    function_source         TEXT NOT NULL CHECK (function_source IN ('mapping', 'manual', 'missing')),
+    range_source            TEXT NOT NULL CHECK (range_source IN ('mapping', 'exception', 'manual', 'missing')),
+    function_source         TEXT NOT NULL CHECK (function_source IN ('mapping', 'exception', 'manual', 'missing')),
     comparison_status       TEXT NOT NULL CHECK (comparison_status IN ('new', 'changed', 'unchanged')),
     baseline_employee_data  JSONB CHECK (
                                 baseline_employee_data IS NULL

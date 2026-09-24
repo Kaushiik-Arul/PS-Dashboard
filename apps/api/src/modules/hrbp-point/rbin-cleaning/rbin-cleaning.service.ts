@@ -83,8 +83,11 @@ export class RbinCleaningService {
       const persNos = [...new Set(rawRows
         .map((row) => row.values.pers_no.trim())
         .filter(this.isPostgresBigInt))];
-      const baselines = await this.repository.getBaselines(persNos);
-      const stagedRows = transformRbinRows(rawRows, mappings, baselines);
+      const [baselines, exceptions] = await Promise.all([
+        this.repository.getBaselines(persNos),
+        this.repository.getExceptions(persNos),
+      ]);
+      const stagedRows = transformRbinRows(rawRows, mappings, baselines, exceptions);
       const batchId = await this.repository.createBatch(actorAccountId, file, rawRows, stagedRows);
       const summary = await this.repository.getSummary(batchId, actorAccountId);
       if (!summary) throw new Error('BATCH_NOT_FOUND');
@@ -106,6 +109,7 @@ export class RbinCleaningService {
     pageInput: string | undefined,
     pageSizeInput: string | undefined,
     searchInput: string | undefined,
+    viewInput: string | undefined,
   ): Promise<RbinPreviewPage> {
     const allowedFilters: readonly RbinRowFilter[] = ['all', 'valid', 'invalid', 'new', 'changed', 'unchanged'];
     const filter = allowedFilters.includes(filterInput as RbinRowFilter)
@@ -114,9 +118,10 @@ export class RbinCleaningService {
     const page = this.positiveInteger(pageInput, 1, 1_000_000);
     const pageSize = this.positiveInteger(pageSizeInput, 25, 100);
     const search = searchInput?.trim() ?? '';
+    const view = viewInput === 'key' ? 'key' : 'all';
     if (search.length > 100) throw new BadRequestException('Search must not exceed 100 characters.');
     return this.runDatabaseOperation(async () => {
-      const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize, search);
+      const result = await this.repository.getRows(batchId, actorAccountId, filter, page, pageSize, search, view);
       if (!result) throw new NotFoundException('RBIN cleaning batch was not found.');
       return result;
     }, 'Unable to load RBIN cleaning rows');
@@ -138,8 +143,8 @@ export class RbinCleaningService {
 
       const persNoChanged = target.values.pers_no !== values.pers_no;
       target.values = values;
-      target.rangeSource = values.range === target.originalValues.range ? 'mapping' : 'manual';
-      target.functionSource = values.function === target.originalValues.function ? 'mapping' : 'manual';
+      target.rangeSource = values.range === target.originalValues.range ? target.rangeSource : 'manual';
+      target.functionSource = values.function === target.originalValues.function ? target.functionSource : 'manual';
       if (!values.range) target.rangeSource = 'missing';
       if (!values.function) target.functionSource = 'missing';
 

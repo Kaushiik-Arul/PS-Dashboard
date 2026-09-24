@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../../database/database.service';
-import type { NamelistRowValues } from '../namelist-import/namelist-import.types';
+import type { NamelistRowValues, RbinExceptionColumn } from '../namelist-import/namelist-import.types';
 import { normalizeLookupKey } from './rbin-cleaning.transformer';
 import type {
   ParsedRbinRow,
   RbinBaselineValues,
   RbinBatchSummary,
+  RbinColumnView,
+  RbinExceptionContext,
   RbinMappingAlert,
   RbinMappingContext,
   RbinPreviewPage,
@@ -50,6 +52,11 @@ type MappingAlertRecord = {
   missing_range: boolean;
   missing_function: boolean;
 };
+
+const reviewColumns = [
+  'pers_no', 'personnel_number', 'employee_group', 'ps_group',
+  'organizational_unit', 'range', 'function', 'location', 'direct_or_indirect',
+] as const;
 
 function isoTimestamp(value: Date | string | null): string | null {
   if (value === null) return null;
@@ -162,6 +169,23 @@ export class RbinCleaningRepository {
       [persNos],
     );
     return new Map(result.rows.map((row) => [row.pers_no, row.row_data]));
+  }
+
+  async getExceptions(persNos: readonly string[]): Promise<RbinExceptionContext> {
+    if (!persNos.length) return new Map();
+    const result = await this.database.query<{ pers_no: string; column_name: RbinExceptionColumn; fixed_value: string }>(
+      `SELECT pers_no::text AS pers_no, column_name, fixed_value
+       FROM public.rbin_employee_column_exceptions
+       WHERE pers_no = ANY($1::bigint[])`,
+      [persNos],
+    );
+    const exceptions = new Map<string, Map<RbinExceptionColumn, string>>();
+    result.rows.forEach((row) => {
+      const employeeRules = exceptions.get(row.pers_no) ?? new Map<RbinExceptionColumn, string>();
+      employeeRules.set(row.column_name, row.fixed_value.trim());
+      exceptions.set(row.pers_no, employeeRules);
+    });
+    return exceptions;
   }
 
   async createBatch(
@@ -291,6 +315,7 @@ export class RbinCleaningRepository {
     page: number,
     pageSize: number,
     search: string,
+    view: RbinColumnView,
   ): Promise<RbinPreviewPage | null> {
     const summary = await this.getSummary(batchId, actorAccountId);
     if (!summary) return null;
@@ -306,6 +331,12 @@ export class RbinCleaningRepository {
       countValues.push(filter);
       rowConditions.push(`AND comparison_status = $${values.length}`);
       countConditions.push(`AND row.comparison_status = $${countValues.length}`);
+      if (filter === 'changed' && view === 'key') {
+        values.push(reviewColumns);
+        countValues.push(reviewColumns);
+        rowConditions.push(`AND changed_columns && $${values.length}::text[]`);
+        countConditions.push(`AND row.changed_columns && $${countValues.length}::text[]`);
+      }
     }
     if (search) {
       values.push(search);

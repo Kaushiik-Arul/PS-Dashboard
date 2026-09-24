@@ -139,6 +139,14 @@ number, or login email. It also stops if raw RBIN rows exist without an import
 audit record. Correct those records and rerun the complete migration; its
 transaction rolls back all partial changes after an error.
 
+After the RBIN cleaning schema exists, apply the employee exception migration
+once before deploying Employee Exceptions:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/rbin_employee_exceptions_migration.sql"
+```
+
 The RBIN tables have separate retention semantics:
 
 | Table | Retention and purpose |
@@ -147,6 +155,7 @@ The RBIN tables have separate retention semantics:
 | `rbin_namelist` | Latest successful raw-file snapshot; replaced atomically by a later upload. |
 | `org_unit_range_mappings` | Persistent Organizational Unit to Range lookup. |
 | `org_unit_function_mappings` | Persistent Organizational Unit to Function lookup. |
+| `rbin_employee_column_exceptions` | Persistent employee-and-column fixed values for future RBIN uploads. |
 | `rbin_staging_batches` | Permanent transformed batch and validation counters. |
 | `rbin_staging_rows` | Original and currently edited 29-column PS rows. |
 | `rbin_staging_exports` | Permanent record of every XLSX download. |
