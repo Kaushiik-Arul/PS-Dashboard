@@ -14,6 +14,7 @@
 }
 
 .hrbp-page__heading h1,
+.hrbp-page__heading h2,
 .hrbp-dialog h2 {
   font: var(--sem__typography__bold__xl);
   margin: 0;
@@ -92,8 +93,31 @@
 }
 
 .namelist-area {
-  margin-block-start: var(--app-space-8);
+  display: grid;
+  gap: var(--app-space-4);
 }
+
+.hrbp-workflow-heading {
+  align-items: end;
+  display: flex;
+  gap: var(--app-space-4);
+  justify-content: space-between;
+  padding: var(--app-space-4) 0;
+}
+
+.hrbp-workflow-heading h1 { font: var(--sem__typography__bold__xl); margin: 0; }
+.hrbp-workflow-heading > div > p:last-child { color: var(--base-major__enabled__default__fill); margin: var(--app-space-1) 0 0; }
+.hrbp-process-dialog { width: min(42rem, calc(100vw - 2rem)); }
+.hrbp-process-prerequisites { background: var(--base-minor__enabled__default__fill); border-inline-start: 0.25rem solid var(--bosch-blue-50, #007bc0); padding: var(--app-space-3); }
+.hrbp-process-prerequisites h3 { font-size: 1rem; margin: 0 0 var(--app-space-2); }
+.hrbp-process-prerequisites ul { display: grid; gap: var(--app-space-1); margin: 0; padding-inline-start: var(--app-space-4); }
+.hrbp-process-steps { display: grid; gap: var(--app-space-3); list-style: none; margin: 0; padding: 0; }
+.hrbp-process-steps li { align-items: start; display: grid; gap: var(--app-space-3); grid-template-columns: 2rem minmax(0, 1fr); }
+.hrbp-process-steps li::before { content: none; display: none; }
+.hrbp-process-steps li::marker { content: ""; }
+.hrbp-process-steps li > span { align-items: center; background: var(--bosch-blue-50, #007bc0); color: #fff; display: flex; font-weight: 700; height: 2rem; justify-content: center; width: 2rem; }
+.hrbp-process-steps strong { display: block; }
+.hrbp-process-steps p { margin-block-start: var(--app-space-1); }
 
 .namelist-sections {
   align-items: stretch;
@@ -432,6 +456,8 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 }
 
 @media (max-width: 40rem) {
+  .hrbp-workflow-heading { align-items: stretch; flex-direction: column; }
+  .hrbp-workflow-heading .a-button { width: 100%; }
   .hrbp-page__heading { align-items: stretch; flex-direction: column; }
   .hrbp-page__heading .a-button { width: 100%; }
   .hrbp-form__dates { grid-template-columns: 1fr; }
@@ -485,6 +511,7 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
   border: var(--app-border-width) solid var(--base-major__disabled__default__fill);
   border-block-start: 0.25rem solid var(--bosch-blue-50, #007bc0);
   border-radius: var(--app-radius-2);
+  margin-block-start: var(--app-space-4);
   overflow: hidden;
 }
 

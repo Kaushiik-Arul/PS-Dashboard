@@ -38,6 +38,7 @@ function displayValue(column: NamelistColumn, value: string) {
 
 export function NamelistImportPanel() {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const processDialogRef = useRef<HTMLDialogElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<NamelistPreview | null>(null);
@@ -161,16 +162,22 @@ export function NamelistImportPanel() {
   const reportingMonth = new Date().toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 
   return <section className="namelist-area" aria-label="Namelist operations">
+    <div className="hrbp-workflow-heading">
+      <div><p className="hrbp-section__eyebrow">Monthly workflow</p><h1>RBIN and PS Namelist processing</h1><p>Clean RBIN data, validate the PS Namelist, then maintain employee-level records.</p></div>
+      <button className="a-button a-button--secondary" type="button" onClick={() => processDialogRef.current?.showModal()}><i className="a-icon a-button__icon boschicon-bosch-ic-info-i" aria-hidden="true" /><span className="a-button__label">View process</span></button>
+    </div>
     <div className="namelist-sections">
+      <RbinNamelistCleaningPanel />
+
       <section className="namelist-panel" aria-labelledby="namelist-title">
         <div className="namelist-panel__header">
-          <div><p className="namelist-panel__eyebrow">Monthly data maintenance</p><h2 id="namelist-title">Namelist updation</h2><p>Review and replace the current employee dataset.</p></div>
+          <div><p className="namelist-panel__eyebrow">PS data maintenance</p><h2 id="namelist-title">PS Namelist updation</h2><p>Validate and replace the current employee dataset.</p></div>
           <div className="namelist-panel__status"><span className="namelist-panel__mode"><i className="a-icon boschicon-bosch-ic-document-check" aria-hidden="true" /> Validated import</span><small>{reportingMonth} reporting month</small></div>
         </div>
         <div className="namelist-panel__body">
           <div className="namelist-upload">
             <i className="a-icon boschicon-bosch-ic-upload" aria-hidden="true" />
-            <div><strong>Select monthly namelist</strong><p>CSV or XLSX · 50 MB maximum · 25,000 rows</p></div>
+            <div><strong>Select cleaned PS Namelist</strong><p>CSV or XLSX · 50 MB maximum · 25,000 rows</p></div>
             <input ref={fileInputRef} id="namelist-file" className="visually-hidden" type="file" accept=".csv,.xlsx" onChange={selectFile} />
             <label className="a-button a-button--secondary" htmlFor="namelist-file"><span className="a-button__label">Choose file</span></label>
           </div>
@@ -180,10 +187,16 @@ export function NamelistImportPanel() {
         </div>
       </section>
 
-      <RbinNamelistCleaningPanel />
       <RbinMappingsPanel client={httpRbinMappingsClient} />
       <RbinExceptionsPanel client={httpRbinExceptionsClient} />
     </div>
+
+    <dialog className="hrbp-dialog hrbp-process-dialog" ref={processDialogRef}>
+      <div><header className="hrbp-dialog__header"><div><span>HRBP workflow</span><h2>RBIN to PS process</h2></div><button className="a-button a-button--integrated" type="button" aria-label="Close process guide" title="Close" onClick={() => processDialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
+        <div className="hrbp-dialog__body"><section className="hrbp-process-prerequisites"><h3>Before you start</h3><ul><li>Verify Organizational Unit to Range and Function mappings.</li><li>Review employee exceptions and add any required fixed column values.</li></ul></section><ol className="hrbp-process-steps"><li><span>1</span><div><strong>Clean RBIN to PS Namelist</strong><p>Upload the mixed employee file, review mappings and exceptions, correct invalid rows, then export the cleaned PS file.</p></div></li><li><span>2</span><div><strong>Update the PS Namelist</strong><p>Upload the cleaned PS Namelist, validate every row, and confirm the monthly replacement.</p></div></li><li><span>3</span><div><strong>Add employee leave status when needed</strong><p>After the Namelist is current, maintain maternity, sabbatical, CRL, or absconding records.</p></div></li></ol></div>
+        <footer className="hrbp-dialog__footer"><button className="a-button a-button--primary" type="button" onClick={() => processDialogRef.current?.close()}><span className="a-button__label">Got it</span></button></footer>
+      </div>
+    </dialog>
 
     <dialog className="namelist-dialog" ref={dialogRef} onClose={() => setEditingRow(null)}>
       {preview && <div className="namelist-dialog__layout">

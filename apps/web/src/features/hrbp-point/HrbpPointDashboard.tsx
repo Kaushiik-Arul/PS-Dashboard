@@ -178,11 +178,13 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
 
   return (
     <main className="hrbp-page">
+      {canManageNamelist && <NamelistImportPanel />}
+
       <section className="hrbp-status-panel" aria-labelledby="leave-status-title">
         <div className="hrbp-page__heading">
           <div>
             <p className="hrbp-section__eyebrow">Employee status maintenance</p>
-            <h1 id="leave-status-title">Employee leave status</h1>
+            <h2 id="leave-status-title">Employee leave status</h2>
             <p>Maintain current maternity, sabbatical, CRL, and absconding records.</p>
           </div>
           {canManage && <button className="a-button a-button--primary" type="button" onClick={openCreate}>
@@ -214,8 +216,6 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
           </div>
         </section>
       </section>
-
-      {canManageNamelist && <NamelistImportPanel />}
 
       <dialog className="hrbp-dialog" ref={editorRef} onClose={() => setFormError("")}>
         <form method="dialog" onSubmit={submitForm}>
