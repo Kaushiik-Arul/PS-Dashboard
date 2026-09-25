@@ -48,9 +48,10 @@ export const httpRbinCleaningClient: RbinCleaningClient = {
   listBatches() {
     return request("/batches").then((response) => response.json() as Promise<RbinBatchSummary[]>);
   },
-  async createPreview(file, pageSize) {
+  async createPreview(file, reportingMonth, pageSize) {
     const formData = new FormData();
     formData.set("file", file);
+    formData.set("reportingMonth", `${reportingMonth}-01`);
     const summary = await request("/batches", { method: "POST", body: formData }).then(
       (response) => response.json() as Promise<RbinBatchSummary>,
     );

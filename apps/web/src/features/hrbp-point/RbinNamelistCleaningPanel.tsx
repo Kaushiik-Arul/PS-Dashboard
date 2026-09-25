@@ -37,10 +37,15 @@ function statusLabel(status: RbinBatchSummary["status"]) {
   return status[0].toUpperCase() + status.slice(1);
 }
 
+function reportingMonthLabel(value: string | undefined): string {
+  return value?.slice(0, 7) || "Month unavailable";
+}
+
 export function RbinNamelistCleaningPanel() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [reportingMonth, setReportingMonth] = useState(new Date().toISOString().slice(0, 7));
   const [batches, setBatches] = useState<RbinBatchSummary[]>([]);
   const [preview, setPreview] = useState<RbinPreviewPage | null>(null);
   const [filter, setFilter] = useState<RbinRowFilter>("all");
@@ -91,11 +96,11 @@ export function RbinNamelistCleaningPanel() {
   };
 
   const upload = async () => {
-    if (!file) return;
+    if (!file || !reportingMonth) return;
     setBusy(true);
     setMessage("");
     try {
-      showPreview(await httpRbinCleaningClient.createPreview(file, pageSize));
+      showPreview(await httpRbinCleaningClient.createPreview(file, reportingMonth, pageSize));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The preview could not be prepared.");
     } finally { setBusy(false); }
@@ -217,14 +222,14 @@ export function RbinNamelistCleaningPanel() {
           <input ref={fileInputRef} id="rbin-file" className="visually-hidden" type="file" accept=".csv,.xlsx" onChange={selectFile} />
           <label className="a-button a-button--secondary" htmlFor="rbin-file"><span className="a-button__label">Choose file</span></label>
         </div>
-        {file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><button className="a-button a-button--primary" type="button" disabled={busy} onClick={() => void upload()}><span className="a-button__label">{busy ? "Preparing..." : "Upload and preview"}</span></button></div>}
+        {file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><label className="rbin-reporting-month"><span>Reporting month</span><input type="month" required max={new Date().toISOString().slice(0, 7)} value={reportingMonth} disabled={busy} onChange={(event) => setReportingMonth(event.target.value)} /></label><button className="a-button a-button--primary" type="button" disabled={busy || !reportingMonth} onClick={() => void upload()}><span className="a-button__label">{busy ? "Preparing..." : "Upload and preview"}</span></button></div>}
         {message && <p className="namelist-panel__message" role="status">{message}</p>}
         <div className="rbin-batches" aria-label="Saved cleaning batches">
           <button className="rbin-batches__heading" type="button" aria-expanded={showSavedDatasets} aria-controls="rbin-saved-datasets" disabled={batches.length === 0} onClick={() => setShowSavedDatasets((visible) => !visible)}><strong>Saved datasets</strong><span>{batches.length}</span></button>
           <div id="rbin-saved-datasets" hidden={!showSavedDatasets}>
             {batches.map((batch) => <button className="rbin-batch-row" type="button" key={batch.id} disabled={busy} onClick={() => void openBatch(batch.id)}>
               <i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" />
-              <span><strong>{batch.fileName}</strong><small>{formatTimestamp(batch.createdAt)} · {batch.stagedRows} staged rows</small></span>
+              <span><strong>{batch.fileName}</strong><small>{reportingMonthLabel(batch.reportingMonth)} · {formatTimestamp(batch.createdAt)} · {batch.stagedRows} staged rows</small></span>
               <em data-status={batch.status}>{statusLabel(batch.status)}</em>
               <i className="a-icon boschicon-bosch-ic-forward-right" aria-hidden="true" />
             </button>)}
@@ -235,7 +240,7 @@ export function RbinNamelistCleaningPanel() {
 
     <dialog className="namelist-dialog rbin-dialog" ref={dialogRef} onClose={() => setEditing(null)}>
       {preview && <div className="namelist-dialog__layout">
-        <header className="namelist-dialog__header"><div><span>RBIN cleaning preview</span><h2>{preview.fileName}</h2><p>{statusLabel(preview.status)} · {preview.totalRawRows} source rows · permanent dataset</p></div><button className="a-button a-button--integrated" type="button" aria-label="Close preview" disabled={busy} onClick={() => dialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
+        <header className="namelist-dialog__header"><div><span>RBIN cleaning preview</span><h2>{preview.fileName}</h2><p>{reportingMonthLabel(preview.reportingMonth)} · {statusLabel(preview.status)} · {preview.totalRawRows} source rows · permanent dataset</p></div><button className="a-button a-button--integrated" type="button" aria-label="Close preview" disabled={busy} onClick={() => dialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
         <div className="rbin-summary" aria-label="Cleaning summary">
           <div className="rbin-summary__primary">{[{ label: "Raw file", value: preview.totalRawRows }, { label: "PS staged", value: preview.stagedRows }, { label: "Excluded", value: preview.excludedRows }, { label: "Invalid", value: preview.invalidRows }].map((item) => <div key={item.label} className={item.label === "Invalid" && item.value ? "is-error" : ""}><span>{item.label}</span><strong>{item.value}</strong></div>)}</div>
           <div className="rbin-summary__secondary"><span className="is-valid"><strong>{preview.validRows}</strong> valid</span><span className="is-new"><strong>{preview.newRows}</strong> new</span><span className="is-changed"><strong>{preview.changedRows}</strong> changed</span><span className="is-unchanged"><strong>{preview.unchangedRows}</strong> unchanged</span></div>

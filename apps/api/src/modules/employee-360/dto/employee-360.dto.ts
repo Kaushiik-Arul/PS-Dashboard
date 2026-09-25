@@ -57,3 +57,8 @@ export class Employee360ResponseDto {
   @ApiProperty({ type: [Employee360RowDto] }) employees!: Employee360RowDto[];
   @ApiProperty({ type: Employee360FilterOptionsDto }) filterOptions!: Employee360FilterOptionsDto;
 }
+
+export class Employee360ProfileResponseDto {
+  @ApiProperty({ type: Employee360RowDto }) employee!: Employee360RowDto;
+  @ApiProperty({ type: [Object] }) careerJourney!: unknown[];
+}

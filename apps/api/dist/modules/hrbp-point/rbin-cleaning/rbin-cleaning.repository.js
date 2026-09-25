@@ -13,6 +13,7 @@ exports.RbinCleaningRepository = void 0;
 const common_1 = require("@nestjs/common");
 const node_crypto_1 = require("node:crypto");
 const database_service_1 = require("../../../database/database.service");
+const rbin_career_detector_1 = require("./rbin-career-detector");
 const rbin_cleaning_transformer_1 = require("./rbin-cleaning.transformer");
 const reviewColumns = [
     'pers_no', 'personnel_number', 'employee_group', 'ps_group',
@@ -137,34 +138,23 @@ let RbinCleaningRepository = class RbinCleaningRepository {
         });
         return exceptions;
     }
-    async createBatch(actorAccountId, file, rawRows, stagedRows) {
+    async createBatch(actorAccountId, reportingMonth, file, rawRows, stagedRows) {
         const fileHash = (0, node_crypto_1.createHash)('sha256').update(file.buffer).digest('hex');
         const validRows = stagedRows.filter((row) => row.issues.length === 0).length;
         const countComparison = (status) => stagedRows.filter((row) => row.comparisonStatus === status).length;
         return this.database.transaction(async (client) => {
+            await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('rbin-career-detection'))`);
+            const previousRows = await this.getPreviousRawSnapshot(client, reportingMonth);
             const audit = await client.query(`INSERT INTO public.rbin_namelist_imports (
            reporting_month, uploaded_by, file_name, file_hash, status
-         ) VALUES (DATE_TRUNC('month', CURRENT_DATE)::date, $1, $2, $3, 'processing')
-         RETURNING id::text`, [actorAccountId, file.originalname, fileHash]);
+         ) VALUES ($4::date, $1, $2, $3, 'processing')
+         RETURNING id::text`, [actorAccountId, file.originalname, fileHash, reportingMonth]);
             const importId = audit.rows[0].id;
-            await client.query(`DELETE FROM public.rbin_namelist`);
             for (let offset = 0; offset < rawRows.length; offset += 500) {
-                await client.query(`INSERT INTO public.rbin_namelist (
-             import_id, source_row_number, raw_source_data, pers_no, personnel_number,
-             joining_date, pa, personnel_area, employee_group, esgrp, employee_subgroup,
-             psubarea, personnel_subarea, lp, cost_center, organizational_unit, location,
-             organisational_area_pa, gender_key, global_id, ps_group, birth_date, nt_id,
-             designation_text, other_designation, entry_for_retirement, technical_entry_date,
-             official_email, direct_or_indirect, hrbp_global_id, hrbp2_global_id
-           ) SELECT $1, item.source_row_number, item.raw_source_data, item.pers_no,
-             item.personnel_number, item.joining_date, item.pa, item.personnel_area,
-             item.employee_group, item.esgrp, item.employee_subgroup, item.psubarea,
-             item.personnel_subarea, item.lp, item.cost_center, item.organizational_unit,
-             item.location, item.organisational_area_pa, item.gender_key, item.global_id,
-             item.ps_group, item.birth_date, item.nt_id, item.designation_text,
-             item.other_designation, item.entry_for_retirement, item.technical_entry_date,
-             item.official_email, item.direct_or_indirect, item.hrbp_global_id,
-             item.hrbp2_global_id
+                const payload = JSON.stringify(rawRows.slice(offset, offset + 500).map(rawPayload));
+                await client.query(`INSERT INTO public.rbin_namelist_history (
+             import_id, source_row_number, raw_source_data, stored_row_data
+           ) SELECT $1, item.source_row_number, item.raw_source_data, TO_JSONB(item)
            FROM JSONB_TO_RECORDSET($2::jsonb) AS item(
              source_row_number integer, raw_source_data jsonb, pers_no bigint,
              personnel_number text, joining_date date, pa text, personnel_area text,
@@ -175,7 +165,7 @@ let RbinCleaningRepository = class RbinCleaningRepository {
              other_designation text, entry_for_retirement date, technical_entry_date date,
              official_email text, direct_or_indirect text, hrbp_global_id bigint,
              hrbp2_global_id text
-           )`, [importId, JSON.stringify(rawRows.slice(offset, offset + 500).map(rawPayload))]);
+           )`, [importId, payload]);
             }
             const batch = await client.query(`INSERT INTO public.rbin_staging_batches (
            import_id, uploaded_by, file_name, file_hash, total_raw_rows, staged_rows,
@@ -210,8 +200,57 @@ let RbinCleaningRepository = class RbinCleaningRepository {
                 importId, rawRows.length, stagedRows.length, rawRows.length - stagedRows.length,
                 validRows, stagedRows.length - validRows,
             ]);
+            await this.replaceAutomaticCareerEvents(client, importId, actorAccountId, reportingMonth, (0, rbin_career_detector_1.detectCareerEvents)(previousRows, rawRows));
             return batchId;
         });
+    }
+    async getPreviousRawSnapshot(client, reportingMonth) {
+        const result = await client.query(`SELECT row.raw_source_data
+      FROM public.rbin_namelist_history row
+       WHERE row.import_id = (
+         SELECT id
+         FROM public.rbin_namelist_imports
+         WHERE status = 'ready'
+           AND reporting_month < $1::date
+         ORDER BY reporting_month DESC, completed_at DESC, id DESC
+         LIMIT 1
+       )
+       ORDER BY row.source_row_number`, [reportingMonth]);
+        return result.rows.map((row) => ({ values: row.raw_source_data }));
+    }
+    async replaceAutomaticCareerEvents(client, importId, actorAccountId, reportingMonth, events) {
+        await client.query(`DELETE FROM public.employee_career_journey
+       WHERE event_month = $1::date
+         AND source = 'rbin' AND is_reviewed = FALSE AND deleted_at IS NULL`, [reportingMonth]);
+        if (!events.length)
+            return;
+        await client.query(`INSERT INTO public.employee_career_journey (
+         pers_no, event_month, event_type,
+         old_organisational_area_pa, new_organisational_area_pa,
+         old_organizational_unit, new_organizational_unit,
+         old_ps_group, new_ps_group, source, source_import_id,
+         created_by_account_id, updated_by_account_id
+       )
+      SELECT item.pers_no, $4::date, item.event_type,
+         item.old_organisational_area_pa, item.new_organisational_area_pa,
+         item.old_organizational_unit, item.new_organizational_unit,
+         item.old_ps_group, item.new_ps_group, 'rbin', $2, $3, $3
+       FROM JSONB_TO_RECORDSET($1::jsonb) AS item(
+         pers_no bigint, event_type text,
+         old_organisational_area_pa text, new_organisational_area_pa text,
+         old_organizational_unit text, new_organizational_unit text,
+         old_ps_group text, new_ps_group text
+       )
+       ON CONFLICT (pers_no, event_month) DO NOTHING`, [JSON.stringify(events.map((event) => ({
+                pers_no: event.persNo,
+                event_type: event.eventType,
+                old_organisational_area_pa: event.oldOrganisationalAreaPa,
+                new_organisational_area_pa: event.newOrganisationalAreaPa,
+                old_organizational_unit: event.oldOrganizationalUnit,
+                new_organizational_unit: event.newOrganizationalUnit,
+                old_ps_group: event.oldPsGroup,
+                new_ps_group: event.newPsGroup,
+            }))), importId, actorAccountId, reportingMonth]);
     }
     async listBatches(actorAccountId) {
         const result = await this.database.query(`${this.summarySelect()} WHERE batch.uploaded_by = $1 ORDER BY batch.created_at DESC`, [actorAccountId]);
@@ -334,16 +373,56 @@ let RbinCleaningRepository = class RbinCleaningRepository {
     }
     async finalize(batchId, actorAccountId) {
         await this.database.transaction(async (client) => {
-            const result = await client.query(`SELECT invalid_rows FROM public.rbin_staging_batches
+            const result = await client.query(`SELECT invalid_rows, import_id::text FROM public.rbin_staging_batches
          WHERE batch_id = $1 AND uploaded_by = $2 AND status = 'draft' FOR UPDATE`, [batchId, actorAccountId]);
             if (!result.rows[0])
                 throw new Error('BATCH_NOT_EDITABLE');
             if (result.rows[0].invalid_rows > 0)
                 throw new Error('INVALID_ROWS');
+            const importId = result.rows[0].import_id;
+            const history = await client.query(`SELECT stored_row_data
+         FROM public.rbin_namelist_history
+         WHERE import_id = $1 AND stored_row_data IS NOT NULL
+         ORDER BY source_row_number`, [importId]);
+            if (!history.rowCount)
+                throw new Error('RBIN_HISTORY_NOT_FOUND');
+            await client.query(`DELETE FROM public.rbin_namelist`);
+            for (let offset = 0; offset < history.rows.length; offset += 500) {
+                await this.insertCurrentRows(client, importId, history.rows.slice(offset, offset + 500).map((row) => row.stored_row_data));
+            }
             await client.query(`UPDATE public.rbin_staging_batches
          SET status = 'ready_for_export', finalized_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP WHERE batch_id = $1`, [batchId]);
         });
+    }
+    insertCurrentRows(client, importId, rows) {
+        return client.query(`INSERT INTO public.rbin_namelist (
+         import_id, source_row_number, raw_source_data, pers_no, personnel_number,
+         joining_date, pa, personnel_area, employee_group, esgrp, employee_subgroup,
+         psubarea, personnel_subarea, lp, cost_center, organizational_unit, location,
+         organisational_area_pa, gender_key, global_id, ps_group, birth_date, nt_id,
+         designation_text, other_designation, entry_for_retirement, technical_entry_date,
+         official_email, direct_or_indirect, hrbp_global_id, hrbp2_global_id
+       ) SELECT $1, item.source_row_number, item.raw_source_data, item.pers_no,
+         item.personnel_number, item.joining_date, item.pa, item.personnel_area,
+         item.employee_group, item.esgrp, item.employee_subgroup, item.psubarea,
+         item.personnel_subarea, item.lp, item.cost_center, item.organizational_unit,
+         item.location, item.organisational_area_pa, item.gender_key, item.global_id,
+         item.ps_group, item.birth_date, item.nt_id, item.designation_text,
+         item.other_designation, item.entry_for_retirement, item.technical_entry_date,
+         item.official_email, item.direct_or_indirect, item.hrbp_global_id,
+         item.hrbp2_global_id
+       FROM JSONB_TO_RECORDSET($2::jsonb) AS item(
+         source_row_number integer, raw_source_data jsonb, pers_no bigint,
+         personnel_number text, joining_date date, pa text, personnel_area text,
+         employee_group text, esgrp text, employee_subgroup text, psubarea text,
+         personnel_subarea text, lp text, cost_center text, organizational_unit text,
+         location text, organisational_area_pa text, gender_key text, global_id bigint,
+         ps_group text, birth_date date, nt_id text, designation_text text,
+         other_designation text, entry_for_retirement date, technical_entry_date date,
+         official_email text, direct_or_indirect text, hrbp_global_id bigint,
+         hrbp2_global_id text
+       )`, [importId, JSON.stringify(rows)]);
     }
     async getExportRows(batchId, actorAccountId) {
         const batch = await this.database.query(`SELECT 1 FROM public.rbin_staging_batches
@@ -371,10 +450,12 @@ let RbinCleaningRepository = class RbinCleaningRepository {
         });
     }
     summarySelect() {
-        return `SELECT batch_id, file_name, status, total_raw_rows, staged_rows,
-      excluded_rows, valid_rows, invalid_rows, new_rows, changed_rows,
-      unchanged_rows, created_at, first_exported_at, last_exported_at
-      FROM public.rbin_staging_batches batch`;
+        return `SELECT batch.batch_id, batch.file_name, source_import.reporting_month,
+      batch.status, batch.total_raw_rows, batch.staged_rows, batch.excluded_rows,
+      batch.valid_rows, batch.invalid_rows, batch.new_rows, batch.changed_rows,
+      batch.unchanged_rows, batch.created_at, batch.first_exported_at, batch.last_exported_at
+      FROM public.rbin_staging_batches batch
+      JOIN public.rbin_namelist_imports source_import ON source_import.id = batch.import_id`;
     }
     async getMappingAlerts(batchId) {
         const result = await this.database.query(`SELECT current_data->>'organizational_unit' AS organizational_unit,
@@ -397,6 +478,9 @@ let RbinCleaningRepository = class RbinCleaningRepository {
         return {
             id: record.batch_id,
             fileName: record.file_name,
+            reportingMonth: record.reporting_month instanceof Date
+                ? record.reporting_month.toISOString().slice(0, 10)
+                : record.reporting_month.slice(0, 10),
             createdAt: isoTimestamp(record.created_at),
             status: record.status,
             totalRawRows: record.total_raw_rows,

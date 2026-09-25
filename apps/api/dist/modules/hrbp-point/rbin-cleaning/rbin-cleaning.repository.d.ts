@@ -7,13 +7,16 @@ export declare class RbinCleaningRepository {
     getMappings(): Promise<RbinMappingContext>;
     getBaselines(persNos: readonly string[]): Promise<Map<string, RbinBaselineValues>>;
     getExceptions(persNos: readonly string[]): Promise<RbinExceptionContext>;
-    createBatch(actorAccountId: string, file: UploadedRbinFile, rawRows: ParsedRbinRow[], stagedRows: RbinStagedRow[]): Promise<string>;
+    createBatch(actorAccountId: string, reportingMonth: string, file: UploadedRbinFile, rawRows: ParsedRbinRow[], stagedRows: RbinStagedRow[]): Promise<string>;
+    private getPreviousRawSnapshot;
+    private replaceAutomaticCareerEvents;
     listBatches(actorAccountId: string): Promise<RbinBatchSummary[]>;
     getSummary(batchId: string, actorAccountId: string): Promise<RbinBatchSummary | null>;
     getRows(batchId: string, actorAccountId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage | null>;
     getAllRows(batchId: string, actorAccountId: string): Promise<RbinStagedRow[] | null>;
     updateRows(batchId: string, actorAccountId: string, rows: RbinStagedRow[]): Promise<void>;
     finalize(batchId: string, actorAccountId: string): Promise<void>;
+    private insertCurrentRows;
     getExportRows(batchId: string, actorAccountId: string): Promise<NamelistRowValues[] | null>;
     recordExport(batchId: string, actorAccountId: string, fileName: string, rowCount: number, buffer: Buffer): Promise<void>;
     private summarySelect;

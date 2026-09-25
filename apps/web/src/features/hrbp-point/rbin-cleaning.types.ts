@@ -34,6 +34,7 @@ export type RbinPreviewRow = {
 export type RbinBatchSummary = {
   id: string;
   fileName: string;
+  reportingMonth: string;
   createdAt: string;
   status: RbinBatchStatus;
   totalRawRows: number;
@@ -60,7 +61,7 @@ export type RbinPreviewPage = RbinBatchSummary & {
 
 export interface RbinCleaningClient {
   listBatches(): Promise<RbinBatchSummary[]>;
-  createPreview(file: File, pageSize: number): Promise<RbinPreviewPage>;
+  createPreview(file: File, reportingMonth: string, pageSize: number): Promise<RbinPreviewPage>;
   getRows(batchId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage>;
   updateRow(batchId: string, row: RbinPreviewRow, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage>;
   finalize(batchId: string, pageSize: number): Promise<RbinPreviewPage>;

@@ -167,7 +167,10 @@ CREATE TABLE public.security_audit_log (
             'sessions_revoked',
             'rbin_exception_created',
             'rbin_exception_updated',
-            'rbin_exception_deleted'
+            'rbin_exception_deleted',
+            'career_event_created',
+            'career_event_updated',
+            'career_event_deleted'
         )
     ),
     CONSTRAINT security_audit_log_details_check

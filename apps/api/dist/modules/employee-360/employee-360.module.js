@@ -12,6 +12,7 @@ const database_module_1 = require("../../database/database.module");
 const employee_360_controller_1 = require("./employee-360.controller");
 const employee_360_repository_1 = require("./employee-360.repository");
 const employee_360_service_1 = require("./employee-360.service");
+const career_journey_repository_1 = require("./career-journey.repository");
 let Employee360Module = class Employee360Module {
 };
 exports.Employee360Module = Employee360Module;
@@ -19,7 +20,7 @@ exports.Employee360Module = Employee360Module = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
         controllers: [employee_360_controller_1.Employee360Controller],
-        providers: [employee_360_repository_1.Employee360Repository, employee_360_service_1.Employee360Service],
+        providers: [employee_360_repository_1.Employee360Repository, career_journey_repository_1.CareerJourneyRepository, employee_360_service_1.Employee360Service],
     })
 ], Employee360Module);
 //# sourceMappingURL=employee-360.module.js.map

@@ -68,8 +68,9 @@ export class RbinCleaningService {
 
   constructor(private readonly repository: RbinCleaningRepository) {}
 
-  async createPreview(file: UploadedRbinFile | undefined, actorAccountId: string): Promise<RbinBatchSummary> {
+  async createPreview(file: UploadedRbinFile | undefined, reportingMonthInput: string | undefined, actorAccountId: string): Promise<RbinBatchSummary> {
     if (!file) throw new BadRequestException('A CSV or XLSX file is required.');
+    const reportingMonth = this.reportingMonth(reportingMonthInput);
     let rawRows: ParsedRbinRow[];
     try {
       rawRows = await parseRbinFile(file);
@@ -88,11 +89,25 @@ export class RbinCleaningService {
         this.repository.getExceptions(persNos),
       ]);
       const stagedRows = transformRbinRows(rawRows, mappings, baselines, exceptions);
-      const batchId = await this.repository.createBatch(actorAccountId, file, rawRows, stagedRows);
+      const batchId = await this.repository.createBatch(actorAccountId, reportingMonth, file, rawRows, stagedRows);
       const summary = await this.repository.getSummary(batchId, actorAccountId);
       if (!summary) throw new Error('BATCH_NOT_FOUND');
       return summary;
     }, 'Unable to create RBIN cleaning batch');
+  }
+
+  private reportingMonth(value: string | undefined): string {
+    if (!value || !/^\d{4}-\d{2}-01$/.test(value)) {
+      throw new BadRequestException('Reporting month must use YYYY-MM-01 format.');
+    }
+    const parsed = new Date(`${value}T00:00:00Z`);
+    const currentMonth = new Date();
+    currentMonth.setUTCDate(1);
+    currentMonth.setUTCHours(0, 0, 0, 0);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value || parsed > currentMonth) {
+      throw new BadRequestException('Reporting month must be a valid month that is not in the future.');
+    }
+    return value;
   }
 
   listBatches(actorAccountId: string): Promise<RbinBatchSummary[]> {

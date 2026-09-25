@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import type { Employee360Row } from "./employee-360.types";
+import type { CareerJourneyEvent } from "./employee-360.types";
+import { CareerJourneyPanel } from "./CareerJourneyPanel";
 import "./employee-profile.css";
 
 function display(value: string | null): string {
@@ -29,13 +31,14 @@ function EmptyPanel({ title, icon }: { title: string; icon: string }) {
 export function EmployeeProfileView({
   employee,
   returnTo,
+  careerJourney,
+  canEditCareerJourney,
 }: {
   employee: Employee360Row;
   returnTo: string;
+  careerJourney: CareerJourneyEvent[];
+  canEditCareerJourney: boolean;
 }) {
-  const profileValues = Object.values(employee);
-  const completed = profileValues.filter((value) => value !== null && value.trim() !== "").length;
-  const completeness = Math.round((completed / profileValues.length) * 100);
   const employeeName = employee.personnelNumber ?? `Employee ${employee.persNo}`;
 
   return (
@@ -90,20 +93,17 @@ export function EmployeeProfileView({
           </dl>
         </div>
 
-        <aside className="employee-profile__completeness" aria-label={`Profile ${completeness}% complete`}>
-          <h2>Profile completeness</h2>
-          <div style={{ "--profile-completeness": `${completeness * 3.6}deg` } as React.CSSProperties}>
-            <strong>{completeness}%</strong>
-            <span>Complete</span>
-          </div>
-          <p>{completed} of {profileValues.length} fields available</p>
-        </aside>
-      </section>
+        <section className="employee-profile__overview-section">
+          <header><i className="a-icon boschicon-bosch-ic-user" aria-hidden="true" /><h2>HR partnership</h2></header>
+          <dl>
+            <Detail label="Global ID of HRBP" value={employee.hrbpGlobalId} />
+            <Detail label="Global ID of HRBP2" value={employee.hrbp2GlobalId} />
+          </dl>
+        </section>
 
-      <div className="employee-profile__grid">
-        <section className="employee-profile__panel employee-profile__panel--wide">
+        <section className="employee-profile__overview-section">
           <header><i className="a-icon boschicon-bosch-ic-calendar" aria-hidden="true" /><h2>Career information</h2></header>
-          <dl className="employee-profile__details-grid">
+          <dl>
             <Detail label="Date of joining" value={employee.joiningDate} />
             <Detail label="Technical entry date" value={employee.technicalEntryDate} />
             <Detail label="Entry for retirement" value={employee.entryForRetirement} />
@@ -112,15 +112,11 @@ export function EmployeeProfileView({
             <Detail label="Gender key" value={employee.gender} />
           </dl>
         </section>
+      </section>
 
-        <section className="employee-profile__panel">
-          <header><i className="a-icon boschicon-bosch-ic-user" aria-hidden="true" /><h2>HR partnership</h2></header>
-          <dl className="employee-profile__details-grid">
-            <Detail label="Global ID of HRBP" value={employee.hrbpGlobalId} />
-            <Detail label="Global ID of HRBP2" value={employee.hrbp2GlobalId} />
-          </dl>
-        </section>
+      <CareerJourneyPanel persNo={employee.persNo} initialEvents={careerJourney} canEdit={canEditCareerJourney} />
 
+      <div className="employee-profile__grid">
         <EmptyPanel title="Talent portfolio" icon="boschicon-bosch-ic-target" />
         <EmptyPanel title="STEP overview" icon="boschicon-bosch-ic-hierarchy" />
         <EmptyPanel title="Succession portfolio" icon="boschicon-bosch-ic-people" />

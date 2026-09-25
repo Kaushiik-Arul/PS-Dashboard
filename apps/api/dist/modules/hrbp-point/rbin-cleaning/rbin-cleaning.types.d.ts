@@ -41,6 +41,7 @@ export type RbinMappingAlert = {
 export type RbinBatchSummary = {
     id: string;
     fileName: string;
+    reportingMonth: string;
     createdAt: string;
     status: RbinBatchStatus;
     totalRawRows: number;

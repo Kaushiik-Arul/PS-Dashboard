@@ -4,7 +4,8 @@ export declare class RbinCleaningService {
     private readonly repository;
     private readonly logger;
     constructor(repository: RbinCleaningRepository);
-    createPreview(file: UploadedRbinFile | undefined, actorAccountId: string): Promise<RbinBatchSummary>;
+    createPreview(file: UploadedRbinFile | undefined, reportingMonthInput: string | undefined, actorAccountId: string): Promise<RbinBatchSummary>;
+    private reportingMonth;
     listBatches(actorAccountId: string): Promise<RbinBatchSummary[]>;
     getRows(batchId: string, actorAccountId: string, filterInput: string | undefined, pageInput: string | undefined, pageSizeInput: string | undefined, searchInput: string | undefined, viewInput: string | undefined): Promise<RbinPreviewPage>;
     updateRow(batchId: string, rowNumberInput: string, input: unknown, actorAccountId: string): Promise<RbinBatchSummary>;

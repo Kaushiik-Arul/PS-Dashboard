@@ -28,8 +28,12 @@ export class RbinCleaningController {
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload, transform, and stage an RBIN namelist' })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } }))
-  createBatch(@UploadedFile() file: UploadedRbinFile | undefined, @CurrentUser() user: AuthenticatedUser) {
-    return this.service.createPreview(file, user.accountId);
+  createBatch(
+    @UploadedFile() file: UploadedRbinFile | undefined,
+    @Body('reportingMonth') reportingMonth: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.createPreview(file, reportingMonth, user.accountId);
   }
 
   @Get('batches')

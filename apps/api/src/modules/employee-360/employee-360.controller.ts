@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../common/authorization/require-permission.decorator';
 import { CurrentUser } from '../auth/auth.decorators';
@@ -21,5 +21,31 @@ export class Employee360Controller {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Employee360ResponseDto> {
     return this.service.getEmployees(query, user);
+  }
+
+  @Get(':persNo')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'Get an employee profile and Career Journey within the authenticated workforce scope' })
+  getProfile(@Param('persNo') persNo: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.getProfile(persNo, user);
+  }
+
+  @Post(':persNo/career-journey')
+  @RequirePermission('workforce:edit')
+  createCareerEvent(@Param('persNo') persNo: string, @Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.createCareerEvent(persNo, body, user);
+  }
+
+  @Patch(':persNo/career-journey/:eventId')
+  @RequirePermission('workforce:edit')
+  updateCareerEvent(@Param('persNo') persNo: string, @Param('eventId') eventId: string, @Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.updateCareerEvent(persNo, eventId, body, user);
+  }
+
+  @Delete(':persNo/career-journey/:eventId')
+  @RequirePermission('workforce:edit')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteCareerEvent(@Param('persNo') persNo: string, @Param('eventId') eventId: string, @CurrentUser() user: AuthenticatedUser): Promise<void> {
+    return this.service.deleteCareerEvent(persNo, eventId, user);
   }
 }

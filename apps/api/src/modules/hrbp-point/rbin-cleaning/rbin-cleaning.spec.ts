@@ -5,6 +5,7 @@ import {
   transformRbinRows,
   validateRbinStagedValues,
 } from './rbin-cleaning.transformer';
+import { detectCareerEvents } from './rbin-career-detector';
 import {
   rbinSourceColumns,
   type RbinSourceValues,
@@ -217,5 +218,43 @@ describe('RBIN cleaning', () => {
 
     expect(compared[0].comparisonStatus).toBe('changed');
     expect(compared[0].changedColumns).toContain('designation_text');
+  });
+});
+
+describe('RBIN career detection', () => {
+  const row = (overrides: Partial<ReturnType<typeof rawValues>> = {}) => ({
+    rowNumber: 2,
+    values: rawValues(overrides),
+  });
+
+  it('tracks entry to PS with old and new organization values', () => {
+    const events = detectCareerEvents(
+      [row({ organisational_area_pa: 'Other', organizational_unit: 'OLD', ps_group: 'A' })],
+      [row({ organisational_area_pa: 'PS', organizational_unit: 'NEW', ps_group: 'B' })],
+    );
+    expect(events).toEqual([expect.objectContaining({
+      persNo: '12345', eventType: 'entry_to_ps',
+      oldOrganizationalUnit: 'OLD', newOrganizationalUnit: 'NEW',
+      oldPsGroup: 'A', newPsGroup: 'B',
+    })]);
+  });
+
+  it('tracks one internal PS event when Org Unit or PS Group changes', () => {
+    const events = detectCareerEvents(
+      [row({ organisational_area_pa: 'PS', organizational_unit: 'OLD', ps_group: 'A' })],
+      [row({ organisational_area_pa: ' ps ', organizational_unit: 'NEW', ps_group: 'B' })],
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0].eventType).toBe('internal_ps_change');
+  });
+
+  it('ignores exits, new employees, unchanged rows, and duplicate identifiers', () => {
+    expect(detectCareerEvents(
+      [row({ organisational_area_pa: 'PS' })],
+      [row({ organisational_area_pa: 'Other' })],
+    )).toEqual([]);
+    expect(detectCareerEvents([], [row({ organisational_area_pa: 'PS' })])).toEqual([]);
+    expect(detectCareerEvents([row()], [row()])).toEqual([]);
+    expect(detectCareerEvents([row()], [row(), { ...row(), rowNumber: 3 }])).toEqual([]);
   });
 });

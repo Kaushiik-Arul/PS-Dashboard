@@ -51,3 +51,7 @@ export declare class Employee360ResponseDto {
     employees: Employee360RowDto[];
     filterOptions: Employee360FilterOptionsDto;
 }
+export declare class Employee360ProfileResponseDto {
+    employee: Employee360RowDto;
+    careerJourney: unknown[];
+}

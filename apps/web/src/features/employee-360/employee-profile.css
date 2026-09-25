@@ -7,12 +7,13 @@
 .employee-profile__breadcrumb .a-icon { align-self: center; vertical-align: middle; }
 .employee-profile__breadcrumb-current { min-width: 0; overflow: hidden; }
 .employee-profile__breadcrumb-current > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.employee-profile__overview { border: var(--app-border-width) solid var(--base-major__disabled__default__fill); border-block-start: var(--app-space-1) solid var(--accent-major__enabled__default__fill); display: grid; grid-template-columns: minmax(22rem, 1.1fr) minmax(28rem, 1.5fr) 14rem; }
+.employee-profile__overview { border: var(--app-border-width) solid var(--base-major__disabled__default__fill); border-block-start: var(--app-space-1) solid var(--accent-major__enabled__default__fill); border-radius: 0.5rem; display: grid; grid-template-columns: minmax(21rem, 1.3fr) minmax(21rem, 1.4fr) minmax(16rem, 1fr) minmax(19rem, 1.2fr); overflow: hidden; }
 .employee-profile__identity,
 .employee-profile__organization,
-.employee-profile__completeness { min-width: 0; padding: var(--app-space-4); }
+.employee-profile__overview-section { min-width: 0; padding: var(--app-space-4); }
 .employee-profile__identity,
-.employee-profile__organization { border-inline-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); }
+.employee-profile__organization,
+.employee-profile__overview-section:not(:last-child) { border-inline-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); }
 .employee-profile__identity { align-items: start; display: grid; gap: var(--app-space-3); grid-template-columns: 5rem 1fr; }
 .employee-profile__identity > dl { grid-column: 1 / -1; }
 .employee-profile__avatar { align-items: center; background: var(--accent-major__enabled__default__fill); color: var(--background); display: flex; font-size: 1.5rem; font-weight: 700; height: 5rem; justify-content: center; width: 5rem; }
@@ -21,31 +22,51 @@
 .employee-profile__status { background: color-mix(in srgb, var(--signal-success-pure__enabled__default__front) 14%, var(--background)); color: var(--signal-success-pure__enabled__default__front); display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 0.125rem var(--app-space-2); }
 .employee-profile h2 { font-size: 0.875rem; margin: 0; text-transform: uppercase; }
 .employee-profile dl { display: grid; gap: var(--app-space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
-.employee-profile__organization h2 { margin-block-end: var(--app-space-4); }
+.employee-profile__organization h2,
+.employee-profile__overview-section header { margin-block-end: var(--app-space-4); }
+.employee-profile__overview-section header { align-items: center; display: flex; gap: var(--app-space-2); }
+.employee-profile__overview-section header .a-icon { color: var(--accent-major__enabled__default__fill); font-size: 1.25rem; }
 .employee-profile__detail { min-width: 0; }
 .employee-profile__detail dt { color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; margin-block-end: 0.125rem; }
 .employee-profile__detail dd { font-size: 0.75rem; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
-.employee-profile__completeness { align-items: center; display: flex; flex-direction: column; gap: var(--app-space-3); text-align: center; }
-.employee-profile__completeness > div { align-items: center; background: conic-gradient(var(--accent-major__enabled__default__fill) var(--profile-completeness), var(--base-major__disabled__default__fill) 0); border-radius: 50%; display: flex; flex-direction: column; height: 7rem; justify-content: center; position: relative; width: 7rem; }
-.employee-profile__completeness > div::before { background: var(--background); border-radius: 50%; content: ""; inset: 0.625rem; position: absolute; }
-.employee-profile__completeness strong,
-.employee-profile__completeness span { position: relative; z-index: 1; }
-.employee-profile__completeness strong { font-size: 1.25rem; }
-.employee-profile__completeness span,
-.employee-profile__completeness p { color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; }
-.employee-profile__completeness p { margin: 0; }
 .employee-profile__grid { display: grid; gap: var(--app-space-3); grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block-start: var(--app-space-3); }
-.employee-profile__panel { border: var(--app-border-width) solid var(--base-major__disabled__default__fill); min-height: 11rem; padding: var(--app-space-4); }
+.employee-profile__panel { border: var(--app-border-width) solid var(--base-major__disabled__default__fill); border-radius: 0.5rem; min-height: 11rem; padding: var(--app-space-4); }
 .employee-profile__panel--wide { grid-column: span 2; }
 .employee-profile__panel header { align-items: center; border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; gap: var(--app-space-2); margin-block-end: var(--app-space-4); padding-block-end: var(--app-space-2); }
 .employee-profile__panel header .a-icon { color: var(--accent-major__enabled__default__fill); font-size: 1.25rem; }
 .employee-profile__panel--empty p { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
 .employee-profile__details-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.employee-profile__panel--career { margin-block-start: var(--app-space-3); min-height: 0; }
+.employee-profile__panel--career > header { justify-content: space-between; }
+.employee-profile__eyebrow { color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; margin: 0 0 0.125rem; }
+.career-journey__table-wrap { overflow-x: auto; }
+.career-journey__table { border-collapse: collapse; font-size: 0.75rem; min-width: 64rem; width: 100%; }
+.career-journey__table th { color: var(--base-major__enabled__default__fill); font-weight: 700; text-align: start; }
+.career-journey__table th, .career-journey__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); padding: var(--app-space-2); vertical-align: middle; }
+.career-journey__movement { align-items: center; display: grid; gap: var(--app-space-1); grid-template-columns: minmax(5rem, 1fr) auto minmax(5rem, 1fr); }
+.career-journey__movement .a-icon { color: var(--base-major__enabled__default__fill); }
+.career-journey__source { border-inline-start: 0.25rem solid var(--accent-major__enabled__default__fill); display: inline-block; font-weight: 700; padding-inline-start: var(--app-space-2); }
+.career-journey__source--manual { border-color: var(--signal-warning-pure__enabled__default__front); }
+.career-journey__actions { display: flex; white-space: nowrap; }
+.career-journey__empty { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; margin: 0; }
+.career-journey__dialog { border: 0; box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 25%); max-height: calc(100dvh - 2rem); max-width: 48rem; padding: 0; width: calc(100% - 2rem); }
+.career-journey__dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.career-journey__dialog header { align-items: center; border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; justify-content: space-between; margin: 0; padding: var(--app-space-3) var(--app-space-4); }
+.career-journey__dialog header span { color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; }
+.career-journey__form { display: grid; gap: var(--app-space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); overflow-y: auto; padding: var(--app-space-4); }
+.career-journey__form label { display: grid; font-size: 0.75rem; gap: var(--app-space-1); }
+.career-journey__form input, .career-journey__form textarea { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); font: inherit; min-height: 2.75rem; padding: var(--app-space-2); resize: vertical; width: 100%; }
+.career-journey__notes, .career-journey__error { grid-column: 1 / -1; }
+.career-journey__error { color: var(--signal-danger-pure__enabled__default__front); font-size: 0.75rem; margin: 0; }
+.career-journey__dialog footer { border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; gap: var(--app-space-2); justify-content: flex-end; padding: var(--app-space-3) var(--app-space-4); }
+.career-journey__dialog--confirm { max-width: 34rem; }
+.career-journey__dialog--confirm .career-journey__form { display: block; }
 
-@media (max-width: 74rem) {
+@media (max-width: 80rem) {
   .employee-profile__overview { grid-template-columns: 1fr 1.4fr; }
+  .employee-profile__identity,
+  .employee-profile__organization { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); }
   .employee-profile__organization { border-inline-end: 0; }
-  .employee-profile__completeness { border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); grid-column: 1 / -1; }
   .employee-profile__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -54,8 +75,8 @@
   .employee-profile__overview,
   .employee-profile__grid { grid-template-columns: 1fr; }
   .employee-profile__identity,
-  .employee-profile__organization { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); border-inline-end: 0; }
-  .employee-profile__completeness,
+  .employee-profile__organization,
+  .employee-profile__overview-section:not(:last-child) { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); border-inline-end: 0; }
   .employee-profile__panel--wide { grid-column: auto; }
   .employee-profile__details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
@@ -63,4 +84,5 @@
 @media (max-width: 32rem) {
   .employee-profile dl,
   .employee-profile__details-grid { grid-template-columns: 1fr !important; }
+  .career-journey__form { grid-template-columns: 1fr; }
 }

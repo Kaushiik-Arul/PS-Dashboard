@@ -88,6 +88,58 @@ CREATE INDEX rbin_namelist_org_unit_idx
     ON public.rbin_namelist (LOWER(BTRIM(organizational_unit)))
     WHERE NULLIF(BTRIM(organizational_unit), '') IS NOT NULL;
 
+CREATE TABLE public.rbin_namelist_history (
+    import_id               BIGINT NOT NULL
+                            REFERENCES public.rbin_namelist_imports(id) ON DELETE RESTRICT,
+    source_row_number       INTEGER NOT NULL CHECK (source_row_number >= 2),
+    raw_source_data         JSONB NOT NULL CHECK (JSONB_TYPEOF(raw_source_data) = 'object'),
+    stored_row_data         JSONB NOT NULL CHECK (JSONB_TYPEOF(stored_row_data) = 'object'),
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (import_id, source_row_number)
+);
+
+CREATE INDEX rbin_namelist_history_import_idx
+    ON public.rbin_namelist_history (import_id, source_row_number);
+
+CREATE TABLE public.employee_career_journey (
+    event_id                    UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
+    pers_no                     BIGINT NOT NULL CHECK (pers_no > 0),
+    event_month                 DATE NOT NULL CHECK (EXTRACT(DAY FROM event_month) = 1),
+    event_type                  TEXT NOT NULL
+                                CHECK (event_type IN ('entry_to_ps', 'internal_ps_change', 'manual')),
+    old_organisational_area_pa  TEXT,
+    new_organisational_area_pa  TEXT,
+    old_organizational_unit     TEXT,
+    new_organizational_unit     TEXT,
+    old_ps_group                TEXT,
+    new_ps_group                TEXT,
+    source                      TEXT NOT NULL CHECK (source IN ('rbin', 'manual')),
+    source_import_id            BIGINT
+                                REFERENCES public.rbin_namelist_imports(id) ON DELETE RESTRICT,
+    notes                       TEXT CHECK (notes IS NULL OR CHAR_LENGTH(notes) <= 1000),
+    is_reviewed                 BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by_account_id       UUID REFERENCES public.auth_accounts(account_id) ON DELETE SET NULL,
+    updated_by_account_id       UUID REFERENCES public.auth_accounts(account_id) ON DELETE SET NULL,
+    deleted_by_account_id       UUID REFERENCES public.auth_accounts(account_id) ON DELETE SET NULL,
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at                  TIMESTAMPTZ,
+
+    UNIQUE (pers_no, event_month),
+    CHECK ((source = 'rbin') = (source_import_id IS NOT NULL)),
+    CHECK ((deleted_at IS NULL) = (deleted_by_account_id IS NULL)),
+    CHECK (updated_at >= created_at),
+    CHECK (deleted_at IS NULL OR deleted_at >= created_at)
+);
+
+CREATE INDEX employee_career_journey_timeline_idx
+    ON public.employee_career_journey (pers_no, event_month DESC)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX employee_career_journey_recalculation_idx
+    ON public.employee_career_journey (event_month, source, is_reviewed);
+
 CREATE TABLE public.org_unit_range_mappings (
     mapping_id              UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
     organizational_unit     TEXT NOT NULL CHECK (NULLIF(BTRIM(organizational_unit), '') IS NOT NULL),

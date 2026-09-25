@@ -147,18 +147,54 @@ $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' }
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/rbin_employee_exceptions_migration.sql"
 ```
 
+Apply the Career Journey migration after the RBIN cleaning and authentication
+schemas. It retains raw RBIN snapshots and adds month-to-month employee history:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/employee_career_journey_migration.sql"
+```
+
+Apply the current-snapshot migration after the Career Journey migration. It
+moves existing raw snapshots into dedicated history and leaves only the latest
+uploaded file in `rbin_namelist`:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/rbin_current_snapshot_migration.sql"
+```
+
+For databases where the current-snapshot migration was already applied, add
+the exact stored-row payload required by Save cleaned dataset:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/rbin_finalize_replacement_migration.sql"
+```
+
 The RBIN tables have separate retention semantics:
 
 | Table | Retention and purpose |
 | --- | --- |
 | `rbin_namelist_imports` | Permanent audit record for every raw upload. |
-| `rbin_namelist` | Latest successful raw-file snapshot; replaced atomically by a later upload. |
+| `rbin_namelist` | Current raw RBIN dataset; replaced atomically when Save cleaned dataset is confirmed. |
+| `rbin_namelist_history` | Permanent raw JSON snapshots used for month-to-month Career Journey detection. |
 | `org_unit_range_mappings` | Persistent Organizational Unit to Range lookup. |
 | `org_unit_function_mappings` | Persistent Organizational Unit to Function lookup. |
 | `rbin_employee_column_exceptions` | Persistent employee-and-column fixed values for future RBIN uploads. |
 | `rbin_staging_batches` | Permanent transformed batch and validation counters. |
 | `rbin_staging_rows` | Original and currently edited 29-column PS rows. |
 | `rbin_staging_exports` | Permanent record of every XLSX download. |
+| `employee_career_journey` | Permanent monthly PS-entry and internal PS-change history, including reviewed edits and soft-deleted tombstones. |
+
+Career detection compares raw RBIN values by Pers.No before mappings,
+exceptions, or PS staging filters. The first retained upload is a baseline.
+Later uploads record proven non-PS to PS entries and PS Organizational Unit or
+PS Group changes. Same-month reuploads compare against the prior month and
+replace only unreviewed automatic events; HRBP edits and deletions are retained.
+
+Select the source file's reporting month during every RBIN upload. To verify
+historical detection, upload June 2026 first as the baseline, followed by July
+2026 and August 2026. Do not clear `employee_namelist`; Employee 360 visibility
+and workforce scope depend on those current employee records. Existing imports
+from later reporting months do not affect comparisons for an earlier month.
 
 Raw rows are keyed by import and source row rather than `pers_no`, allowing the
 database to retain duplicate or malformed employee numbers for validation. The

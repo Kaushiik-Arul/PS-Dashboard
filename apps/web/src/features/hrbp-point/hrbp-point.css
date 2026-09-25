@@ -1,3 +1,5 @@
+.rbin-reporting-month { display: grid; font-size: 0.75rem; gap: var(--app-space-1); min-width: 9rem; }
+.rbin-reporting-month input { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); min-height: 2.75rem; padding-inline: var(--app-space-2); }
 .hrbp-page {
   margin-inline: auto;
   max-width: 70.75rem;

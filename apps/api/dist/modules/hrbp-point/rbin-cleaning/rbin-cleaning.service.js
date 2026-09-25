@@ -57,9 +57,10 @@ let RbinCleaningService = RbinCleaningService_1 = class RbinCleaningService {
     constructor(repository) {
         this.repository = repository;
     }
-    async createPreview(file, actorAccountId) {
+    async createPreview(file, reportingMonthInput, actorAccountId) {
         if (!file)
             throw new common_1.BadRequestException('A CSV or XLSX file is required.');
+        const reportingMonth = this.reportingMonth(reportingMonthInput);
         let rawRows;
         try {
             rawRows = await (0, rbin_cleaning_parser_1.parseRbinFile)(file);
@@ -79,12 +80,25 @@ let RbinCleaningService = RbinCleaningService_1 = class RbinCleaningService {
                 this.repository.getExceptions(persNos),
             ]);
             const stagedRows = (0, rbin_cleaning_transformer_1.transformRbinRows)(rawRows, mappings, baselines, exceptions);
-            const batchId = await this.repository.createBatch(actorAccountId, file, rawRows, stagedRows);
+            const batchId = await this.repository.createBatch(actorAccountId, reportingMonth, file, rawRows, stagedRows);
             const summary = await this.repository.getSummary(batchId, actorAccountId);
             if (!summary)
                 throw new Error('BATCH_NOT_FOUND');
             return summary;
         }, 'Unable to create RBIN cleaning batch');
+    }
+    reportingMonth(value) {
+        if (!value || !/^\d{4}-\d{2}-01$/.test(value)) {
+            throw new common_1.BadRequestException('Reporting month must use YYYY-MM-01 format.');
+        }
+        const parsed = new Date(`${value}T00:00:00Z`);
+        const currentMonth = new Date();
+        currentMonth.setUTCDate(1);
+        currentMonth.setUTCHours(0, 0, 0, 0);
+        if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value || parsed > currentMonth) {
+            throw new common_1.BadRequestException('Reporting month must be a valid month that is not in the future.');
+        }
+        return value;
     }
     listBatches(actorAccountId) {
         return this.runDatabaseOperation(() => this.repository.listBatches(actorAccountId), 'Unable to list RBIN cleaning batches');

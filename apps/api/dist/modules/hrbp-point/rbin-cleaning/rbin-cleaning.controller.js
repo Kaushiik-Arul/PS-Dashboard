@@ -24,8 +24,8 @@ let RbinCleaningController = class RbinCleaningController {
     constructor(service) {
         this.service = service;
     }
-    createBatch(file, user) {
-        return this.service.createPreview(file, user.accountId);
+    createBatch(file, reportingMonth, user) {
+        return this.service.createPreview(file, reportingMonth, user.accountId);
     }
     listBatches(user) {
         return this.service.listBatches(user.accountId);
@@ -55,9 +55,10 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Upload, transform, and stage an RBIN namelist' }),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } })),
     __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, auth_decorators_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)('reportingMonth')),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", void 0)
 ], RbinCleaningController.prototype, "createBatch", null);
 __decorate([

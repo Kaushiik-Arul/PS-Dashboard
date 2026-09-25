@@ -40,7 +40,9 @@ ALTER TABLE public.security_audit_log
             'login_succeeded', 'login_failed', 'account_locked', 'logout',
             'password_changed', 'password_reset', 'role_changed',
             'sessions_revoked', 'rbin_exception_created',
-            'rbin_exception_updated', 'rbin_exception_deleted'
+            'rbin_exception_updated', 'rbin_exception_deleted',
+            'career_event_created', 'career_event_updated',
+            'career_event_deleted'
         )
     );
 
