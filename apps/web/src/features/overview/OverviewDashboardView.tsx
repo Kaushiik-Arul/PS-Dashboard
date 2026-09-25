@@ -6,6 +6,8 @@ import {
   ChartCard,
   DonutChart,
   HorizontalBarChart,
+  IndiaLocationMap,
+  JoinedFunnelChart,
   MovementChart,
   RetirementRiskTable,
   VerticalBarChart,
@@ -148,6 +150,29 @@ function mapChartData(
   }));
 }
 
+const levelDisplayOrder = [
+  "SL4",
+  "SL3",
+  "SL2",
+  "GROUP1",
+  "GROUP2",
+  "GROUP3",
+  "GROUP4",
+  "GROUP5",
+  "GROUP6",
+  "GROUP7",
+];
+
+function sortLevelData(data: ChartDatum[]) {
+  return data.toSorted((left, right) => {
+    const leftOrder = levelDisplayOrder.indexOf(left.label.replace(/\s/g, "").toUpperCase());
+    const rightOrder = levelDisplayOrder.indexOf(right.label.replace(/\s/g, "").toUpperCase());
+
+    return (leftOrder < 0 ? Number.MAX_SAFE_INTEGER : leftOrder)
+      - (rightOrder < 0 ? Number.MAX_SAFE_INTEGER : rightOrder);
+  });
+}
+
 function mapDonutData(data: OverviewChartDatum[]) {
   return data.map((item, index) => ({
     label: item.label,
@@ -191,10 +216,10 @@ export function OverviewDashboard({
     icon: definition.icon,
     iconColor: definition.iconColor,
   }));
-  const psGroupData = mapChartData(data.charts.headcountByPsGroup.data, true);
+  const psGroupData = sortLevelData(mapChartData(data.charts.headcountByPsGroup.data, true));
   const genderData = mapDonutData(data.charts.genderDistribution.data);
   const functionData = mapChartData(data.charts.headcountByFunction.data, true);
-  const locationData = mapDonutData(data.charts.headcountByLocation.data);
+  const locationData = mapChartData(data.charts.headcountByLocation.data, true);
   const ageData = mapChartData(data.charts.ageProfile.data);
   const tenureData = mapChartData(data.charts.tenureProfile.data);
   const movementData = mapChartData(data.charts.workforceMovement.data);
@@ -281,11 +306,11 @@ export function OverviewDashboard({
           <ChartCard title="Gender distribution" description="Share of total workforce">
             {genderData.length > 0 ? <DonutChart data={genderData} total={totalLabel} /> : <ChartUnavailable />}
           </ChartCard>
-          <ChartCard title="Headcount by PS group" description="Employees across PS groups">
-            {psGroupData.length > 0 ? <HorizontalBarChart data={psGroupData} /> : <ChartUnavailable />}
+          <ChartCard title="Headcount by Level" description="Employees across levels" className="chart-card--grade-funnel">
+            {psGroupData.length > 0 ? <JoinedFunnelChart data={psGroupData} /> : <ChartUnavailable />}
           </ChartCard>
           <ChartCard title="Headcount by location" description="Employees across major sites">
-            {locationData.length > 0 ? <DonutChart data={locationData} total={totalLabel} /> : <ChartUnavailable />}
+            {locationData.length > 0 ? <IndiaLocationMap data={locationData} /> : <ChartUnavailable />}
           </ChartCard>
         </div>
       </section>
@@ -305,7 +330,7 @@ export function OverviewDashboard({
           <ChartCard title="Workforce movement" description="Current workforce by employee group">
             {movementData.length > 0 ? <MovementChart data={movementData} period={asOfLabel} /> : <ChartUnavailable />}
           </ChartCard>
-          <ChartCard title="Retirement risk" description="Employees reaching retirement eligibility">
+          <ChartCard title="Retirement Analysis" description="Employees reaching retirement eligibility">
             {data.charts.retirementRisk.length > 0
               ? <RetirementRiskTable rows={data.charts.retirementRisk} />
               : <ChartUnavailable />}
