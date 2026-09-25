@@ -1129,12 +1129,12 @@ export function TalentPipelineDashboard() {
           />
 
           <DataTable
-            title="Open STEP Positions"
+            title="Active STEP"
             description="Available STEP assignments and current matching status"
             columns={stepPositionColumns}
             rows={stepPositions}
             getRowKey={(row) => row.positionId}
-            downloadFileName="open-step-positions"
+            downloadFileName="active-step"
             pageSizeOptions={[5, 10, 25]}
           />
         </div>
