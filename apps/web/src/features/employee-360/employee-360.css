@@ -22,7 +22,7 @@
 }
 
 .employee-360__controls form { margin: 0; }
-.employee-360__toolbar { align-items: end; display: grid; gap: var(--app-space-2); grid-template-columns: minmax(18rem, 40rem) 7rem 7.5rem; justify-content: start; padding: var(--app-space-3) var(--app-space-4); }
+.employee-360__toolbar { align-items: end; display: grid; gap: var(--app-space-2); grid-template-columns: minmax(18rem, 40rem) 7rem 8.75rem; justify-content: start; padding: var(--app-space-3) var(--app-space-4); }
 .employee-360__search-field { display: grid; gap: var(--app-space-1); min-width: 0; }
 .employee-360__search-field > label { font-size: 0.75rem; font-weight: 700; }
 .employee-360__search-field > div { position: relative; }
@@ -40,13 +40,12 @@
 .employee-360__search-field .a-button__icon { display: block; line-height: 1; margin: 0; }
 .employee-360__search-button,
 .employee-360__filter-toggle { align-items: center; display: inline-flex; gap: var(--app-space-2); height: 2.5rem; justify-content: center; padding: 0 var(--app-space-3); width: 100%; }
+.employee-360__filter-toggle { justify-content: flex-start; }
 .employee-360__search-button .a-button__icon,
 .employee-360__filter-toggle .a-button__icon { display: block; flex: 0 0 auto; line-height: 1; margin: 0; }
 .employee-360__search-button .a-button__label,
 .employee-360__filter-toggle .a-button__label { line-height: 1; margin: 0; }
 .employee-360__filter-toggle[aria-expanded="true"] { background: var(--base-minor__enabled__default__fill); }
-.employee-360__filter-toggle strong { align-items: center; background: var(--accent-major__enabled__default__fill); color: var(--background); display: inline-flex; font-size: 0.75rem; height: 1.25rem; justify-content: center; min-width: 1.25rem; padding-inline: 0.25rem; }
-
 .employee-360__active-filters { align-items: center; border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; flex-wrap: wrap; gap: var(--app-space-2); padding: var(--app-space-2) var(--app-space-4); }
 .employee-360__active-filters > span { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
 .employee-360__active-filters > strong { border-inline-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); font-size: 0.75rem; padding-inline-start: var(--app-space-2); }

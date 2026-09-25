@@ -48,18 +48,23 @@ function cellToString(value) {
         return '';
     if (value instanceof Date)
         return formatDate(value);
+    if (typeof value === 'string' || typeof value === 'boolean')
+        return String(value);
+    if (typeof value === 'number') {
+        if (!Number.isSafeInteger(value)) {
+            throw new common_1.BadRequestException('The workbook contains an identifier larger than Excel can safely represent. Format identifier columns as text.');
+        }
+        return String(value);
+    }
     if (typeof value === 'object') {
         if ('text' in value && typeof value.text === 'string')
             return value.text;
         if ('result' in value && value.result !== undefined)
-            return String(value.result ?? '');
+            return cellToString(value.result);
         if ('richText' in value)
             return value.richText.map((part) => part.text).join('');
     }
-    if (typeof value === 'number' && !Number.isSafeInteger(value)) {
-        throw new common_1.BadRequestException('The workbook contains an identifier larger than Excel can safely represent. Format identifier columns as text.');
-    }
-    return String(value);
+    return '';
 }
 function mapRows(matrix) {
     if (matrix.length < 2) {

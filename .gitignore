@@ -55,6 +55,7 @@ next-env.d.ts
 !apps/sql/rbin_cleaning_migration.sql
 !apps/sql/rbin_employee_exceptions_migration.sql
 !apps/sql/employee_career_journey_migration.sql
+!apps/sql/employee_ppp_history_migration.sql
 !apps/sql/rbin_current_snapshot_migration.sql
 !apps/sql/rbin_finalize_replacement_migration.sql
 !apps/sql/reset_rbin_automation_data.sql

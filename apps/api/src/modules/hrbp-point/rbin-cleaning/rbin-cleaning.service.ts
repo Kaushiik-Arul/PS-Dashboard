@@ -26,7 +26,6 @@ import type {
   RbinExport,
   RbinPreviewPage,
   RbinRowFilter,
-  RbinStagedRow,
   UploadedRbinFile,
 } from './rbin-cleaning.types';
 

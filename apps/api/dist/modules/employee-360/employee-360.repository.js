@@ -91,6 +91,19 @@ let Employee360Repository = class Employee360Repository {
     constructor(database) {
         this.database = database;
     }
+    async getPppHistory(persNo) {
+        const result = await this.database.query(`SELECT calendar_year, performance, position, person, tcl
+       FROM public.employee_ppp_history
+       WHERE pers_no = $1
+       ORDER BY calendar_year DESC`, [persNo]);
+        return result.rows.map((row) => ({
+            year: row.calendar_year,
+            performance: row.performance,
+            position: row.position,
+            person: row.person,
+            tcl: row.tcl,
+        }));
+    }
     async getEmployees(filters, accountId, persNo) {
         const values = [
             filters.search,

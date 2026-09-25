@@ -51,7 +51,15 @@ export declare class Employee360ResponseDto {
     employees: Employee360RowDto[];
     filterOptions: Employee360FilterOptionsDto;
 }
+export declare class EmployeePppHistoryDto {
+    year: number;
+    performance: string | null;
+    position: string | null;
+    person: string | null;
+    tcl: string | null;
+}
 export declare class Employee360ProfileResponseDto {
     employee: Employee360RowDto;
     careerJourney: unknown[];
+    pppHistory: EmployeePppHistoryDto[];
 }

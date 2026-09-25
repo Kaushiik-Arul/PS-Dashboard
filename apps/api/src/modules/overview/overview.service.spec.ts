@@ -6,22 +6,24 @@ import type { OverviewResponseDto } from './dto/overview-response.dto';
 describe('OverviewService', () => {
   let repository: jest.Mocked<OverviewRepository>;
   let service: OverviewService;
+  let getOverview: jest.Mock;
 
   beforeEach(() => {
+    getOverview = jest.fn();
     repository = {
-      getOverview: jest.fn(),
+      getOverview,
     } as unknown as jest.Mocked<OverviewRepository>;
     service = new OverviewService(repository);
   });
 
   it('forwards normalized filters and authenticated account scope', async () => {
     const response = {} as OverviewResponseDto;
-    repository.getOverview.mockResolvedValue(response);
+    getOverview.mockResolvedValue(response);
 
     await expect(service.getOverview({ range: '  PS/CA-IN  ' }, 'account-id'))
       .resolves.toBe(response);
 
-    expect(repository.getOverview).toHaveBeenCalledWith(
+    expect(getOverview).toHaveBeenCalledWith(
       {
         functionName: null,
         orgUnit: null,
@@ -38,6 +40,6 @@ describe('OverviewService', () => {
     await expect(service.getOverview({ range: 42 as never }, 'account-id'))
       .rejects.toBeInstanceOf(BadRequestException);
 
-    expect(repository.getOverview).not.toHaveBeenCalled();
+    expect(getOverview).not.toHaveBeenCalled();
   });
 });

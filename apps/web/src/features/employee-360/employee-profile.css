@@ -36,6 +36,15 @@
 .employee-profile__panel header .a-icon { color: var(--accent-major__enabled__default__fill); font-size: 1.25rem; }
 .employee-profile__panel header .a-button--primary .a-icon { color: var(--background); }
 .employee-profile__panel--empty p { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
+.employee-ppp-history__table-wrap { overflow-x: auto; }
+.employee-ppp-history__table { border-collapse: collapse; font-size: 0.75rem; min-width: 31rem; width: 100%; }
+.employee-ppp-history__table th { color: var(--base-major__enabled__default__fill); font-weight: 700; text-align: start; }
+.employee-ppp-history__table tbody th { color: var(--foreground); }
+.employee-ppp-history__table th,
+.employee-ppp-history__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); padding: var(--app-space-2); vertical-align: top; }
+.employee-ppp-history__table tr:last-child th,
+.employee-ppp-history__table tr:last-child td { border-block-end: 0; }
+.employee-ppp-history__empty { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
 .employee-profile__details-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 .employee-profile__panel--career { margin-block-start: var(--app-space-3); min-height: 0; }
 .employee-profile__panel--career > header { justify-content: space-between; }

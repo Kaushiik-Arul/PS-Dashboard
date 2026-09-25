@@ -117,6 +117,22 @@ DELETE FROM public.namelist_import_previews
 WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP;
 ```
 
+## Employee PPP history
+
+Apply `employee_ppp_history_migration.sql` after the authentication and
+namelist schemas before enabling the PPP History Upload in HRBP Point:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/employee_ppp_history_migration.sql"
+```
+
+The upload accepts the fixed employee context columns plus Performance,
+Position, Person, and TCL for the current year and two prior years. Header
+years are validated against the server UTC year. A successful confirmed import
+atomically replaces the complete normalized history dataset. Employee context
+columns are preview-only; unknown personnel numbers are reported and skipped.
+
 ## RBIN cleaning data foundation
 
 Full cross-stack documentation: [RBIN Namelist to PS Namelist](../../RBIN_NAMELIST_CLEANING.md).

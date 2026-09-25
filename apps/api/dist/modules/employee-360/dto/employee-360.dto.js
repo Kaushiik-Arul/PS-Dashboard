@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Employee360ProfileResponseDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
+exports.Employee360ProfileResponseDto = exports.EmployeePppHistoryDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class Employee360QueryDto {
     search;
@@ -203,9 +203,38 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: Employee360FilterOptionsDto }),
     __metadata("design:type", Employee360FilterOptionsDto)
 ], Employee360ResponseDto.prototype, "filterOptions", void 0);
+class EmployeePppHistoryDto {
+    year;
+    performance;
+    position;
+    person;
+    tcl;
+}
+exports.EmployeePppHistoryDto = EmployeePppHistoryDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], EmployeePppHistoryDto.prototype, "year", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeePppHistoryDto.prototype, "performance", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeePppHistoryDto.prototype, "position", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeePppHistoryDto.prototype, "person", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeePppHistoryDto.prototype, "tcl", void 0);
 class Employee360ProfileResponseDto {
     employee;
     careerJourney;
+    pppHistory;
 }
 exports.Employee360ProfileResponseDto = Employee360ProfileResponseDto;
 __decorate([
@@ -216,4 +245,8 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: [Object] }),
     __metadata("design:type", Array)
 ], Employee360ProfileResponseDto.prototype, "careerJourney", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: [EmployeePppHistoryDto] }),
+    __metadata("design:type", Array)
+], Employee360ProfileResponseDto.prototype, "pppHistory", void 0);
 //# sourceMappingURL=employee-360.dto.js.map

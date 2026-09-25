@@ -11,6 +11,9 @@ import {
   type EmployeeStatusType,
 } from "./hrbp-point.types";
 import { NamelistImportPanel } from "./NamelistImportPanel";
+import { RbinExceptionsPanel } from "./RbinExceptionsPanel";
+import { httpRbinExceptionsClient } from "./rbin-exceptions.http";
+import { PppHistoryImportPanel } from "./PppHistoryImportPanel";
 import "@/components/data-table/data-table.css";
 import "./hrbp-point.css";
 
@@ -39,15 +42,6 @@ function formatDate(value: string | null) {
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00Z` : value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC" }).format(date);
-}
-
-function formatTimestamp(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 async function getErrorMessage(response: Response) {
@@ -180,6 +174,7 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
     <main className="hrbp-page">
       {canManageNamelist && <NamelistImportPanel />}
 
+      <div className="hrbp-maintenance-grid">
       <section className="hrbp-status-panel" aria-labelledby="leave-status-title">
         <div className="hrbp-page__heading">
           <div>
@@ -187,9 +182,9 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
             <h2 id="leave-status-title">Employee leave status</h2>
             <p>Maintain current maternity, sabbatical, CRL, and absconding records.</p>
           </div>
-          {canManage && <button className="a-button a-button--primary" type="button" onClick={openCreate}>
+          {canManage && <button className="a-button a-button--primary -small hrbp-maintenance-add" type="button" onClick={openCreate}>
             <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
-            <span className="a-button__label">Add employee status</span>
+            <span className="a-button__label">Add status</span>
           </button>}
         </div>
 
@@ -198,24 +193,27 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
             <h2 className="data-table-card__title">Current records</h2>
             <p className="data-table-card__description">{rows.length} employee status {rows.length === 1 ? "record" : "records"}</p>
           </div></div>
-          <div className="data-table-scroll">
+          <div className="data-table-scroll hrbp-compact-table-wrap">
             <table className="data-table hrbp-table">
               <thead><tr className="data-table__column-header">
-                <th scope="col">Employee number</th><th scope="col">Status</th><th scope="col">Start date</th><th scope="col">End date</th><th scope="col">Updated at</th><th scope="col">Updated by</th>
+                <th scope="col">Employee</th><th scope="col">Status</th><th scope="col">Period</th>
                 {canManage && <th scope="col"><span className="visually-hidden">Actions</span></th>}
               </tr></thead>
               <tbody>{rows.length > 0 ? rows.map((row) => <tr key={row.persNo}>
-                <td>{row.persNo}</td><td>{row.statusType}</td><td>{formatDate(row.startDate)}</td><td>{formatDate(row.endDate)}</td>
-                <td>{formatTimestamp(row.updatedAt)}</td><td>{row.updatedBy}</td>
-                {canManage && <td className="hrbp-table__actions">
+                <td>{row.persNo}</td><td>{row.statusType}</td><td><span className="hrbp-period"><span>{formatDate(row.startDate)}</span><span>{formatDate(row.endDate)}</span></span></td>
+                {canManage && <td><div className="hrbp-table__actions">
                   <button className="a-button a-button--integrated -small" type="button" title={`Edit ${row.persNo}`} aria-label={`Edit employee ${row.persNo}`} onClick={() => openEdit(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-edit" aria-hidden="true" /></button>
                   <button className="a-button a-button--integrated -small" type="button" title={`Delete ${row.persNo}`} aria-label={`Delete employee ${row.persNo}`} onClick={() => openDelete(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-delete" aria-hidden="true" /></button>
-                </td>}
-              </tr>) : <tr><td className="hrbp-table__empty" colSpan={canManage ? 7 : 6}>No employee leave statuses have been added.</td></tr>}</tbody>
+                </div></td>}
+              </tr>) : <tr><td className="hrbp-table__empty" colSpan={canManage ? 4 : 3}>No employee leave statuses have been added.</td></tr>}</tbody>
             </table>
           </div>
         </section>
       </section>
+
+      {canManageNamelist && <PppHistoryImportPanel />}
+      {canManageNamelist && <RbinExceptionsPanel client={httpRbinExceptionsClient} />}
+      </div>
 
       <dialog className="hrbp-dialog" ref={editorRef} onClose={() => setFormError("")}>
         <form method="dialog" onSubmit={submitForm}>

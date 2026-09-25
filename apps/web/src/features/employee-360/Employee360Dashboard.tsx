@@ -171,10 +171,9 @@ export function Employee360Dashboard({
               <i className="a-icon a-button__icon boschicon-bosch-ic-search" aria-hidden="true" />
               <span className="a-button__label">Search</span>
             </button>
-            <button className="a-button a-button--secondary employee-360__filter-toggle" type="button" aria-expanded={areFiltersOpen} aria-controls="employee-360-filter-panel" onClick={() => setAreFiltersOpen((open) => !open)}>
+            <button className="a-button a-button--secondary employee-360__filter-toggle" type="button" aria-label={`Filters${activeFilters.length ? `, ${activeFilters.length} applied` : ""}`} aria-expanded={areFiltersOpen} aria-controls="employee-360-filter-panel" onClick={() => setAreFiltersOpen((open) => !open)}>
               <i className="a-icon a-button__icon boschicon-bosch-ic-filter" aria-hidden="true" />
               <span className="a-button__label">Filters</span>
-              {activeFilters.length > 0 && <strong>{activeFilters.length}</strong>}
             </button>
           </div>
 

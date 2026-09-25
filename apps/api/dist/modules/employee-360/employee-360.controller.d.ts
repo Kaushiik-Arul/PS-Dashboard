@@ -8,6 +8,7 @@ export declare class Employee360Controller {
     getProfile(persNo: string, user: AuthenticatedUser): Promise<{
         employee: import("./dto/employee-360.dto").Employee360RowDto;
         careerJourney: import("./career-journey.types").CareerJourneyEvent[];
+        pppHistory: import("./dto/employee-360.dto").EmployeePppHistoryDto[];
     }>;
     createCareerEvent(persNo: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;
     updateCareerEvent(persNo: string, eventId: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;

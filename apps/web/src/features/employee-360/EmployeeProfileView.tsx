@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import type { Employee360Row } from "./employee-360.types";
-import type { CareerJourneyEvent } from "./employee-360.types";
+import type { CareerJourneyEvent, EmployeePppHistory } from "./employee-360.types";
 import { CareerJourneyPanel } from "./CareerJourneyPanel";
+import { EmployeePppHistoryPanel } from "./EmployeePppHistoryPanel";
 import "./employee-profile.css";
 
 function display(value: string | null): string {
@@ -32,11 +33,13 @@ export function EmployeeProfileView({
   employee,
   returnTo,
   careerJourney,
+  pppHistory,
   canEditCareerJourney,
 }: {
   employee: Employee360Row;
   returnTo: string;
   careerJourney: CareerJourneyEvent[];
+  pppHistory: EmployeePppHistory[];
   canEditCareerJourney: boolean;
 }) {
   const employeeName = employee.personnelNumber ?? `Employee ${employee.persNo}`;
@@ -120,7 +123,7 @@ export function EmployeeProfileView({
         <EmptyPanel title="Talent portfolio" icon="boschicon-bosch-ic-target" />
         <EmptyPanel title="STEP overview" icon="boschicon-bosch-ic-hierarchy" />
         <EmptyPanel title="Succession portfolio" icon="boschicon-bosch-ic-people" />
-        <EmptyPanel title="Performance history" icon="boschicon-bosch-ic-chart-bar" />
+        <EmployeePppHistoryPanel history={pppHistory} />
         <EmptyPanel title="IDP status" icon="boschicon-bosch-ic-document" />
       </div>
     </main>

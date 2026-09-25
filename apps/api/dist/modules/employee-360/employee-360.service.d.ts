@@ -12,6 +12,7 @@ export declare class Employee360Service {
     getProfile(persNoInput: string, user: AuthenticatedUser): Promise<{
         employee: import("./dto/employee-360.dto").Employee360RowDto;
         careerJourney: CareerJourneyEvent[];
+        pppHistory: import("./dto/employee-360.dto").EmployeePppHistoryDto[];
     }>;
     createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
     updateCareerEvent(persNoInput: string, idInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;

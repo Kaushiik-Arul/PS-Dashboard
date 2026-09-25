@@ -28,5 +28,5 @@ export default async function EmployeeProfilePage({
   if (!profile) notFound();
 
   const query = await searchParams;
-  return <EmployeeProfileView employee={profile.employee} careerJourney={profile.careerJourney} canEditCareerJourney={user?.roles.includes("hrbp") ?? false} returnTo={safeReturnPath(query.returnTo)} />;
+  return <EmployeeProfileView employee={profile.employee} careerJourney={profile.careerJourney} pppHistory={profile.pppHistory ?? []} canEditCareerJourney={user?.roles.includes("hrbp") ?? false} returnTo={safeReturnPath(query.returnTo)} />;
 }

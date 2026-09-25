@@ -36,29 +36,37 @@ describe('AccessPointService', () => {
   let repository: jest.Mocked<AccessPointRepository>;
   let authService: jest.Mocked<AuthService>;
   let service: AccessPointService;
+  let getEmployee: jest.Mock;
+  let scopeExists: jest.Mock;
+  let createAssignment: jest.Mock;
+  let hashTemporaryPassword: jest.Mock;
 
   beforeEach(() => {
+    getEmployee = jest.fn();
+    scopeExists = jest.fn();
+    createAssignment = jest.fn();
+    hashTemporaryPassword = jest.fn();
     repository = {
       searchEmployees: jest.fn(),
-      getEmployee: jest.fn(),
+      getEmployee,
       getScopeOptions: jest.fn(),
-      scopeExists: jest.fn(),
+      scopeExists,
       listAssignments: jest.fn(),
-      createAssignment: jest.fn(),
+      createAssignment,
       updateAssignment: jest.fn(),
       deactivateAccount: jest.fn(),
     } as unknown as jest.Mocked<AccessPointRepository>;
     authService = {
-      hashTemporaryPassword: jest.fn(),
+      hashTemporaryPassword,
     } as unknown as jest.Mocked<AuthService>;
     service = new AccessPointService(repository, authService);
   });
 
   it('creates an account and scoped assignment from a namelist employee', async () => {
-    repository.getEmployee.mockResolvedValue(employee);
-    repository.scopeExists.mockResolvedValue(true);
-    authService.hashTemporaryPassword.mockResolvedValue('argon-hash');
-    repository.createAssignment.mockResolvedValue(assignment);
+    getEmployee.mockResolvedValue(employee);
+    scopeExists.mockResolvedValue(true);
+    hashTemporaryPassword.mockResolvedValue('argon-hash');
+    createAssignment.mockResolvedValue(assignment);
 
     await expect(service.createAssignment({
       persNo: employee.persNo,
@@ -68,8 +76,8 @@ describe('AccessPointService', () => {
       temporaryPassword: 'temporary-password',
     }, 'actor-id', metadata)).resolves.toEqual(assignment);
 
-    expect(authService.hashTemporaryPassword).toHaveBeenCalledWith('temporary-password');
-    expect(repository.createAssignment).toHaveBeenCalledWith(
+    expect(hashTemporaryPassword).toHaveBeenCalledWith('temporary-password');
+    expect(createAssignment).toHaveBeenCalledWith(
       employee,
       {
         role: 'department_head',
@@ -83,9 +91,17 @@ describe('AccessPointService', () => {
   });
 
   it('adds an assignment without replacing an existing account password', async () => {
-    repository.getEmployee.mockResolvedValue({ ...employee, hasAccount: true });
-    repository.scopeExists.mockResolvedValue(true);
-    repository.createAssignment.mockResolvedValue(assignment);
+    getEmployee.mockResolvedValue({
+      persNo: employee.persNo,
+      employeeName: employee.employeeName,
+      email: employee.email,
+      range: employee.range,
+      orgUnit: employee.orgUnit,
+      designation: employee.designation,
+      hasAccount: true,
+    });
+    scopeExists.mockResolvedValue(true);
+    createAssignment.mockResolvedValue(assignment);
 
     await service.createAssignment({
       persNo: employee.persNo,
@@ -93,8 +109,8 @@ describe('AccessPointService', () => {
       assignedRange: 'Group 1',
     }, 'actor-id', metadata);
 
-    expect(authService.hashTemporaryPassword).not.toHaveBeenCalled();
-    expect(repository.createAssignment).toHaveBeenCalledWith(
+    expect(hashTemporaryPassword).not.toHaveBeenCalled();
+    expect(createAssignment).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       null,

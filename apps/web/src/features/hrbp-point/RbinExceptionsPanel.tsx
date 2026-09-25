@@ -7,10 +7,6 @@ const pageSize = 8;
 const emptyPage: RbinExceptionPage = { items: [], total: 0, page: 1, pageSize, search: "", filter: "", columns: [] };
 type DraftRule = { columnName: string; fixedValue: string };
 
-function formatTimestamp(value: string) {
-  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
-
 function valueType(column: string) {
   if (["birth_date", "joining_date", "entry_for_retirement", "technical_entry_date"].includes(column)) return "date";
   if (column === "official_email") return "email";
@@ -38,7 +34,16 @@ export function RbinExceptionsPanel({ client }: { client: RbinExceptionsClient }
     finally { setBusy(false); }
   };
 
-  useEffect(() => { void load("", "", 1); }, [client]);
+  useEffect(() => {
+    let cancelled = false;
+    void client.list("", "", 1, pageSize)
+      .then((page) => { if (!cancelled) setResult(page); })
+      .catch((error: unknown) => {
+        if (!cancelled) setMessage(error instanceof Error ? error.message : "Employee exceptions could not be loaded.");
+      })
+      .finally(() => { if (!cancelled) setBusy(false); });
+    return () => { cancelled = true; };
+  }, [client]);
 
   const openCreate = () => {
     setEditing(null); setPersNo(""); setRules([{ columnName: "", fixedValue: "" }]); setMessage("");
@@ -76,12 +81,12 @@ export function RbinExceptionsPanel({ client }: { client: RbinExceptionsClient }
   };
 
   return <section className="rbin-exceptions-panel" aria-labelledby="rbin-exceptions-title">
-    <header className="hrbp-page__heading"><div><p className="hrbp-section__eyebrow">Transformation exceptions</p><h2 id="rbin-exceptions-title">Employee exceptions</h2><p>Set fixed Namelist values for individual employees in future RBIN uploads.</p></div><button className="a-button a-button--primary" type="button" disabled={busy || result.columns.length === 0} onClick={openCreate}><i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" /><span className="a-button__label">Add employee exception</span></button></header>
+    <header className="hrbp-page__heading"><div><p className="hrbp-section__eyebrow">Transformation exceptions</p><h2 id="rbin-exceptions-title">Employee exceptions</h2><p>Set fixed Namelist values for individual employees in future RBIN uploads.</p></div><button className="a-button a-button--primary -small hrbp-maintenance-add" type="button" disabled={busy || result.columns.length === 0} onClick={openCreate}><i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" /><span className="a-button__label">Add exception</span></button></header>
     <section className="data-table-card rbin-exceptions-table" aria-label="Employee exception records">
       <div className="data-table-card__header"><div><h3 className="data-table-card__title">Current exceptions</h3><p className="data-table-card__description">{result.total} fixed column {result.total === 1 ? "value" : "values"}</p></div><div className="data-table-card__actions"><label className="rbin-exceptions-table__filter"><span className="visually-hidden">Filter by Namelist column</span><select value={result.filter} disabled={busy} aria-label="Filter exceptions by Namelist column" onChange={(event) => void load(result.search, event.target.value, 1)}><option value="">All columns</option>{result.columns.map((column) => <option key={column.key} value={column.key}>{column.label}</option>)}</select></label><button className="a-button a-button--integrated -small" type="button" aria-label={`${searchOpen ? "Close" : "Open"} employee exception search`} aria-expanded={searchOpen} aria-controls="rbin-exceptions-search" onClick={() => { if (searchOpen) { setSearchInput(""); if (result.search) void load("", result.filter, 1); } setSearchOpen((open) => !open); }}><i className={`a-icon a-button__icon ${searchOpen ? "boschicon-bosch-ic-close" : "boschicon-bosch-ic-search"}`} aria-hidden="true" /></button></div></div>
       <form id="rbin-exceptions-search" className="rbin-exceptions-table__search" hidden={!searchOpen} role="search" onSubmit={(event) => { event.preventDefault(); void load(searchInput.trim(), result.filter, 1); }}><input type="search" maxLength={100} value={searchInput} placeholder="Search Pers.No, column, or fixed value" aria-label="Search employee exceptions" onChange={(event) => setSearchInput(event.target.value)} /><button className="a-button a-button--primary -small" type="submit" disabled={busy} aria-label="Search employee exceptions"><i className="a-icon a-button__icon boschicon-bosch-ic-search" aria-hidden="true" /></button></form>
       {message && <p className="rbin-exceptions-table__message" role="status">{message}</p>}
-      <div className="data-table-scroll"><table className="data-table rbin-exceptions-table__grid"><thead><tr className="data-table__column-header"><th scope="col">Pers.No</th><th scope="col">Namelist column</th><th scope="col">Fixed value</th><th scope="col">Updated at</th><th scope="col">Updated by</th><th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead><tbody>{result.items.length ? result.items.map((row) => <tr key={row.id}><td>{row.persNo}</td><td>{row.columnLabel}</td><td>{row.fixedValue}</td><td>{formatTimestamp(row.updatedAt)}</td><td>{row.updatedBy}</td><td className="hrbp-table__actions"><button className="a-button a-button--integrated -small" type="button" disabled={busy} title="Edit exception" aria-label={`Edit ${row.columnLabel} exception for ${row.persNo}`} onClick={() => openEdit(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-edit" aria-hidden="true" /></button><button className="a-button a-button--integrated -small" type="button" disabled={busy} title="Delete exception" aria-label={`Delete ${row.columnLabel} exception for ${row.persNo}`} onClick={() => { setDeleteTarget(row); setMessage(""); deleteRef.current?.showModal(); }}><i className="a-icon a-button__icon boschicon-bosch-ic-delete" aria-hidden="true" /></button></td></tr>) : <tr><td className="hrbp-table__empty" colSpan={6}>{busy ? "Loading exceptions..." : "No employee exceptions found."}</td></tr>}</tbody></table></div>
+      <div className="data-table-scroll hrbp-compact-table-wrap"><table className="data-table rbin-exceptions-table__grid"><thead><tr className="data-table__column-header"><th scope="col">Pers.No</th><th scope="col">Namelist column</th><th scope="col">Fixed value</th><th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead><tbody>{result.items.length ? result.items.map((row) => <tr key={row.id}><td>{row.persNo}</td><td>{row.columnLabel}</td><td>{row.fixedValue}</td><td><div className="hrbp-table__actions"><button className="a-button a-button--integrated -small" type="button" disabled={busy} title="Edit exception" aria-label={`Edit ${row.columnLabel} exception for ${row.persNo}`} onClick={() => openEdit(row)}><i className="a-icon a-button__icon boschicon-bosch-ic-edit" aria-hidden="true" /></button><button className="a-button a-button--integrated -small" type="button" disabled={busy} title="Delete exception" aria-label={`Delete ${row.columnLabel} exception for ${row.persNo}`} onClick={() => { setDeleteTarget(row); setMessage(""); deleteRef.current?.showModal(); }}><i className="a-icon a-button__icon boschicon-bosch-ic-delete" aria-hidden="true" /></button></div></td></tr>) : <tr><td className="hrbp-table__empty" colSpan={4}>{busy ? "Loading exceptions..." : "No employee exceptions found."}</td></tr>}</tbody></table></div>
       <footer className="rbin-mapping-table__pagination"><button className="a-button a-button--integrated -small" type="button" aria-label="Previous exception page" disabled={busy || result.page === 1} onClick={() => void load(result.search, result.filter, result.page - 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-back-left" aria-hidden="true" /></button><span>Page {result.page} of {pageCount}</span><button className="a-button a-button--integrated -small" type="button" aria-label="Next exception page" disabled={busy || result.page >= pageCount} onClick={() => void load(result.search, result.filter, result.page + 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-forward-right" aria-hidden="true" /></button></footer>
     </section>
 

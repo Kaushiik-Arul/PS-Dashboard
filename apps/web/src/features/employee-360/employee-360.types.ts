@@ -53,4 +53,16 @@ export type CareerJourneyInput = Pick<CareerJourneyEvent,
   "eventMonth" | "oldOrganisationalAreaPa" | "newOrganisationalAreaPa"
   | "oldOrganizationalUnit" | "newOrganizationalUnit" | "oldPsGroup" | "newPsGroup" | "notes">;
 
-export type Employee360Profile = { employee: Employee360Row; careerJourney: CareerJourneyEvent[] };
+export type EmployeePppHistory = {
+  year: number;
+  performance: string | null;
+  position: string | null;
+  person: string | null;
+  tcl: string | null;
+};
+
+export type Employee360Profile = {
+  employee: Employee360Row;
+  careerJourney: CareerJourneyEvent[];
+  pppHistory: EmployeePppHistory[];
+};

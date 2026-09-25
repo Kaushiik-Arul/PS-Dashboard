@@ -44,7 +44,16 @@ function MappingTable({ kind, client }: MappingTableProps) {
     } finally { setBusy(false); }
   };
 
-  useEffect(() => { void load("", "", 1); }, [client, kind]);
+  useEffect(() => {
+    let cancelled = false;
+    void client.list(kind, "", "", 1, pageSize)
+      .then((page) => { if (!cancelled) setResult(page); })
+      .catch((error: unknown) => {
+        if (!cancelled) setMessage(error instanceof Error ? error.message : `${kind === "ranges" ? "Range" : "Function"} mappings could not be loaded.`);
+      })
+      .finally(() => { if (!cancelled) setBusy(false); });
+    return () => { cancelled = true; };
+  }, [client, kind]);
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
