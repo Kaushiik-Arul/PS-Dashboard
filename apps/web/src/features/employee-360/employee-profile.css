@@ -34,6 +34,7 @@
 .employee-profile__panel--wide { grid-column: span 2; }
 .employee-profile__panel header { align-items: center; border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; gap: var(--app-space-2); margin-block-end: var(--app-space-4); padding-block-end: var(--app-space-2); }
 .employee-profile__panel header .a-icon { color: var(--accent-major__enabled__default__fill); font-size: 1.25rem; }
+.employee-profile__panel header .a-button--primary .a-icon { color: var(--background); }
 .employee-profile__panel--empty p { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
 .employee-profile__details-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 .employee-profile__panel--career { margin-block-start: var(--app-space-3); min-height: 0; }
