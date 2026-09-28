@@ -10,6 +10,7 @@ export declare class EmployeeJdImportRepository {
     getRows(previewId: string, actorAccountId: string, filter: EmployeeJdPreviewFilter, page: number, pageSize: number): Promise<EmployeeJdPreviewPage | null>;
     getAllRows(previewId: string, actorAccountId: string): Promise<ParsedEmployeeJdRow[] | null>;
     replaceRows(previewId: string, actorAccountId: string, rows: ParsedEmployeeJdRow[]): Promise<void>;
+    deleteRow(previewId: string, actorAccountId: string, rowNumber: number): Promise<boolean>;
     cancel(previewId: string, actorAccountId: string): Promise<boolean>;
     commit(previewId: string, actorAccountId: string, confirmReplacement: boolean): Promise<{
         totalRows: number;

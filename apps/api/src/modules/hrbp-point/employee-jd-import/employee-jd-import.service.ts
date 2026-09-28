@@ -70,6 +70,15 @@ export class EmployeeJdImportService {
     }, 'Unable to update employee JD preview row');
   }
 
+  async deleteRow(previewId: string, rowNumberInput: string, actorAccountId: string): Promise<void> {
+    const rowNumber = this.positiveInteger(rowNumberInput, 0, 2_147_483_647);
+    await this.run(async () => {
+      if (!(await this.repository.deleteRow(previewId, actorAccountId, rowNumber))) {
+        throw new NotFoundException('Preview row was not found.');
+      }
+    }, 'Unable to delete employee JD preview row');
+  }
+
   async cancel(previewId: string, actorAccountId: string): Promise<void> {
     await this.run(async () => {
       if (!(await this.repository.cancel(previewId, actorAccountId))) {
@@ -96,7 +105,7 @@ export class EmployeeJdImportService {
     const candidateJdIds = rows.map((row) => row.values.jd_id.trim()).filter(Boolean);
     const [knownPersNos, knownJdIds] = await Promise.all([
       this.repository.getKnownPersNos([...new Set(validPersNos)]),
-      this.repository.getKnownJdIds([...new Set(candidateJdIds.map((value) => value.toLowerCase()))]),
+      this.repository.getKnownJdIds([...new Set(candidateJdIds.map((value) => value.slice(-3).toLowerCase()))]),
     ]);
     return rows.map((row) => {
       const values = {
@@ -109,9 +118,9 @@ export class EmployeeJdImportService {
       } else if (!issues.some((issue) => issue.column === 'pers_no') && !knownPersNos.has(values.pers_no)) {
         issues.push({ column: 'pers_no', message: 'Employee is not in the current namelist.' });
       }
-      const canonicalJdId = knownJdIds.get(values.jd_id.toLowerCase());
+      const canonicalJdId = knownJdIds.get(values.jd_id.slice(-3).toLowerCase());
       if (!issues.some((issue) => issue.column === 'jd_id') && !canonicalJdId) {
-        issues.push({ column: 'jd_id', message: 'JD ID is not in the JD master.' });
+        issues.push({ column: 'jd_id', message: 'JD ID suffix does not uniquely match the JD master.' });
       } else if (canonicalJdId) {
         values.jd_id = canonicalJdId;
       }
@@ -151,6 +160,7 @@ export class EmployeeJdImportService {
       if (error instanceof HttpException) throw error;
       if (error instanceof Error) {
         if (error.message === 'PREVIEW_NOT_FOUND') throw new NotFoundException('Employee JD preview was not found or has expired.');
+        if (error.message === 'LAST_PREVIEW_ROW') throw new ConflictException('The final preview row cannot be deleted. Cancel the preview instead.');
         if (error.message === 'INVALID_ROWS') throw new ConflictException('All invalid rows must be corrected before import.');
         if (error.message === 'STALE_PREVIEW') {
           throw new ConflictException('Employee or JD master data changed after validation. Upload the workbook again.');

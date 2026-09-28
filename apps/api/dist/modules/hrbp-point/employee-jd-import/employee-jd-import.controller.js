@@ -33,6 +33,9 @@ let EmployeeJdImportController = class EmployeeJdImportController {
     updateRow(previewId, rowNumber, input, user) {
         return this.service.updateRow(previewId, rowNumber, input, user.accountId);
     }
+    deleteRow(previewId, rowNumber, user) {
+        return this.service.deleteRow(previewId, rowNumber, user.accountId);
+    }
     cancel(previewId, user) {
         return this.service.cancel(previewId, user.accountId);
     }
@@ -73,6 +76,16 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], EmployeeJdImportController.prototype, "updateRow", null);
+__decorate([
+    (0, common_1.Delete)('previews/:previewId/rows/:rowNumber'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    __param(0, (0, common_1.Param)('previewId')),
+    __param(1, (0, common_1.Param)('rowNumber')),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], EmployeeJdImportController.prototype, "deleteRow", null);
 __decorate([
     (0, common_1.Delete)('previews/:previewId'),
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),

@@ -1,6 +1,5 @@
 import { getCsrfToken } from '@/auth/csrf';
 import type {
-  EmployeeJdMovementPage,
   EmployeeJdPreview,
   EmployeeJdPreviewFilter,
   EmployeeJdPreviewRow,
@@ -65,17 +64,14 @@ export const employeeJdImportClient = {
     });
     return getPreviewRows(id, filter, page, 25);
   },
+  async deleteRow(id: string, rowNumber: number, filter: EmployeeJdPreviewFilter, page: number) {
+    await request('employee-jd-imports', `/previews/${encodeURIComponent(id)}/rows/${rowNumber}`, { method: 'DELETE' });
+    return getPreviewRows(id, filter, page, 25);
+  },
   async cancel(id: string) { await request('employee-jd-imports', `/previews/${encodeURIComponent(id)}`, { method: 'DELETE' }); },
   commit(id: string, confirmReplacement: boolean) {
     return request('employee-jd-imports', `/previews/${encodeURIComponent(id)}/commit`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmReplacement }),
     }).then((response) => response.json() as Promise<{ totalRows: number; movements: number }>);
-  },
-};
-
-export const employeeJdMovementsClient = {
-  list(query: URLSearchParams) {
-    return request('employee-jd-movements', `?${query}`)
-      .then((response) => response.json() as Promise<EmployeeJdMovementPage>);
   },
 };

@@ -27,8 +27,18 @@ let EmployeeJdImportRepository = class EmployeeJdImportRepository {
     async getKnownJdIds(jdIds) {
         if (!jdIds.length)
             return new Map();
-        const result = await this.database.query('SELECT jd_id FROM public.job_descriptions WHERE LOWER(jd_id) = ANY($1::TEXT[])', [jdIds.map((value) => value.toLowerCase())]);
-        return new Map(result.rows.map((row) => [row.jd_id.toLowerCase(), row.jd_id]));
+        const result = await this.database.query('SELECT jd_id FROM public.job_descriptions WHERE LOWER(RIGHT(jd_id, 3)) = ANY($1::TEXT[])', [jdIds.map((value) => value.slice(-3).toLowerCase())]);
+        const matches = new Map();
+        const ambiguousSuffixes = new Set();
+        for (const row of result.rows) {
+            const suffix = row.jd_id.slice(-3).toLowerCase();
+            if (matches.has(suffix))
+                ambiguousSuffixes.add(suffix);
+            else
+                matches.set(suffix, row.jd_id);
+        }
+        ambiguousSuffixes.forEach((suffix) => matches.delete(suffix));
+        return matches;
     }
     async createPreview(actorAccountId, file, rows) {
         return this.database.transaction(async (client) => {
@@ -107,6 +117,29 @@ let EmployeeJdImportRepository = class EmployeeJdImportRepository {
          ) WHERE target.preview_id = $1 AND target.row_number = source.row_number`, [previewId, JSON.stringify(payload)]);
             await client.query(`UPDATE public.employee_jd_import_previews
          SET valid_rows = $2, invalid_rows = total_rows - $2 WHERE preview_id = $1`, [previewId, validRows]);
+        });
+    }
+    async deleteRow(previewId, actorAccountId, rowNumber) {
+        return this.database.transaction(async (client) => {
+            const preview = await client.query(`SELECT total_rows FROM public.employee_jd_import_previews
+         WHERE preview_id = $1 AND uploaded_by = $2 AND status = 'ready'
+           AND expires_at > CURRENT_TIMESTAMP FOR UPDATE`, [previewId, actorAccountId]);
+            if (!preview.rows[0])
+                throw new Error('PREVIEW_NOT_FOUND');
+            if (preview.rows[0].total_rows <= 1)
+                throw new Error('LAST_PREVIEW_ROW');
+            const deleted = await client.query(`DELETE FROM public.employee_jd_import_preview_rows
+         WHERE preview_id = $1 AND row_number = $2
+         RETURNING is_valid`, [previewId, rowNumber]);
+            const deletedRow = deleted.rows[0];
+            if (!deletedRow)
+                return false;
+            await client.query(`UPDATE public.employee_jd_import_previews
+         SET total_rows = total_rows - 1,
+             valid_rows = valid_rows - CASE WHEN $2 THEN 1 ELSE 0 END,
+             invalid_rows = invalid_rows - CASE WHEN $2 THEN 0 ELSE 1 END
+         WHERE preview_id = $1`, [previewId, deletedRow.is_valid]);
+            return true;
         });
     }
     async cancel(previewId, actorAccountId) {

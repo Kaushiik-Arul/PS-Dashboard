@@ -9,10 +9,3 @@ export type EmployeeJdPreview = {
   hasExistingAssignments: boolean; rows: EmployeeJdPreviewRow[]; page: number; pageSize: number; filteredRows: number;
 };
 export type EmployeeJdPreviewFilter = 'all' | 'valid' | 'invalid';
-
-export type EmployeeJdMovement = {
-  id: string; persNo: string; employeeName: string | null; effectiveDate: string;
-  oldJdId: string | null; oldRoleTitle: string | null; newJdId: string | null;
-  newRoleTitle: string | null; source: 'upload' | 'manual'; changedBy: string; occurredAt: string;
-};
-export type EmployeeJdMovementPage = { items: EmployeeJdMovement[]; total: number; page: number; pageSize: number };

@@ -55,6 +55,16 @@ export class EmployeeJdImportController {
     return this.service.updateRow(previewId, rowNumber, input, user.accountId);
   }
 
+  @Delete('previews/:previewId/rows/:rowNumber')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteRow(
+    @Param('previewId') previewId: string,
+    @Param('rowNumber') rowNumber: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.deleteRow(previewId, rowNumber, user.accountId);
+  }
+
   @Delete('previews/:previewId')
   @HttpCode(HttpStatus.NO_CONTENT)
   cancel(@Param('previewId') previewId: string, @CurrentUser() user: AuthenticatedUser) {

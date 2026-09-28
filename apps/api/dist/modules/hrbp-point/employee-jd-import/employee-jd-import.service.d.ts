@@ -7,6 +7,7 @@ export declare class EmployeeJdImportService {
     createPreview(file: UploadedEmployeeJdFile | undefined, actorAccountId: string): Promise<EmployeeJdPreviewSummary>;
     getRows(previewId: string, actorAccountId: string, filterInput?: string, pageInput?: string, pageSizeInput?: string): Promise<EmployeeJdPreviewPage>;
     updateRow(previewId: string, rowNumberInput: string, input: unknown, actorAccountId: string): Promise<EmployeeJdPreviewSummary>;
+    deleteRow(previewId: string, rowNumberInput: string, actorAccountId: string): Promise<void>;
     cancel(previewId: string, actorAccountId: string): Promise<void>;
     commit(previewId: string, confirmReplacement: unknown, actorAccountId: string): Promise<{
         totalRows: number;
