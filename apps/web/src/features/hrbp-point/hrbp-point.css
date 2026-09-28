@@ -614,3 +614,33 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 .hrbp-status-table .data-table-card__header {
   padding-block: var(--app-space-3);
 }
+
+/* Pool registers reuse the Active STEP preview and namelist editor layouts. */
+.hrbp-pool-registers,
+.pool-management {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-4);
+  min-width: 0;
+}
+.hrbp-pool-registers { margin-block-start: var(--app-space-4); }
+.hrbp-pool-registers > *,
+.pool-management > * { min-width: 0; }
+/* Upload cards normally span six columns in the namelist grid.
+   These containers use one column; reset that span at every breakpoint. */
+.hrbp-pool-registers > .namelist-panel,
+.pool-management > .namelist-panel { grid-column: 1 / -1; }
+.pool-management__toolbar,
+.pool-management > .pool-register-table { grid-column: 1 / -1; }
+.pool-management__toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--app-space-4); }
+.pool-register-table { min-width: 0; }
+.pool-manual-dialog, .pool-delete-dialog { border: 1px solid var(--border-subtle, #bfc0c2); background: var(--background, #fff); color: inherit; padding: var(--app-space-5, 1.5rem); max-height: 90vh; overflow: auto; }
+.pool-manual-dialog { width: min(46rem, 95vw); }
+.pool-delete-dialog { width: min(32rem, 95vw); }
+.pool-manual-dialog::backdrop, .pool-delete-dialog::backdrop { background: rgb(0 0 0 / 40%); }
+.pool-warning, .active-step-cell-issue.pool-warning { color: #805500; }
+.namelist-status.is-warning { background: #fff1c2; color: #684500; }
+.namelist-summary .is-warning { color: #805500; }
+
+.pool-manual-dialog .namelist-editor__fields > p { grid-column: 1 / -1; }
+@media (max-width: 600px) { .pool-manual-dialog .namelist-editor__fields { grid-template-columns: 1fr; } }

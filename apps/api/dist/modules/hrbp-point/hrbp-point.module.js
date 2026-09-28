@@ -7,6 +7,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HrbpPointModule = void 0;
+const pool_register_controller_1 = require("./pool-register/pool-register.controller");
+const pool_register_service_1 = require("./pool-register/pool-register.service");
 const common_1 = require("@nestjs/common");
 const database_module_1 = require("../../database/database.module");
 const active_step_controller_1 = require("./active-step/active-step.controller");
@@ -45,8 +47,9 @@ exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
-        controllers: [active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController],
+        controllers: [pool_register_controller_1.PoolRegisterController, active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController],
         providers: [
+            pool_register_service_1.PoolRegisterService,
             active_step_service_1.ActiveStepService,
             active_step_repository_1.ActiveStepRepository,
             employee_jd_import_service_1.EmployeeJdImportService,
