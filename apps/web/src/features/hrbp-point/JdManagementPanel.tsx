@@ -26,7 +26,17 @@ function MasterPanel() {
     catch (error) { setMessage(error instanceof Error ? error.message : 'Job descriptions could not be loaded.'); }
     finally { setBusy(false); }
   };
-  useEffect(() => { void load('', 1); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void jobDescriptionsClient.list('', 1, masterPageSize).then((next) => {
+      if (!cancelled) setResult(next);
+    }).catch((error) => {
+      if (!cancelled) setMessage(error instanceof Error ? error.message : 'Job descriptions could not be loaded.');
+    }).finally(() => {
+      if (!cancelled) setBusy(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
   const openEditor = (item?: JobDescription) => {
     setEditing(item ?? null); setForm(item ? { jdId: item.jdId, roleTitle: item.roleTitle } : { jdId: '', roleTitle: '' }); setMessage(''); editorRef.current?.showModal();
   };

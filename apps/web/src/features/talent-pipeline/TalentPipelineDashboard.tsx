@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   emptyDashboardFilters,
   OverviewFilters,
@@ -299,131 +299,33 @@ const stepAvailableTalent: StepAvailableTalent[] = [
    OPEN STEP POSITIONS
 ========================================================= */
 
-interface StepPosition {
-  positionId: string;
-  positionTitle: string;
-  functionName: string;
-  orgUnit: string;
-  location: string;
-  range: string;
-  startDate: string;
-  duration: string;
-  matchedStatus: string;
+interface ActiveStepRow {
+  id: string; slNo: string | null; year: number; persNo: string; employeeName: string;
+  grp: string | null; initiatedBy: string | null; exchangedWith: string | null;
+  stepFrom: string; stepTo: string | null; entityFrom: string | null; entityTo: string | null;
+  gbFrom: string | null; gbTo: string | null; functionFrom: string | null; functionTo: string | null;
+  deptFrom: string | null; deptTo: string | null; locationFrom: string | null; locationTo: string | null;
 }
 
-const stepPositionColumns: DataTableColumn<StepPosition>[] = [
-  {
-    key: "positionId",
-    label: "Position / Assignment ID",
-    group: "Position",
-  },
-  {
-    key: "positionTitle",
-    label: "Position Title",
-    group: "Position",
-  },
-
-  {
-    key: "functionName",
-    label: "Function",
-    group: "Organisation",
-    filterable: true,
-  },
-  {
-    key: "orgUnit",
-    label: "Org Unit",
-    group: "Organisation",
-    filterable: true,
-  },
-  {
-    key: "location",
-    label: "Location",
-    group: "Organisation",
-    filterable: true,
-  },
-  {
-    key: "range",
-    label: "Range",
-    group: "Organisation",
-    filterable: true,
-  },
-
-  {
-    key: "startDate",
-    label: "Start Date",
-    group: "Assignment",
-  },
-  {
-    key: "duration",
-    label: "Duration",
-    group: "Assignment",
-  },
-
-  {
-    key: "matchedStatus",
-    label: "Matched Status",
-    group: "Matching",
-    filterable: true,
-    render: renderStatusValue,
-  },
-];
-
-const stepPositions: StepPosition[] = [
-  {
-    positionId: "STEP-001",
-    positionTitle: "Engineering Project Manager",
-    functionName: "Engineering",
-    orgUnit: "PS-CC/RW-IN",
-    location: "Germany",
-    range: "GROUP3",
-    startDate: "01-Jan-2027",
-    duration: "12-24 Months",
-    matchedStatus: "Green",
-  },
-  {
-    positionId: "STEP-002",
-    positionTitle: "Product Owner",
-    functionName: "R&D",
-    orgUnit: "PS-OC-IN",
-    location: "Europe",
-    range: "GROUP3",
-    startDate: "01-Feb-2027",
-    duration: "12 Months",
-    matchedStatus: "Potential Match",
-  },
-  {
-    positionId: "STEP-003",
-    positionTitle: "Plant Excellence Lead",
-    functionName: "Manufacturing",
-    orgUnit: "PS/MFG-IN",
-    location: "Germany",
-    range: "GROUP4",
-    startDate: "01-Jun-2027",
-    duration: "18 Months",
-    matchedStatus: "Good Match",
-  },
-  {
-    positionId: "STEP-004",
-    positionTitle: "Sales Strategy Analyst",
-    functionName: "Sales",
-    orgUnit: "PS/CA-IN",
-    location: "Europe",
-    range: "GROUP3",
-    startDate: "01-Mar-2027",
-    duration: "12 Months",
-    matchedStatus: "Potential Match",
-  },
-  {
-    positionId: "STEP-005",
-    positionTitle: "Quality Improvement Lead",
-    functionName: "Quality",
-    orgUnit: "PS-QA-IN",
-    location: "Bangalore",
-    range: "GROUP4",
-    startDate: "01-Apr-2027",
-    duration: "12-18 Months",
-    matchedStatus: "Good",
-  },
+const activeStepColumns: DataTableColumn<ActiveStepRow>[] = [
+  { key: "year", label: "Year", group: "Employee", filterable: true },
+  { key: "persNo", label: "E No", group: "Employee", filterable: true },
+  { key: "employeeName", label: "E Name", group: "Employee", filterable: true },
+  { key: "grp", label: "Group", group: "Employee", filterable: true },
+  { key: "initiatedBy", label: "Initiated by (HRBP)", group: "Exchange", filterable: true },
+  { key: "exchangedWith", label: "Exchanged with", group: "Exchange", filterable: true },
+  { key: "stepFrom", label: "STEP Period From", group: "STEP Period", filterable: true },
+  { key: "stepTo", label: "STEP Period To", group: "STEP Period", filterable: true },
+  { key: "entityFrom", label: "Entity From", group: "Entity", filterable: true },
+  { key: "entityTo", label: "Entity To", group: "Entity", filterable: true },
+  { key: "gbFrom", label: "GB From", group: "GB", filterable: true },
+  { key: "gbTo", label: "GB To", group: "GB", filterable: true },
+  { key: "functionFrom", label: "Function From", group: "Function", filterable: true },
+  { key: "functionTo", label: "Function To", group: "Function", filterable: true },
+  { key: "deptFrom", label: "Dept From", group: "Dept", filterable: true },
+  { key: "deptTo", label: "Dept To", group: "Dept", filterable: true },
+  { key: "locationFrom", label: "Location From", group: "Location", filterable: true },
+  { key: "locationTo", label: "Location To", group: "Location", filterable: true },
 ];
 
 /* =========================================================
@@ -963,6 +865,19 @@ const talentPipelineKpis: KpiMetric[] = [
 ========================================================= */
 
 export function TalentPipelineDashboard() {
+  const [activeStepRows, setActiveStepRows] = useState<ActiveStepRow[]>([]);
+  const [activeStepError, setActiveStepError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/hrbp-point/active-step", { signal: controller.signal }).then(async (response) => {
+      if (!response.ok) throw new Error("Active STEP could not be loaded.");
+      return response.json() as Promise<ActiveStepRow[]>;
+    }).then((rows) => setActiveStepRows(rows)).catch((error) => {
+      if (!controller.signal.aborted) setActiveStepError(error instanceof Error ? error.message : "Active STEP could not be loaded.");
+    });
+    return () => controller.abort();
+  }, []);
+
   const [draftFilters, setDraftFilters] = useState<DashboardFilters>({
     ...emptyDashboardFilters,
   });
@@ -1128,15 +1043,19 @@ export function TalentPipelineDashboard() {
             pageSizeOptions={[5, 10, 25]}
           />
 
-          <DataTable
-            title="Active STEP"
-            description="Available STEP assignments and current matching status"
-            columns={stepPositionColumns}
-            rows={stepPositions}
-            getRowKey={(row) => row.positionId}
-            downloadFileName="active-step"
-            pageSizeOptions={[5, 10, 25]}
-          />
+          <div className="talent-active-step">
+            {activeStepError && <p role="alert">{activeStepError}</p>}
+            <DataTable
+              title="Active STEP"
+              description="Every employee assignment in the latest confirmed STEP workbook"
+              columns={activeStepColumns}
+              rows={activeStepRows}
+              getRowKey={(row) => row.id}
+              downloadFileName="active-step"
+              pageSizeOptions={[5, 10, 25]}
+              groupFilters
+            />
+          </div>
         </div>
 
         {/* MATCHING TABLE */}

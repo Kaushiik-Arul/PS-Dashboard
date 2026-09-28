@@ -323,8 +323,23 @@
 .jd-message { color: var(--signal__error__enabled__default__fill, #b00020); font-size: 0.75rem; margin: 0; padding: var(--app-space-2) var(--app-space-4); }
 .jd-table { min-height: 23rem; }
 .jd-table .data-table { min-width: 100%; table-layout: fixed; }
-.jd-table th:last-child { width: 5.5rem; }
-.jd-preview-grid table { min-width: 45rem; }
+.jd-table th:last-child { width: 6.5rem; }
+
+.jd-table .data-table td:nth-child(2) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.jd-table .data-table td.hrbp-table__actions {
+  display: table-cell;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.jd-table .hrbp-table__actions .a-button {
+  display: inline-flex;
+  vertical-align: middle;
+}.jd-preview-grid table { min-width: 45rem; }
 .jd-preview-grid tr.is-invalid td[title] {
   height: auto;
   min-height: 3rem;
@@ -457,6 +472,15 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 .namelist-status { border-inline-start: 0.1875rem solid; display: inline-block; font-weight: 700; padding-inline-start: var(--app-space-1); }
 .namelist-status.is-valid { border-color: #00884a; color: #006c3b; }
 .namelist-status.is-invalid { border-color: #b00020; color: #b00020; }
+.active-step-preview-grid table { min-width: 180rem; }
+.active-step-preview-grid th:last-child, .active-step-preview-grid td:last-child { right: 0; position: sticky; width: 7rem; z-index: 1; }
+.active-step-preview-grid th:last-child { background: var(--base-minor__enabled__default__fill); z-index: 3; }
+.active-step-preview-grid td:last-child { background: var(--background); box-shadow: -0.25rem 0 0.25rem rgb(0 0 0 / 8%); }
+.active-step-preview-grid tr.is-invalid td:last-child { background: #fff8f8; }
+.active-step-row-actions { white-space: nowrap; }
+.active-step-preview-grid td.has-issues { height: auto; min-height: 3rem; overflow: visible; text-overflow: clip; white-space: normal; }
+.active-step-preview-grid td.has-issues > span { overflow-wrap: anywhere; }
+.active-step-cell-issue { color: #b00020; display: block; font-size: 0.75rem; line-height: 1rem; margin-block-start: var(--app-space-1); overflow-wrap: anywhere; }
 
 .rbin-grid { min-height: 0; }
 .rbin-grid:not(.is-all-columns) table { min-width: 68rem; }

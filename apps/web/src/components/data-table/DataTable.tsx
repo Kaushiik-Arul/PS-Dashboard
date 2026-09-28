@@ -23,7 +23,10 @@ interface DataTableProps<Row extends object> {
   getRowKey: (row: Row) => string;
   downloadFileName: string;
   pageSizeOptions?: number[];
+  groupFilters?: boolean;
 }
+
+const BLANK_FILTER = "\u0000";
 
 function escapeCsvValue(value: unknown) {
   let text = value == null ? "" : String(value);
@@ -48,12 +51,14 @@ export function DataTable<Row extends object>({
   getRowKey,
   downloadFileName,
   pageSizeOptions = [5, 10, 25],
+  groupFilters = false,
 }: DataTableProps<Row>) {
   const { role } = useAuth();
   const canDownload = hasPermission(role, "exportCharts");
   const [pageSize, setPageSize] = useState(pageSizeOptions[0] ?? 10);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<Record<string, string>>({});
+  const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(true);
@@ -62,12 +67,16 @@ export function DataTable<Row extends object>({
   const expandButtonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const filterableColumns = columns.filter((column) => column.filterable);
+  const filterGroupNames = Array.from(new Set(filterableColumns.map((column) => column.group)));
+  const currentFilterGroup = selectedFilterGroup ?? filterGroupNames[0];
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const filterPanelId = `${downloadFileName}-filters`;
   const filteredRows = rows.filter((row) =>
     filterableColumns.every((column) => {
       const selectedValue = filters[String(column.key)];
-      return !selectedValue || String(row[column.key]) === selectedValue;
+      if (!selectedValue) return true;
+      const value = String(row[column.key] ?? "");
+      return selectedValue === BLANK_FILTER ? value === "" : value === selectedValue;
     }),
   );
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize));
@@ -236,14 +245,19 @@ export function DataTable<Row extends object>({
       </header>
 
       {filterableColumns.length > 0 && areFiltersOpen && (
-        <div className="data-table__filters" id={filterPanelId} aria-label={`${title} filters`}>
-          {filterableColumns.map((column) => {
+        <div className={`data-table__filters${groupFilters ? " data-table__filters--grouped" : ""}`} id={filterPanelId} aria-label={`${title} filters`}>
+          {groupFilters && <div className="data-table__filter-groups" role="group" aria-label="Filter categories">{filterGroupNames.map((group) => {
+            const count = filterableColumns.filter((column) => column.group === group && filters[String(column.key)]).length;
+            return <button className="a-button a-button--integrated -small" type="button" key={group} aria-pressed={currentFilterGroup === group} onClick={() => setSelectedFilterGroup(group)}><span className="a-button__label">{group}{count ? ` (${count})` : ""}</span></button>;
+          })}</div>}
+          <div className="data-table__filter-controls">{filterableColumns.filter((column) => !groupFilters || column.group === currentFilterGroup).map((column) => {
             const key = String(column.key);
             const options = Array.from(new Map(
               rows
                 .map((row) => [String(row[column.key] ?? ""), columnText(column, row)] as const)
                 .filter(([value]) => Boolean(value)),
             )).sort(([, first], [, second]) => first.localeCompare(second, undefined, { numeric: true }));
+            const hasBlank = rows.some((row) => row[column.key] == null || row[column.key] === "");
 
             return (
               <label className="data-table__filter" key={key}>
@@ -256,11 +270,12 @@ export function DataTable<Row extends object>({
                   }}
                 >
                   <option value="">All</option>
+                  {hasBlank && <option value={BLANK_FILTER}>(Blank)</option>}
                   {options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
             );
-          })}
+          })}</div>
           {Object.values(filters).some(Boolean) && (
             <button
               className="a-button a-button--secondary -small"

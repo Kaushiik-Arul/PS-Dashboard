@@ -9,6 +9,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HrbpPointModule = void 0;
 const common_1 = require("@nestjs/common");
 const database_module_1 = require("../../database/database.module");
+const active_step_controller_1 = require("./active-step/active-step.controller");
+const active_step_service_1 = require("./active-step/active-step.service");
+const active_step_repository_1 = require("./active-step/active-step.repository");
 const employee_jd_import_controller_1 = require("./employee-jd-import/employee-jd-import.controller");
 const employee_jd_import_repository_1 = require("./employee-jd-import/employee-jd-import.repository");
 const employee_jd_import_service_1 = require("./employee-jd-import/employee-jd-import.service");
@@ -42,8 +45,10 @@ exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
-        controllers: [employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController],
+        controllers: [active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController],
         providers: [
+            active_step_service_1.ActiveStepService,
+            active_step_repository_1.ActiveStepRepository,
             employee_jd_import_service_1.EmployeeJdImportService,
             employee_jd_import_repository_1.EmployeeJdImportRepository,
             employee_jd_movements_service_1.EmployeeJdMovementsService,

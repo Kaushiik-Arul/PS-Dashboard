@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { careerJourneyClient } from "./career-journey.http";
 import type { CareerJourneyEvent, CareerJourneyInput } from "./employee-360.types";
 
@@ -29,14 +29,13 @@ function movement(oldValue: string | null, newValue: string | null) {
 export function CareerJourneyPanel({ persNo, initialEvents, canEdit }: { persNo: string; initialEvents: CareerJourneyEvent[]; canEdit: boolean }) {
   const editorRef = useRef<HTMLDialogElement>(null);
   const deleteRef = useRef<HTMLDialogElement>(null);
-  const [events, setEvents] = useState(initialEvents);
+  const [localEvents, setLocalEvents] = useState({ source: initialEvents, rows: initialEvents });
+  const events = localEvents.source === initialEvents ? localEvents.rows : initialEvents;
   const [editing, setEditing] = useState<CareerJourneyEvent | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CareerJourneyEvent | null>(null);
   const [draft, setDraft] = useState<CareerJourneyInput>(emptyInput);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-
-  useEffect(() => setEvents(initialEvents), [initialEvents]);
 
   const openEditor = (event?: CareerJourneyEvent) => {
     setEditing(event ?? null); setMessage("");
@@ -55,8 +54,11 @@ export function CareerJourneyPanel({ persNo, initialEvents, canEdit }: { persNo:
       const saved = editing
         ? await careerJourneyClient.update(persNo, editing.id, draft)
         : await careerJourneyClient.create(persNo, draft);
-      setEvents((current) => [saved, ...current.filter((item) => item.id !== saved.id)]
-        .sort((left, right) => right.eventMonth.localeCompare(left.eventMonth)));
+      setLocalEvents((current) => ({
+        source: initialEvents,
+        rows: [saved, ...(current.source === initialEvents ? current.rows : initialEvents).filter((item) => item.id !== saved.id)]
+          .sort((left, right) => right.eventMonth.localeCompare(left.eventMonth)),
+      }));
       editorRef.current?.close();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Career Journey event could not be saved."); }
     finally { setBusy(false); }
@@ -66,7 +68,10 @@ export function CareerJourneyPanel({ persNo, initialEvents, canEdit }: { persNo:
     setBusy(true); setMessage("");
     try {
       await careerJourneyClient.delete(persNo, deleteTarget.id);
-      setEvents((current) => current.filter((item) => item.id !== deleteTarget.id));
+      setLocalEvents((current) => ({
+        source: initialEvents,
+        rows: (current.source === initialEvents ? current.rows : initialEvents).filter((item) => item.id !== deleteTarget.id),
+      }));
       deleteRef.current?.close(); setDeleteTarget(null);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Career Journey event could not be deleted."); }
     finally { setBusy(false); }

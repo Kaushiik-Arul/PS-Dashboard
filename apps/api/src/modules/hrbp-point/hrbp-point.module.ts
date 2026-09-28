@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
+import { ActiveStepController } from './active-step/active-step.controller';
+import { ActiveStepService } from './active-step/active-step.service';
+import { ActiveStepRepository } from './active-step/active-step.repository';
 import { EmployeeJdImportController } from './employee-jd-import/employee-jd-import.controller';
 import { EmployeeJdImportRepository } from './employee-jd-import/employee-jd-import.repository';
 import { EmployeeJdImportService } from './employee-jd-import/employee-jd-import.service';
@@ -30,8 +33,10 @@ import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
+  controllers: [ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
   providers: [
+    ActiveStepService,
+    ActiveStepRepository,
     EmployeeJdImportService,
     EmployeeJdImportRepository,
     EmployeeJdMovementsService,

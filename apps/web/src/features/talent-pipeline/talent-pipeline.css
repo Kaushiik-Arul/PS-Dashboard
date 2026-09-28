@@ -40,3 +40,5 @@
   gap: var(--app-space-4);
   grid-template-columns: minmax(0, 1fr);
 }
+.talent-active-step { min-width: 0; }
+.talent-active-step > p[role="alert"] { color: var(--signal-error-pure__enabled__default__front); }

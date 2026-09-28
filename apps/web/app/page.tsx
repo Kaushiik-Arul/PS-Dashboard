@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import Link from "next/link";
 import { getOverview } from "@/features/overview/overview.api";
 import { OverviewDashboard } from "@/features/overview/OverviewDashboardView";
 import type { OverviewQueryFilters } from "@/features/overview/overview.types";
@@ -35,9 +36,9 @@ export default async function OverviewPage({ searchParams }: OverviewPageProps) 
         <strong className="error-page__code">500</strong>
         <h1>Workforce data could not be loaded</h1>
         <p>Confirm the API service is running, then reload the dashboard.</p>
-        <a className="a-button a-button--primary" href="/">
+        <Link className="a-button a-button--primary" href="/">
           <span className="a-button__label">Reload dashboard</span>
-        </a>
+        </Link>
       </main>
     );
   }

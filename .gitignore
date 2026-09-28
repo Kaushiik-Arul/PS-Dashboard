@@ -59,6 +59,7 @@ next-env.d.ts
 !apps/sql/rbin_current_snapshot_migration.sql
 !apps/sql/rbin_finalize_replacement_migration.sql
 !apps/sql/employee_jd_allow_unassigned.sql
+!apps/sql/active_step_migration.sql
 !apps/sql/reset_rbin_automation_data.sql
 !apps/sql/functions/
 !apps/sql/functions/overview/
