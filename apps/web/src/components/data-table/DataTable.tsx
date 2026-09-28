@@ -245,7 +245,12 @@ export function DataTable<Row extends object>({
       </header>
 
       {filterableColumns.length > 0 && areFiltersOpen && (
-        <div className={`data-table__filters${groupFilters ? " data-table__filters--grouped" : ""}`} id={filterPanelId} aria-label={`${title} filters`}>
+        <div
+          className={`data-table__filters${groupFilters ? " data-table__filters--grouped" : ""}`}
+          id={filterPanelId}
+          aria-label={`${title} filters`}
+          style={groupFilters ? { display: "grid", gridTemplateColumns: "minmax(0, 1fr)" } : undefined}
+        >
           {groupFilters && <div className="data-table__filter-groups" role="group" aria-label="Filter categories">{filterGroupNames.map((group) => {
             const count = filterableColumns.filter((column) => column.group === group && filters[String(column.key)]).length;
             return <button className="a-button a-button--integrated -small" type="button" key={group} aria-pressed={currentFilterGroup === group} onClick={() => setSelectedFilterGroup(group)}><span className="a-button__label">{group}{count ? ` (${count})` : ""}</span></button>;
