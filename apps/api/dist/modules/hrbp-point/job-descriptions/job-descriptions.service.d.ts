@@ -5,6 +5,7 @@ export declare class JobDescriptionsService {
     private readonly logger;
     constructor(repository: JobDescriptionsRepository);
     list(searchInput?: string, pageInput?: string, pageSizeInput?: string): Promise<JobDescriptionPage>;
+    findBySuffix(suffix: string): Promise<JobDescription[]>;
     create(body: unknown, actorAccountId: string): Promise<JobDescription>;
     importCsv(file: {
         originalname: string;

@@ -32,6 +32,14 @@ export class JobDescriptionsService {
     );
   }
 
+  findBySuffix(suffix: string): Promise<JobDescription[]> {
+    if (!/^\d{3}$/.test(suffix)) throw new BadRequestException('Enter the last three digits of the JD ID.');
+    return this.runDatabaseOperation(
+      () => this.repository.findBySuffix(suffix),
+      'Unable to search job descriptions',
+    );
+  }
+
   create(body: unknown, actorAccountId: string): Promise<JobDescription> {
     const input = this.validateInput(body);
     return this.runDatabaseOperation(

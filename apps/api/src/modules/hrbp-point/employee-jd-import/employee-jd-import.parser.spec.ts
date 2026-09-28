@@ -34,7 +34,16 @@ describe('employee JD import parser', () => {
   it('validates required values and employee number bounds', () => {
     expect(validateEmployeeJdRow({ pers_no: '0', jd_id: '' })).toEqual([
       { column: 'pers_no', message: 'Enter a valid positive employee number.' },
-      { column: 'jd_id', message: 'JD ID is required.' },
+      { column: 'jd_id', message: 'No JD ID: this employee will be saved without a JD assignment.', severity: 'warning' },
     ]);
+  });
+
+  it('keeps a row with an empty JD ID for import', async () => {
+    const file = await workbookFile(['Pers.No.', 'JDID'], [[11971004, '']]);
+    await expect(parseEmployeeJdFile(file)).resolves.toEqual([{
+      rowNumber: 2,
+      values: { pers_no: '11971004', jd_id: '' },
+      issues: [{ column: 'jd_id', message: 'No JD ID: this employee will be saved without a JD assignment.', severity: 'warning' }],
+    }]);
   });
 });

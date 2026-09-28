@@ -209,7 +209,7 @@ let Employee360Repository = class Employee360Repository {
                 throw new Error('JD_NOT_FOUND');
             const current = await client.query(`SELECT assignment.jd_id, job.role_title
          FROM public.employee_jd_assignments assignment
-         JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
+         LEFT JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
          WHERE assignment.pers_no = $1 FOR UPDATE OF assignment`, [persNo]);
             const selected = job.rows[0];
             const previous = current.rows[0];

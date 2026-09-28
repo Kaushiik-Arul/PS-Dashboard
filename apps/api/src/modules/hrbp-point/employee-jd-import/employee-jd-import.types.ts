@@ -5,7 +5,11 @@ export type EmployeeJdRowValues = Record<EmployeeJdColumn, string>;
 export type EmployeeJdIssue = {
   column: EmployeeJdColumn;
   message: string;
+  severity?: 'warning';
 };
+
+export const hasBlockingEmployeeJdIssues = (issues: EmployeeJdIssue[]): boolean =>
+  issues.some((issue) => issue.severity !== 'warning');
 
 export type ParsedEmployeeJdRow = {
   rowNumber: number;
@@ -13,7 +17,7 @@ export type ParsedEmployeeJdRow = {
   issues: EmployeeJdIssue[];
 };
 
-export type EmployeeJdPreviewFilter = 'all' | 'valid' | 'invalid';
+export type EmployeeJdPreviewFilter = 'all' | 'valid' | 'warning' | 'invalid';
 
 export type UploadedEmployeeJdFile = {
   originalname: string;
@@ -26,6 +30,7 @@ export type EmployeeJdPreviewSummary = {
   totalRows: number;
   validRows: number;
   invalidRows: number;
+  warningRows: number;
   hasExistingAssignments: boolean;
 };
 

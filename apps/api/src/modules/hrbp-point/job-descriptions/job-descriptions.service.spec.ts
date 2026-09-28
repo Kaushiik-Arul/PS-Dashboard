@@ -5,10 +5,21 @@ import { JobDescriptionsService } from './job-descriptions.service';
 const actorAccountId = 'ea599947-cedc-453c-99ba-20cdef44933b';
 
 function repositoryMock() {
-  return { list: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() };
+  return { list: jest.fn(), findBySuffix: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() };
 }
 
 describe('JobDescriptionsService', () => {
+  it('looks up only an exact three-digit JD suffix and preserves multiple matches', async () => {
+    const repository = repositoryMock();
+    const matches = [{ jdId: 'PSENPMP209' }, { jdId: 'OTHER209' }];
+    repository.findBySuffix.mockResolvedValue(matches);
+    const service = new JobDescriptionsService(repository as unknown as JobDescriptionsRepository);
+
+    await expect(service.findBySuffix('209')).resolves.toEqual(matches);
+    expect(repository.findBySuffix).toHaveBeenCalledWith('209');
+    expect(() => service.findBySuffix('20')).toThrow(BadRequestException);
+    expect(() => service.findBySuffix('2a9')).toThrow(BadRequestException);
+  });
   it('normalizes JD IDs and trims role titles', async () => {
     const repository = repositoryMock();
     repository.create.mockResolvedValue({ id: 'id', jdId: 'JD-101', roleTitle: 'Engineer', updatedAt: '' });

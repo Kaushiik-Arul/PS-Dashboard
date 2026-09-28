@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import type { Employee360Row } from "./employee-360.types";
 import type { CareerJourneyEvent, EmployeePppHistory } from "./employee-360.types";
@@ -55,22 +55,43 @@ export function EmployeeProfileView({
   const [currentJdName, setCurrentJdName] = useState(employee.jdName);
   const [draftJdId, setDraftJdId] = useState(employee.jdId ?? "");
   const [jdOptions, setJdOptions] = useState<JobDescription[]>([]);
+  const [jdSuffix, setJdSuffix] = useState("");
+  const [jdSearching, setJdSearching] = useState(false);
   const [jdEffectiveDate, setJdEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
   const [jdBusy, setJdBusy] = useState(false);
   const [jdMessage, setJdMessage] = useState("");
   const employeeName = employee.personnelNumber ?? `Employee ${employee.persNo}`;
 
-  const openJdEditor = async () => {
-    setDraftJdId(currentJdId); setJdBusy(true); setJdMessage(""); jdDialogRef.current?.showModal();
-    try {
-      const result = await jobDescriptionsClient.list("", 1, 100);
-      setJdOptions(result.items);
-      if (!currentJdId && result.items[0]) setDraftJdId(result.items[0].jdId);
-    } catch (error) { setJdMessage(error instanceof Error ? error.message : "JD master could not be loaded."); }
-    finally { setJdBusy(false); }
+  useEffect(() => {
+    if (jdSuffix.length !== 3) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void jobDescriptionsClient.findBySuffix(jdSuffix).then((items) => {
+        if (cancelled) return;
+        setJdOptions(items);
+        if (items.length === 1) setDraftJdId(items[0].jdId);
+        setJdMessage(items.length > 100 ? "Too many matches. Contact the JD master administrator." : "");
+      }).catch((error) => {
+        if (!cancelled) setJdMessage(error instanceof Error ? error.message : "JD search failed.");
+      }).finally(() => { if (!cancelled) setJdSearching(false); });
+    }, 250);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [jdSuffix]);
+
+  const selectedJd = jdOptions.find((item) => item.jdId === draftJdId);
+
+  const openJdEditor = () => {
+    setDraftJdId(currentJdId);
+    setJdSuffix("");
+    setJdSearching(false);
+    setJdOptions(currentJdId ? [{ id: currentJdId, jdId: currentJdId, roleTitle: currentJdName ?? "Current assignment", updatedAt: "" }] : []);
+    setJdMessage("");
+    jdDialogRef.current?.showModal();
   };
   const saveJd = async (event: FormEvent) => {
-    event.preventDefault(); setJdBusy(true); setJdMessage("");
+    event.preventDefault();
+    if (!selectedJd || jdSearching || jdOptions.length > 100) return;
+    setJdBusy(true); setJdMessage("");
     try {
       const result = await updateEmployeeJobDescription(employee.persNo, draftJdId, jdEffectiveDate);
       setCurrentJdId(result.jdId); setCurrentJdName(result.jdName); jdDialogRef.current?.close();
@@ -173,7 +194,24 @@ export function EmployeeProfileView({
         <EmptyPanel title="IDP status" icon="boschicon-bosch-ic-document" />
       </div>
 
-      <dialog className="career-journey__dialog career-journey__dialog--confirm" ref={jdDialogRef}><form onSubmit={saveJd}><header><div><span>Current assignment</span><h2>Edit job description</h2></div><button className="a-button a-button--integrated" type="button" aria-label="Close" onClick={() => jdDialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header><div className="career-journey__form"><label><span>Job description</span><select required value={draftJdId} disabled={jdBusy} onChange={(event) => setDraftJdId(event.target.value)}>{jdOptions.map((item) => <option key={item.id} value={item.jdId}>{item.jdId} · {item.roleTitle}</option>)}</select></label><label><span>Effective date</span><input type="date" required value={jdEffectiveDate} disabled={jdBusy} onChange={(event) => setJdEffectiveDate(event.target.value)} /></label>{jdMessage && <p className="career-journey__error">{jdMessage}</p>}</div><footer><button className="a-button a-button--secondary" type="button" disabled={jdBusy} onClick={() => jdDialogRef.current?.close()}><span className="a-button__label">Cancel</span></button><button className="a-button a-button--primary" type="submit" disabled={jdBusy || !draftJdId}><span className="a-button__label">{jdBusy ? "Saving..." : "Save assignment"}</span></button></footer></form></dialog>
+      <dialog className="career-journey__dialog career-journey__dialog--confirm" ref={jdDialogRef}>
+        <form onSubmit={saveJd}>
+          <header><div><span>Current assignment</span><h2>Edit job description</h2></div><button className="a-button a-button--integrated" type="button" aria-label="Close" onClick={() => jdDialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
+          <div className="career-journey__form">
+            <label><span>Search JD ID (last 3 digits)</span><input type="search" inputMode="numeric" pattern="[0-9]{3}" maxLength={3} placeholder="e.g. 209" value={jdSuffix} disabled={jdBusy} onChange={(event) => {
+              setJdSuffix(event.target.value.replace(/\D/g, "").slice(0, 3));
+              setDraftJdId(""); setJdOptions([]); setJdMessage("");
+              setJdSearching(event.target.value.replace(/\D/g, "").length === 3);
+            }} /></label>
+            <label><span>Job description</span><select required value={draftJdId} disabled={jdBusy || jdSearching || jdOptions.length > 100} onChange={(event) => setDraftJdId(event.target.value)}><option value="">{jdSearching ? "Searching..." : "Select a matching JD"}</option>{jdOptions.slice(0, 100).map((item) => <option key={item.id} value={item.jdId}>{item.jdId} · {item.roleTitle}</option>)}</select></label>
+            <label><span>Role name</span><input readOnly value={selectedJd?.roleTitle ?? ""} placeholder="Select a JD to see its role" /></label>
+            <label><span>Effective date</span><input type="date" required value={jdEffectiveDate} disabled={jdBusy} onChange={(event) => setJdEffectiveDate(event.target.value)} /></label>
+            {jdSuffix.length === 3 && !jdSearching && !jdOptions.length && !jdMessage && <p className="career-journey__hint">No JD ID ends in {jdSuffix}.</p>}
+            {jdMessage && <p className="career-journey__error" role="alert">{jdMessage}</p>}
+          </div>
+          <footer><button className="a-button a-button--secondary" type="button" disabled={jdBusy} onClick={() => jdDialogRef.current?.close()}><span className="a-button__label">Cancel</span></button><button className="a-button a-button--primary" type="submit" disabled={jdBusy || jdSearching || !selectedJd || jdOptions.length > 100}><span className="a-button__label">{jdBusy ? "Saving..." : "Save assignment"}</span></button></footer>
+        </form>
+      </dialog>
     </main>
   );
 }

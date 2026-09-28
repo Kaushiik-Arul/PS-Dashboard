@@ -12,16 +12,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CareerJourneyRepository = void 0;
 const common_1 = require("@nestjs/common");
 const database_service_1 = require("../../database/database.service");
-const selectedColumns = `journey.event_id, journey.pers_no::text, journey.event_month,
+const selectedColumns = `journey.event_id, journey.pers_no::text,
+  TO_CHAR(journey.event_month, 'YYYY-MM-DD') AS event_month,
   journey.event_type, journey.old_organisational_area_pa, journey.new_organisational_area_pa,
   journey.old_organizational_unit, journey.new_organizational_unit,
   journey.old_ps_group, journey.new_ps_group, journey.source, journey.notes,
   journey.is_reviewed, journey.updated_at,
   COALESCE(account.display_name, journey.updated_by_account_id::text, 'System') AS updated_by`;
 function mapRow(row) {
-    const date = row.event_month instanceof Date ? row.event_month.toISOString() : row.event_month;
     return {
-        id: row.event_id, persNo: row.pers_no, eventMonth: date.slice(0, 10), eventType: row.event_type,
+        id: row.event_id, persNo: row.pers_no, eventMonth: row.event_month, eventType: row.event_type,
         oldOrganisationalAreaPa: row.old_organisational_area_pa,
         newOrganisationalAreaPa: row.new_organisational_area_pa,
         oldOrganizationalUnit: row.old_organizational_unit,
@@ -34,13 +34,10 @@ function mapRow(row) {
     };
 }
 function mapJdMovement(row) {
-    const effectiveDate = row.effective_date instanceof Date
-        ? row.effective_date.toISOString().slice(0, 10)
-        : row.effective_date.slice(0, 10);
     return {
         id: row.movement_id,
         persNo: row.pers_no,
-        eventMonth: effectiveDate,
+        eventMonth: row.effective_date,
         eventType: 'job_description_change',
         oldOrganisationalAreaPa: null,
         newOrganisationalAreaPa: null,
@@ -76,7 +73,8 @@ let CareerJourneyRepository = class CareerJourneyRepository {
          FROM public.employee_career_journey journey
          LEFT JOIN public.auth_accounts account ON account.account_id = journey.updated_by_account_id
          WHERE journey.pers_no = $1 AND journey.deleted_at IS NULL`, [persNo]),
-            this.database.query(`SELECT movement.movement_id, movement.pers_no::TEXT, movement.effective_date,
+            this.database.query(`SELECT movement.movement_id, movement.pers_no::TEXT,
+                TO_CHAR(movement.effective_date, 'YYYY-MM-DD') AS effective_date,
                 movement.old_jd_id, movement.old_role_title,
                 movement.new_jd_id, movement.new_role_title, movement.source,
                 movement.occurred_at,

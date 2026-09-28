@@ -41,6 +41,26 @@ describe('EmployeeJdImportService', () => {
     }]);
   });
 
+  it('retains a blank JD ID as a warning when the employee exists', async () => {
+    const repository = {
+      getAllRows: jest.fn().mockResolvedValue([{
+        rowNumber: 420, values: { pers_no: '11971004', jd_id: '' }, issues: [],
+      }]),
+      getKnownPersNos: jest.fn().mockResolvedValue(new Set(['11971004'])),
+      getKnownJdIds: jest.fn().mockResolvedValue(new Map()),
+      replaceRows: jest.fn().mockResolvedValue(undefined),
+      getSummary: jest.fn().mockResolvedValue({ id: 'preview-id', warningRows: 1, invalidRows: 0 }),
+    };
+    const service = new EmployeeJdImportService(repository as unknown as EmployeeJdImportRepository);
+    await service.updateRow('preview-id', '420', { pers_no: '11971004', jd_id: '' }, actorAccountId);
+    expect(repository.getKnownJdIds).toHaveBeenCalledWith([]);
+    expect(repository.replaceRows).toHaveBeenCalledWith('preview-id', actorAccountId, [{
+      rowNumber: 420,
+      values: { pers_no: '11971004', jd_id: '' },
+      issues: [{ column: 'jd_id', message: 'No JD ID: this employee will be saved without a JD assignment.', severity: 'warning' }],
+    }]);
+  });
+
   it('deletes a selected preview row', async () => {
     const repository = { deleteRow: jest.fn().mockResolvedValue(true) };
     const service = new EmployeeJdImportService(repository as unknown as EmployeeJdImportRepository);

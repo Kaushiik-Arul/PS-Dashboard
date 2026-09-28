@@ -60,7 +60,8 @@
 .career-journey__movement .a-icon { color: var(--base-major__enabled__default__fill); }
 .career-journey__source { border-inline-start: 0.25rem solid var(--accent-major__enabled__default__fill); display: inline-block; font-weight: 700; padding-inline-start: var(--app-space-2); }
 .career-journey__source--manual { border-color: var(--signal-warning-pure__enabled__default__front); }
-.career-journey__actions { display: flex; white-space: nowrap; }
+.career-journey__actions { white-space: nowrap; }
+.career-journey__actions .a-button { display: inline-flex; vertical-align: middle; }
 .career-journey__empty { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; margin: 0; }
 .career-journey__dialog { border: 0; box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 25%); max-height: calc(100dvh - 2rem); max-width: 48rem; padding: 0; width: calc(100% - 2rem); }
 .career-journey__dialog::backdrop { background: rgb(0 0 0 / 45%); }
@@ -70,6 +71,8 @@
 .career-journey__form label { display: grid; font-size: 0.75rem; gap: var(--app-space-1); }
 .career-journey__form input, .career-journey__form textarea { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); font: inherit; min-height: 2.75rem; padding: var(--app-space-2); resize: vertical; width: 100%; }
 .career-journey__form select { background: var(--background); border: var(--app-border-width) solid var(--base-major__enabled__default__fill); color: inherit; font: inherit; min-height: 2.75rem; padding: var(--app-space-2); width: 100%; }
+.career-journey__form input[readonly] { background: var(--base-major__disabled__default__fill); }
+.career-journey__hint { grid-column: 1 / -1; font-size: 0.75rem; margin: 0; }
 .career-journey__notes, .career-journey__error { grid-column: 1 / -1; }
 .career-journey__error { color: var(--signal-danger-pure__enabled__default__front); font-size: 0.75rem; margin: 0; }
 .career-journey__dialog footer { border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; gap: var(--app-space-2); justify-content: flex-end; padding: var(--app-space-3) var(--app-space-4); }

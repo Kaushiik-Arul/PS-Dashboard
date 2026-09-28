@@ -257,7 +257,7 @@ export class Employee360Repository {
       const current = await client.query<{ jd_id: string; role_title: string }>(
         `SELECT assignment.jd_id, job.role_title
          FROM public.employee_jd_assignments assignment
-         JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
+         LEFT JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
          WHERE assignment.pers_no = $1 FOR UPDATE OF assignment`,
         [persNo],
       );

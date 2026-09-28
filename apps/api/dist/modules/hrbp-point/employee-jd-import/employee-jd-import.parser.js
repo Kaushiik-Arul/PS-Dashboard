@@ -49,7 +49,7 @@ function validateEmployeeJdRow(values) {
         issues.push({ column: 'pers_no', message: 'Enter a valid positive employee number.' });
     }
     if (!values.jd_id)
-        issues.push({ column: 'jd_id', message: 'JD ID is required.' });
+        issues.push({ column: 'jd_id', message: 'No JD ID: this employee will be saved without a JD assignment.', severity: 'warning' });
     else if (values.jd_id.length > 100)
         issues.push({ column: 'jd_id', message: 'JD ID must not exceed 100 characters.' });
     return issues;

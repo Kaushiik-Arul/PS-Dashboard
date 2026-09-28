@@ -28,6 +28,11 @@ let JobDescriptionsService = JobDescriptionsService_1 = class JobDescriptionsSer
         const pageSize = this.positiveInteger(pageSizeInput, 8, 100);
         return this.runDatabaseOperation(() => this.repository.list(search, page, pageSize), 'Unable to load job descriptions');
     }
+    findBySuffix(suffix) {
+        if (!/^\d{3}$/.test(suffix))
+            throw new common_1.BadRequestException('Enter the last three digits of the JD ID.');
+        return this.runDatabaseOperation(() => this.repository.findBySuffix(suffix), 'Unable to search job descriptions');
+    }
     create(body, actorAccountId) {
         const input = this.validateInput(body);
         return this.runDatabaseOperation(() => this.repository.create(input, actorAccountId), 'Unable to create job description');

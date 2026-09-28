@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../../database/database.service';
+import { hasBlockingEmployeeJdIssues } from './employee-jd-import.types';
 import type {
   EmployeeJdPreviewFilter,
   EmployeeJdPreviewPage,
@@ -57,7 +58,7 @@ export class EmployeeJdImportRepository {
   async createPreview(actorAccountId: string, file: UploadedEmployeeJdFile, rows: ParsedEmployeeJdRow[]): Promise<string> {
     return this.database.transaction(async (client) => {
       await client.query(`DELETE FROM public.employee_jd_import_previews WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP`);
-      const validRows = rows.filter((row) => row.issues.length === 0).length;
+      const validRows = rows.filter((row) => !hasBlockingEmployeeJdIssues(row.issues)).length;
       const preview = await client.query<{ preview_id: string }>(
         `INSERT INTO public.employee_jd_import_previews (
            uploaded_by, file_name, file_hash, total_rows, valid_rows, invalid_rows
@@ -70,7 +71,7 @@ export class EmployeeJdImportRepository {
           row_number: row.rowNumber,
           row_data: row.values,
           issues: row.issues,
-          is_valid: row.issues.length === 0,
+          is_valid: !hasBlockingEmployeeJdIssues(row.issues),
         }));
         await client.query(
           `INSERT INTO public.employee_jd_import_preview_rows
@@ -95,24 +96,38 @@ export class EmployeeJdImportRepository {
       [previewId, actorAccountId],
     );
     if (!result.rows[0]) return null;
-    return this.buildSummary(result.rows[0], await this.hasExistingAssignments());
+    const [hasExistingAssignments, warningCount] = await Promise.all([
+      this.hasExistingAssignments(),
+      this.database.query<{ count: string }>(
+        `SELECT COUNT(*)::TEXT AS count FROM public.employee_jd_import_preview_rows
+         WHERE preview_id = $1 AND is_valid AND row_data->>'jd_id' = ''`,
+        [previewId],
+      ),
+    ]);
+    return this.buildSummary(result.rows[0], hasExistingAssignments, Number(warningCount.rows[0]?.count ?? 0));
   }
 
   async getRows(previewId: string, actorAccountId: string, filter: EmployeeJdPreviewFilter, page: number, pageSize: number): Promise<EmployeeJdPreviewPage | null> {
     const summary = await this.getSummary(previewId, actorAccountId);
     if (!summary) return null;
-    const validity = filter === 'all' ? null : filter === 'valid';
+    const validity = filter === 'all' || filter === 'warning' ? null : filter === 'valid';
+    const warningOnly = filter === 'warning';
+    const cleanOnly = filter === 'valid';
     const [rows, count] = await Promise.all([
       this.database.query<StoredRow>(
         `SELECT row_number, row_data, issues FROM public.employee_jd_import_preview_rows
          WHERE preview_id = $1 AND ($2::BOOLEAN IS NULL OR is_valid = $2)
-         ORDER BY row_number LIMIT $3 OFFSET $4`,
-        [previewId, validity, pageSize, (page - 1) * pageSize],
+           AND (NOT $3::BOOLEAN OR (is_valid AND row_data->>'jd_id' = ''))
+           AND (NOT $4::BOOLEAN OR row_data->>'jd_id' <> '')
+         ORDER BY row_number LIMIT $5 OFFSET $6`,
+        [previewId, validity, warningOnly, cleanOnly, pageSize, (page - 1) * pageSize],
       ),
       this.database.query<{ count: string }>(
         `SELECT COUNT(*)::TEXT AS count FROM public.employee_jd_import_preview_rows
-         WHERE preview_id = $1 AND ($2::BOOLEAN IS NULL OR is_valid = $2)`,
-        [previewId, validity],
+         WHERE preview_id = $1 AND ($2::BOOLEAN IS NULL OR is_valid = $2)
+           AND (NOT $3::BOOLEAN OR (is_valid AND row_data->>'jd_id' = ''))
+           AND (NOT $4::BOOLEAN OR row_data->>'jd_id' <> '')`,
+        [previewId, validity, warningOnly, cleanOnly],
       ),
     ]);
     return {
@@ -135,8 +150,8 @@ export class EmployeeJdImportRepository {
   }
 
   async replaceRows(previewId: string, actorAccountId: string, rows: ParsedEmployeeJdRow[]): Promise<void> {
-    const payload = rows.map((row) => ({ row_number: row.rowNumber, row_data: row.values, issues: row.issues, is_valid: row.issues.length === 0 }));
-    const validRows = rows.filter((row) => row.issues.length === 0).length;
+    const payload = rows.map((row) => ({ row_number: row.rowNumber, row_data: row.values, issues: row.issues, is_valid: !hasBlockingEmployeeJdIssues(row.issues) }));
+    const validRows = rows.filter((row) => !hasBlockingEmployeeJdIssues(row.issues)).length;
     await this.database.transaction(async (client) => {
       const preview = await client.query(
         `SELECT 1 FROM public.employee_jd_import_previews
@@ -171,21 +186,47 @@ export class EmployeeJdImportRepository {
       );
       if (!preview.rows[0]) throw new Error('PREVIEW_NOT_FOUND');
       if (preview.rows[0].total_rows <= 1) throw new Error('LAST_PREVIEW_ROW');
-      const deleted = await client.query<{ is_valid: boolean }>(
+      const deleted = await client.query<{ row_data: ParsedEmployeeJdRow['values'] }>(
         `DELETE FROM public.employee_jd_import_preview_rows
          WHERE preview_id = $1 AND row_number = $2
-         RETURNING is_valid`,
+         RETURNING row_data`,
         [previewId, rowNumber],
       );
       const deletedRow = deleted.rows[0];
       if (!deletedRow) return false;
+      // Removing one of two duplicate employee numbers can make the survivor valid.
+      const sameEmployeeRows = await client.query<StoredRow>(
+        `SELECT row_number, row_data, issues FROM public.employee_jd_import_preview_rows
+         WHERE preview_id = $1 AND row_data->>'pers_no' = $2
+         FOR UPDATE`,
+        [previewId, deletedRow.row_data.pers_no],
+      );
+      if (sameEmployeeRows.rows.length === 1) {
+        const remaining = sameEmployeeRows.rows[0];
+        const issues = remaining.issues.filter((issue) =>
+          !(issue.column === 'pers_no' && issue.message === 'Employee number is duplicated in this workbook.'),
+        );
+        if (issues.length !== remaining.issues.length) {
+          await client.query(
+            `UPDATE public.employee_jd_import_preview_rows
+             SET issues = $3::JSONB, is_valid = $4
+             WHERE preview_id = $1 AND row_number = $2`,
+            [previewId, remaining.row_number, JSON.stringify(issues), !hasBlockingEmployeeJdIssues(issues)],
+          );
+        }
+      }
       await client.query(
         `UPDATE public.employee_jd_import_previews
-         SET total_rows = total_rows - 1,
-             valid_rows = valid_rows - CASE WHEN $2 THEN 1 ELSE 0 END,
-             invalid_rows = invalid_rows - CASE WHEN $2 THEN 0 ELSE 1 END
-         WHERE preview_id = $1`,
-        [previewId, deletedRow.is_valid],
+         SET total_rows = counts.total_rows,
+             valid_rows = counts.valid_rows,
+             invalid_rows = counts.total_rows - counts.valid_rows
+         FROM (
+           SELECT COUNT(*)::INT AS total_rows,
+                  COUNT(*) FILTER (WHERE is_valid)::INT AS valid_rows
+           FROM public.employee_jd_import_preview_rows WHERE preview_id = $1
+         ) counts
+         WHERE employee_jd_import_previews.preview_id = $1`,
+        [previewId],
       );
       return true;
     });
@@ -221,9 +262,10 @@ export class EmployeeJdImportRepository {
          FROM public.employee_jd_import_preview_rows preview_row
          JOIN public.employee_namelist employee
            ON employee.pers_no = (preview_row.row_data->>'pers_no')::BIGINT
-         JOIN public.job_descriptions job
+         LEFT JOIN public.job_descriptions job
            ON LOWER(job.jd_id) = LOWER(preview_row.row_data->>'jd_id')
-         WHERE preview_row.preview_id = $1 AND preview_row.is_valid`,
+         WHERE preview_row.preview_id = $1 AND preview_row.is_valid
+           AND (preview_row.row_data->>'jd_id' = '' OR job.jd_id IS NOT NULL)`,
         [previewId],
       );
       if (Number(stillValid.rows[0]?.count ?? 0) !== record.total_rows) {
@@ -241,13 +283,13 @@ export class EmployeeJdImportRepository {
            SELECT (preview_row.row_data->>'pers_no')::BIGINT AS pers_no,
                   job.jd_id, job.role_title
            FROM public.employee_jd_import_preview_rows preview_row
-           JOIN public.job_descriptions job
+           LEFT JOIN public.job_descriptions job
              ON LOWER(job.jd_id) = LOWER(preview_row.row_data->>'jd_id')
            WHERE preview_row.preview_id = $1 AND preview_row.is_valid
          ), current_assignments AS (
            SELECT assignment.pers_no, assignment.jd_id, job.role_title
            FROM public.employee_jd_assignments assignment
-           JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
+           LEFT JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
          )
          INSERT INTO public.employee_jd_movements (
            pers_no, old_jd_id, old_role_title, new_jd_id, new_role_title,
@@ -269,7 +311,7 @@ export class EmployeeJdImportRepository {
          ) SELECT (preview_row.row_data->>'pers_no')::BIGINT, job.jd_id,
                   CURRENT_DATE, 'upload', $2, $3
            FROM public.employee_jd_import_preview_rows preview_row
-           JOIN public.job_descriptions job
+           LEFT JOIN public.job_descriptions job
              ON LOWER(job.jd_id) = LOWER(preview_row.row_data->>'jd_id')
            WHERE preview_row.preview_id = $1 AND preview_row.is_valid
            ORDER BY preview_row.row_number`,
@@ -293,13 +335,14 @@ export class EmployeeJdImportRepository {
     });
   }
 
-  private buildSummary(record: PreviewRecord, hasExistingAssignments: boolean): EmployeeJdPreviewSummary {
+  private buildSummary(record: PreviewRecord, hasExistingAssignments: boolean, warningRows: number): EmployeeJdPreviewSummary {
     return {
       id: record.preview_id,
       fileName: record.file_name,
       totalRows: record.total_rows,
       validRows: record.valid_rows,
       invalidRows: record.invalid_rows,
+      warningRows,
       hasExistingAssignments,
     };
   }

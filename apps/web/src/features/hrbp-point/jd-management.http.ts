@@ -22,6 +22,10 @@ async function request(resource: string, path: string, init?: RequestInit): Prom
 }
 
 export const jobDescriptionsClient = {
+  findBySuffix(suffix: string) {
+    return request('job-descriptions', `/by-suffix?${new URLSearchParams({ suffix })}`)
+      .then((response) => response.json() as Promise<JobDescription[]>);
+  },
   list(search: string, page: number, pageSize: number) {
     const query = new URLSearchParams({ search, page: String(page), pageSize: String(pageSize) });
     return request('job-descriptions', `?${query}`).then((response) => response.json() as Promise<JobDescriptionPage>);
@@ -66,7 +70,9 @@ export const employeeJdImportClient = {
   },
   async deleteRow(id: string, rowNumber: number, filter: EmployeeJdPreviewFilter, page: number) {
     await request('employee-jd-imports', `/previews/${encodeURIComponent(id)}/rows/${rowNumber}`, { method: 'DELETE' });
-    return getPreviewRows(id, filter, page, 25);
+    const preview = await getPreviewRows(id, filter, page, 25);
+    const lastPage = Math.max(1, Math.ceil(preview.filteredRows / 25));
+    return page > lastPage ? getPreviewRows(id, filter, lastPage, 25) : preview;
   },
   async cancel(id: string) { await request('employee-jd-imports', `/previews/${encodeURIComponent(id)}`, { method: 'DELETE' }); },
   commit(id: string, confirmReplacement: boolean) {

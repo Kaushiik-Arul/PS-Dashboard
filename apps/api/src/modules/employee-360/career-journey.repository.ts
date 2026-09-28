@@ -4,7 +4,7 @@ import { DatabaseService } from '../../database/database.service';
 import type { CareerJourneyEvent, CareerJourneyInput } from './career-journey.types';
 
 type CareerRow = {
-  event_id: string; pers_no: string; event_month: Date | string;
+  event_id: string; pers_no: string; event_month: string;
   event_type: CareerJourneyEvent['eventType'];
   old_organisational_area_pa: string | null; new_organisational_area_pa: string | null;
   old_organizational_unit: string | null; new_organizational_unit: string | null;
@@ -14,13 +14,14 @@ type CareerRow = {
 };
 
 type JdMovementRow = {
-  movement_id: string; pers_no: string; effective_date: Date | string;
+  movement_id: string; pers_no: string; effective_date: string;
   old_jd_id: string | null; old_role_title: string | null;
   new_jd_id: string | null; new_role_title: string | null;
   source: 'upload' | 'manual'; occurred_at: Date | string; changed_by: string | null;
 };
 
-const selectedColumns = `journey.event_id, journey.pers_no::text, journey.event_month,
+const selectedColumns = `journey.event_id, journey.pers_no::text,
+  TO_CHAR(journey.event_month, 'YYYY-MM-DD') AS event_month,
   journey.event_type, journey.old_organisational_area_pa, journey.new_organisational_area_pa,
   journey.old_organizational_unit, journey.new_organizational_unit,
   journey.old_ps_group, journey.new_ps_group, journey.source, journey.notes,
@@ -28,9 +29,8 @@ const selectedColumns = `journey.event_id, journey.pers_no::text, journey.event_
   COALESCE(account.display_name, journey.updated_by_account_id::text, 'System') AS updated_by`;
 
 function mapRow(row: CareerRow): CareerJourneyEvent {
-  const date = row.event_month instanceof Date ? row.event_month.toISOString() : row.event_month;
   return {
-    id: row.event_id, persNo: row.pers_no, eventMonth: date.slice(0, 10), eventType: row.event_type,
+    id: row.event_id, persNo: row.pers_no, eventMonth: row.event_month, eventType: row.event_type,
     oldOrganisationalAreaPa: row.old_organisational_area_pa,
     newOrganisationalAreaPa: row.new_organisational_area_pa,
     oldOrganizationalUnit: row.old_organizational_unit,
@@ -44,13 +44,10 @@ function mapRow(row: CareerRow): CareerJourneyEvent {
 }
 
 function mapJdMovement(row: JdMovementRow): CareerJourneyEvent {
-  const effectiveDate = row.effective_date instanceof Date
-    ? row.effective_date.toISOString().slice(0, 10)
-    : row.effective_date.slice(0, 10);
   return {
     id: row.movement_id,
     persNo: row.pers_no,
-    eventMonth: effectiveDate,
+    eventMonth: row.effective_date,
     eventType: 'job_description_change',
     oldOrganisationalAreaPa: null,
     newOrganisationalAreaPa: null,
@@ -91,7 +88,8 @@ export class CareerJourneyRepository {
         [persNo],
       ),
       this.database.query<JdMovementRow>(
-        `SELECT movement.movement_id, movement.pers_no::TEXT, movement.effective_date,
+        `SELECT movement.movement_id, movement.pers_no::TEXT,
+                TO_CHAR(movement.effective_date, 'YYYY-MM-DD') AS effective_date,
                 movement.old_jd_id, movement.old_role_title,
                 movement.new_jd_id, movement.new_role_title, movement.source,
                 movement.occurred_at,

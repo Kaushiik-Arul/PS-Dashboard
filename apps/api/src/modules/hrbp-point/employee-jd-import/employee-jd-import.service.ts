@@ -44,7 +44,7 @@ export class EmployeeJdImportService {
   }
 
   async getRows(previewId: string, actorAccountId: string, filterInput?: string, pageInput?: string, pageSizeInput?: string): Promise<EmployeeJdPreviewPage> {
-    const filter: EmployeeJdPreviewFilter = filterInput === 'valid' || filterInput === 'invalid' ? filterInput : 'all';
+    const filter: EmployeeJdPreviewFilter = filterInput === 'valid' || filterInput === 'warning' || filterInput === 'invalid' ? filterInput : 'all';
     const page = this.positiveInteger(pageInput, 1, 1_000_000);
     const pageSize = this.positiveInteger(pageSizeInput, 25, 100);
     return this.run(async () => {
@@ -119,7 +119,7 @@ export class EmployeeJdImportService {
         issues.push({ column: 'pers_no', message: 'Employee is not in the current namelist.' });
       }
       const canonicalJdId = knownJdIds.get(values.jd_id.slice(-3).toLowerCase());
-      if (!issues.some((issue) => issue.column === 'jd_id') && !canonicalJdId) {
+      if (values.jd_id && !issues.some((issue) => issue.column === 'jd_id') && !canonicalJdId) {
         issues.push({ column: 'jd_id', message: 'JD ID suffix does not uniquely match the JD master.' });
       } else if (canonicalJdId) {
         values.jd_id = canonicalJdId;

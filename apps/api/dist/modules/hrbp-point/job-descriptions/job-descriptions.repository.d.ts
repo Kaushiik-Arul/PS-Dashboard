@@ -4,6 +4,7 @@ export declare class JobDescriptionsRepository {
     private readonly database;
     constructor(database: DatabaseService);
     list(search: string, page: number, pageSize: number): Promise<JobDescriptionPage>;
+    findBySuffix(suffix: string): Promise<JobDescription[]>;
     create(input: JobDescriptionInput, actorAccountId: string): Promise<JobDescription>;
     importCsv(inputs: JobDescriptionInput[], fileName: string, actorAccountId: string): Promise<{
         totalRows: number;

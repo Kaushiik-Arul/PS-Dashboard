@@ -27,6 +27,9 @@ let JobDescriptionsController = class JobDescriptionsController {
     list(search, page, pageSize) {
         return this.service.list(search, page, pageSize);
     }
+    findBySuffix(suffix) {
+        return this.service.findBySuffix(suffix);
+    }
     create(body, user) {
         return this.service.create(body, user.accountId);
     }
@@ -51,6 +54,14 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], JobDescriptionsController.prototype, "list", null);
+__decorate([
+    (0, common_1.Get)('by-suffix'),
+    (0, swagger_1.ApiOperation)({ summary: 'Find job descriptions by the last three digits of the JD ID' }),
+    __param(0, (0, common_1.Query)('suffix')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], JobDescriptionsController.prototype, "findBySuffix", null);
 __decorate([
     (0, common_1.Post)(),
     (0, swagger_1.ApiOperation)({ summary: 'Create a job description' }),

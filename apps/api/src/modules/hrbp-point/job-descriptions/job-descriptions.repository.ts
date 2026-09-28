@@ -60,6 +60,18 @@ export class JobDescriptionsRepository {
     };
   }
 
+  async findBySuffix(suffix: string): Promise<JobDescription[]> {
+    const result = await this.database.query<JobDescriptionRow>(
+      `SELECT ${selectedColumns}
+       FROM public.job_descriptions
+       WHERE RIGHT(jd_id, 3) = $1
+       ORDER BY LOWER(jd_id), jd_id
+       LIMIT 101`,
+      [suffix],
+    );
+    return result.rows.map(mapRow);
+  }
+
   create(input: JobDescriptionInput, actorAccountId: string): Promise<JobDescription> {
     return this.database.transaction(async (client) => {
       const result = await client.query<JobDescriptionRow>(

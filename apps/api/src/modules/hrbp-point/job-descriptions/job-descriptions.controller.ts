@@ -18,6 +18,12 @@ export class JobDescriptionsController {
     return this.service.list(search, page, pageSize);
   }
 
+  @Get('by-suffix')
+  @ApiOperation({ summary: 'Find job descriptions by the last three digits of the JD ID' })
+  findBySuffix(@Query('suffix') suffix: string) {
+    return this.service.findBySuffix(suffix);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a job description' })
   create(@Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {

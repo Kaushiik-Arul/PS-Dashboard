@@ -4,6 +4,7 @@ export declare class JobDescriptionsController {
     private readonly service;
     constructor(service: JobDescriptionsService);
     list(search?: string, page?: string, pageSize?: string): Promise<import("./job-descriptions.types").JobDescriptionPage>;
+    findBySuffix(suffix: string): Promise<import("./job-descriptions.types").JobDescription[]>;
     create(body: unknown, user: AuthenticatedUser): Promise<import("./job-descriptions.types").JobDescription>;
     importCsv(file: {
         originalname: string;

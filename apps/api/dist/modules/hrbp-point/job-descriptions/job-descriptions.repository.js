@@ -50,6 +50,14 @@ let JobDescriptionsRepository = class JobDescriptionsRepository {
             search,
         };
     }
+    async findBySuffix(suffix) {
+        const result = await this.database.query(`SELECT ${selectedColumns}
+       FROM public.job_descriptions
+       WHERE RIGHT(jd_id, 3) = $1
+       ORDER BY LOWER(jd_id), jd_id
+       LIMIT 101`, [suffix]);
+        return result.rows.map(mapRow);
+    }
     create(input, actorAccountId) {
         return this.database.transaction(async (client) => {
             const result = await client.query(`INSERT INTO public.job_descriptions (
