@@ -1,8 +1,17 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
+import { EmployeeJdImportController } from './employee-jd-import/employee-jd-import.controller';
+import { EmployeeJdImportRepository } from './employee-jd-import/employee-jd-import.repository';
+import { EmployeeJdImportService } from './employee-jd-import/employee-jd-import.service';
+import { EmployeeJdMovementsController } from './employee-jd-movements/employee-jd-movements.controller';
+import { EmployeeJdMovementsRepository } from './employee-jd-movements/employee-jd-movements.repository';
+import { EmployeeJdMovementsService } from './employee-jd-movements/employee-jd-movements.service';
 import { HrbpPointController } from './hrbp-point.controller';
 import { HrbpPointRepository } from './hrbp-point.repository';
 import { HrbpPointService } from './hrbp-point.service';
+import { JobDescriptionsController } from './job-descriptions/job-descriptions.controller';
+import { JobDescriptionsRepository } from './job-descriptions/job-descriptions.repository';
+import { JobDescriptionsService } from './job-descriptions/job-descriptions.service';
 import { NamelistImportController } from './namelist-import/namelist-import.controller';
 import { NamelistImportRepository } from './namelist-import/namelist-import.repository';
 import { NamelistImportService } from './namelist-import/namelist-import.service';
@@ -21,10 +30,16 @@ import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [HrbpPointController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
+  controllers: [EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
   providers: [
+    EmployeeJdImportService,
+    EmployeeJdImportRepository,
+    EmployeeJdMovementsService,
+    EmployeeJdMovementsRepository,
     HrbpPointService,
     HrbpPointRepository,
+    JobDescriptionsService,
+    JobDescriptionsRepository,
     NamelistImportService,
     NamelistImportRepository,
     PppHistoryImportService,

@@ -17,8 +17,15 @@ export declare class Employee360Service {
     createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
     updateCareerEvent(persNoInput: string, idInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
     deleteCareerEvent(persNoInput: string, idInput: string, user: AuthenticatedUser): Promise<void>;
+    updateJobDescription(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<{
+        jdId: string;
+        jdName: string;
+        effectiveDate: string;
+        changed: boolean;
+    }>;
     private assertScopedEmployee;
     private careerInput;
+    private jobDescriptionInput;
     private persNo;
     private uuid;
     private run;

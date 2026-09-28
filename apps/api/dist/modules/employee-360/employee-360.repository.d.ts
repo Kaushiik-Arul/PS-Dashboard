@@ -5,4 +5,10 @@ export declare class Employee360Repository {
     constructor(database: DatabaseService);
     getPppHistory(persNo: string): Promise<EmployeePppHistoryDto[]>;
     getEmployees(filters: NormalizedEmployee360Query, accountId: string, persNo: string | null): Promise<Employee360ResponseDto>;
+    updateJobDescription(persNo: string, jdId: string, effectiveDate: string, actorAccountId: string): Promise<{
+        jdId: string;
+        jdName: string;
+        effectiveDate: string;
+        changed: boolean;
+    }>;
 }

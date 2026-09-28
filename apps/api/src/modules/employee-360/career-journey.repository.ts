@@ -13,6 +13,13 @@ type CareerRow = {
   updated_at: Date | string; updated_by: string | null;
 };
 
+type JdMovementRow = {
+  movement_id: string; pers_no: string; effective_date: Date | string;
+  old_jd_id: string | null; old_role_title: string | null;
+  new_jd_id: string | null; new_role_title: string | null;
+  source: 'upload' | 'manual'; occurred_at: Date | string; changed_by: string | null;
+};
+
 const selectedColumns = `journey.event_id, journey.pers_no::text, journey.event_month,
   journey.event_type, journey.old_organisational_area_pa, journey.new_organisational_area_pa,
   journey.old_organizational_unit, journey.new_organizational_unit,
@@ -30,8 +37,37 @@ function mapRow(row: CareerRow): CareerJourneyEvent {
     newOrganizationalUnit: row.new_organizational_unit,
     oldPsGroup: row.old_ps_group, newPsGroup: row.new_ps_group,
     source: row.source, notes: row.notes, isReviewed: row.is_reviewed,
+    oldJdId: null, oldJdName: null, newJdId: null, newJdName: null, readOnly: false,
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : new Date(row.updated_at).toISOString(),
     updatedBy: row.updated_by ?? 'System',
+  };
+}
+
+function mapJdMovement(row: JdMovementRow): CareerJourneyEvent {
+  const effectiveDate = row.effective_date instanceof Date
+    ? row.effective_date.toISOString().slice(0, 10)
+    : row.effective_date.slice(0, 10);
+  return {
+    id: row.movement_id,
+    persNo: row.pers_no,
+    eventMonth: effectiveDate,
+    eventType: 'job_description_change',
+    oldOrganisationalAreaPa: null,
+    newOrganisationalAreaPa: null,
+    oldOrganizationalUnit: null,
+    newOrganizationalUnit: null,
+    oldPsGroup: null,
+    newPsGroup: null,
+    source: row.source,
+    oldJdId: row.old_jd_id,
+    oldJdName: row.old_role_title,
+    newJdId: row.new_jd_id,
+    newJdName: row.new_role_title,
+    readOnly: true,
+    notes: null,
+    isReviewed: true,
+    updatedAt: row.occurred_at instanceof Date ? row.occurred_at.toISOString() : new Date(row.occurred_at).toISOString(),
+    updatedBy: row.changed_by ?? 'System',
   };
 }
 
@@ -46,15 +82,29 @@ export class CareerJourneyRepository {
   constructor(private readonly database: DatabaseService) {}
 
   async list(persNo: string): Promise<CareerJourneyEvent[]> {
-    const result = await this.database.query<CareerRow>(
-      `SELECT ${selectedColumns}
-       FROM public.employee_career_journey journey
-       LEFT JOIN public.auth_accounts account ON account.account_id = journey.updated_by_account_id
-       WHERE journey.pers_no = $1 AND journey.deleted_at IS NULL
-       ORDER BY journey.event_month DESC, journey.updated_at DESC`,
-      [persNo],
-    );
-    return result.rows.map(mapRow);
+    const [career, jdMovements] = await Promise.all([
+      this.database.query<CareerRow>(
+        `SELECT ${selectedColumns}
+         FROM public.employee_career_journey journey
+         LEFT JOIN public.auth_accounts account ON account.account_id = journey.updated_by_account_id
+         WHERE journey.pers_no = $1 AND journey.deleted_at IS NULL`,
+        [persNo],
+      ),
+      this.database.query<JdMovementRow>(
+        `SELECT movement.movement_id, movement.pers_no::TEXT, movement.effective_date,
+                movement.old_jd_id, movement.old_role_title,
+                movement.new_jd_id, movement.new_role_title, movement.source,
+                movement.occurred_at,
+                COALESCE(account.display_name, movement.changed_by_account_id::TEXT, 'System') AS changed_by
+         FROM public.employee_jd_movements movement
+         LEFT JOIN public.auth_accounts account ON account.account_id = movement.changed_by_account_id
+         WHERE movement.pers_no = $1`,
+        [persNo],
+      ),
+    ]);
+    return [...career.rows.map(mapRow), ...jdMovements.rows.map(mapJdMovement)]
+      .sort((left, right) => right.eventMonth.localeCompare(left.eventMonth)
+        || right.updatedAt.localeCompare(left.updatedAt));
   }
 
   create(persNo: string, input: CareerJourneyInput, actorAccountId: string): Promise<CareerJourneyEvent> {

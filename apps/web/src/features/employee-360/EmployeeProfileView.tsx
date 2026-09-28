@@ -1,9 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useRef, useState, type FormEvent } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import type { Employee360Row } from "./employee-360.types";
 import type { CareerJourneyEvent, EmployeePppHistory } from "./employee-360.types";
 import { CareerJourneyPanel } from "./CareerJourneyPanel";
 import { EmployeePppHistoryPanel } from "./EmployeePppHistoryPanel";
+import { jobDescriptionsClient } from "@/features/hrbp-point/jd-management.http";
+import type { JobDescription } from "@/features/hrbp-point/jd-management.types";
+import { updateEmployeeJobDescription } from "./job-description.http";
 import "./employee-profile.css";
 
 function display(value: string | null): string {
@@ -42,7 +49,35 @@ export function EmployeeProfileView({
   pppHistory: EmployeePppHistory[];
   canEditCareerJourney: boolean;
 }) {
+  const router = useRouter();
+  const jdDialogRef = useRef<HTMLDialogElement>(null);
+  const [currentJdId, setCurrentJdId] = useState(employee.jdId ?? "");
+  const [currentJdName, setCurrentJdName] = useState(employee.jdName);
+  const [draftJdId, setDraftJdId] = useState(employee.jdId ?? "");
+  const [jdOptions, setJdOptions] = useState<JobDescription[]>([]);
+  const [jdEffectiveDate, setJdEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
+  const [jdBusy, setJdBusy] = useState(false);
+  const [jdMessage, setJdMessage] = useState("");
   const employeeName = employee.personnelNumber ?? `Employee ${employee.persNo}`;
+
+  const openJdEditor = async () => {
+    setDraftJdId(currentJdId); setJdBusy(true); setJdMessage(""); jdDialogRef.current?.showModal();
+    try {
+      const result = await jobDescriptionsClient.list("", 1, 100);
+      setJdOptions(result.items);
+      if (!currentJdId && result.items[0]) setDraftJdId(result.items[0].jdId);
+    } catch (error) { setJdMessage(error instanceof Error ? error.message : "JD master could not be loaded."); }
+    finally { setJdBusy(false); }
+  };
+  const saveJd = async (event: FormEvent) => {
+    event.preventDefault(); setJdBusy(true); setJdMessage("");
+    try {
+      const result = await updateEmployeeJobDescription(employee.persNo, draftJdId, jdEffectiveDate);
+      setCurrentJdId(result.jdId); setCurrentJdName(result.jdName); jdDialogRef.current?.close();
+      if (result.changed) router.refresh();
+    } catch (error) { setJdMessage(error instanceof Error ? error.message : "Job description could not be updated."); }
+    finally { setJdBusy(false); }
+  };
 
   return (
     <main className="employee-profile">
@@ -102,6 +137,17 @@ export function EmployeeProfileView({
             <Detail label="Global ID of HRBP" value={employee.hrbpGlobalId} />
             <Detail label="Global ID of HRBP2" value={employee.hrbp2GlobalId} />
           </dl>
+          <section className="employee-profile__jd-section" aria-labelledby="employee-profile-jd-title">
+            <header>
+              <i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" />
+              <h2 id="employee-profile-jd-title">Job description</h2>
+              {canEditCareerJourney && <button className="a-button a-button--integrated -small employee-profile__jd-edit" type="button" title="Edit job description" aria-label="Edit job description" onClick={() => void openJdEditor()}><i className="a-icon a-button__icon boschicon-bosch-ic-edit" aria-hidden="true" /></button>}
+            </header>
+            <dl>
+              <Detail label="JD ID" value={currentJdId || null} />
+              <Detail label="JD Name" value={currentJdName} />
+            </dl>
+          </section>
         </section>
 
         <section className="employee-profile__overview-section">
@@ -126,6 +172,8 @@ export function EmployeeProfileView({
         <EmployeePppHistoryPanel history={pppHistory} />
         <EmptyPanel title="IDP status" icon="boschicon-bosch-ic-document" />
       </div>
+
+      <dialog className="career-journey__dialog career-journey__dialog--confirm" ref={jdDialogRef}><form onSubmit={saveJd}><header><div><span>Current assignment</span><h2>Edit job description</h2></div><button className="a-button a-button--integrated" type="button" aria-label="Close" onClick={() => jdDialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header><div className="career-journey__form"><label><span>Job description</span><select required value={draftJdId} disabled={jdBusy} onChange={(event) => setDraftJdId(event.target.value)}>{jdOptions.map((item) => <option key={item.id} value={item.jdId}>{item.jdId} · {item.roleTitle}</option>)}</select></label><label><span>Effective date</span><input type="date" required value={jdEffectiveDate} disabled={jdBusy} onChange={(event) => setJdEffectiveDate(event.target.value)} /></label>{jdMessage && <p className="career-journey__error">{jdMessage}</p>}</div><footer><button className="a-button a-button--secondary" type="button" disabled={jdBusy} onClick={() => jdDialogRef.current?.close()}><span className="a-button__label">Cancel</span></button><button className="a-button a-button--primary" type="submit" disabled={jdBusy || !draftJdId}><span className="a-button__label">{jdBusy ? "Saving..." : "Save assignment"}</span></button></footer></form></dialog>
     </main>
   );
 }

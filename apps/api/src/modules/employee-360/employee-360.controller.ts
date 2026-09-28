@@ -36,6 +36,12 @@ export class Employee360Controller {
     return this.service.createCareerEvent(persNo, body, user);
   }
 
+  @Patch(':persNo/job-description')
+  @RequirePermission('workforce:edit')
+  updateJobDescription(@Param('persNo') persNo: string, @Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.updateJobDescription(persNo, body, user);
+  }
+
   @Patch(':persNo/career-journey/:eventId')
   @RequirePermission('workforce:edit')
   updateCareerEvent(@Param('persNo') persNo: string, @Param('eventId') eventId: string, @Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {

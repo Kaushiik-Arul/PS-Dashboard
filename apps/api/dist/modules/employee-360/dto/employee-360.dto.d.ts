@@ -38,6 +38,8 @@ export declare class Employee360RowDto {
     officialEmail: string | null;
     technicalEntryDate: string | null;
     directOrIndirect: string | null;
+    jdId: string | null;
+    jdName: string | null;
 }
 export declare class Employee360FilterOptionsDto {
     functionName: string[];

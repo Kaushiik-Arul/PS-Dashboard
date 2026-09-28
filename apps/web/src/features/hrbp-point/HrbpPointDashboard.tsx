@@ -11,6 +11,7 @@ import {
   type EmployeeStatusType,
 } from "./hrbp-point.types";
 import { NamelistImportPanel } from "./NamelistImportPanel";
+import { JdManagementPanel } from "./JdManagementPanel";
 import { RbinExceptionsPanel } from "./RbinExceptionsPanel";
 import { httpRbinExceptionsClient } from "./rbin-exceptions.http";
 import { PppHistoryImportPanel } from "./PppHistoryImportPanel";
@@ -173,6 +174,7 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
   return (
     <main className="hrbp-page">
       {canManageNamelist && <NamelistImportPanel />}
+      {canManageNamelist && <JdManagementPanel />}
 
       <div className="hrbp-maintenance-grid">
       <section className="hrbp-status-panel" aria-labelledby="leave-status-title">

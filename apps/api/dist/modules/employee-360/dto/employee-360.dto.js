@@ -71,6 +71,8 @@ class Employee360RowDto {
     officialEmail;
     technicalEntryDate;
     directOrIndirect;
+    jdId;
+    jdName;
 }
 exports.Employee360RowDto = Employee360RowDto;
 __decorate([
@@ -157,6 +159,14 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
     __metadata("design:type", Object)
 ], Employee360RowDto.prototype, "directOrIndirect", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], Employee360RowDto.prototype, "jdId", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], Employee360RowDto.prototype, "jdName", void 0);
 class Employee360FilterOptionsDto {
     functionName;
     orgUnit;

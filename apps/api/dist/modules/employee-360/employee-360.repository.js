@@ -42,6 +42,8 @@ function mapEmployee(row) {
         officialEmail: row.official_email,
         technicalEntryDate: mapDate(row.technical_entry_date),
         directOrIndirect: row.direct_or_indirect,
+        jdId: row.jd_id,
+        jdName: row.jd_name,
     };
 }
 const scopedEmployees = `
@@ -66,8 +68,12 @@ const scopedEmployees = `
     e.hrbp2_global_id,
     e.official_email,
     e.technical_entry_date,
-    e.direct_or_indirect
+    e.direct_or_indirect,
+    assignment.jd_id,
+    job.role_title AS jd_name
   FROM public.employee_namelist e
+  LEFT JOIN public.employee_jd_assignments assignment ON assignment.pers_no = e.pers_no
+  LEFT JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
   WHERE ($9::BIGINT IS NULL OR e.pers_no <> $9)
     AND ($1::TEXT IS NULL
       OR e.pers_no::TEXT ILIKE '%' || $1 || '%'
@@ -125,7 +131,7 @@ let Employee360Repository = class Employee360Repository {
           location, nt_id, global_id, cost_center, birth_date, joining_date,
           entry_for_retirement, designation_text, hrbp_global_id,
           hrbp2_global_id, official_email, technical_entry_date,
-          direct_or_indirect
+          direct_or_indirect, jd_id, jd_name
         FROM scoped e
         WHERE ($2::TEXT IS NULL OR BTRIM(e.function) = $2)
           AND ($3::TEXT IS NULL OR BTRIM(e.organizational_unit) = $3)
@@ -194,6 +200,43 @@ let Employee360Repository = class Employee360Repository {
                 functionName: [], orgUnit: [], range: [], location: [], gender: [], directOrIndirect: [],
             },
         };
+    }
+    updateJobDescription(persNo, jdId, effectiveDate, actorAccountId) {
+        return this.database.transaction(async (client) => {
+            const job = await client.query(`SELECT jd_id, role_title FROM public.job_descriptions
+         WHERE LOWER(jd_id) = LOWER($1)`, [jdId]);
+            if (!job.rows[0])
+                throw new Error('JD_NOT_FOUND');
+            const current = await client.query(`SELECT assignment.jd_id, job.role_title
+         FROM public.employee_jd_assignments assignment
+         JOIN public.job_descriptions job ON job.jd_id = assignment.jd_id
+         WHERE assignment.pers_no = $1 FOR UPDATE OF assignment`, [persNo]);
+            const selected = job.rows[0];
+            const previous = current.rows[0];
+            if (previous?.jd_id === selected.jd_id) {
+                return { jdId: selected.jd_id, jdName: selected.role_title, effectiveDate, changed: false };
+            }
+            await client.query(`INSERT INTO public.employee_jd_movements (
+           pers_no, old_jd_id, old_role_title, new_jd_id, new_role_title,
+           effective_date, source, changed_by_account_id
+         ) VALUES ($1, $2, $3, $4, $5, $6, 'manual', $7)`, [persNo, previous?.jd_id ?? null, previous?.role_title ?? null, selected.jd_id, selected.role_title, effectiveDate, actorAccountId]);
+            await client.query(`INSERT INTO public.employee_jd_assignments (
+           pers_no, jd_id, effective_date, source, source_import_id, updated_by_account_id
+         ) VALUES ($1, $2, $3, 'manual', NULL, $4)
+         ON CONFLICT (pers_no) DO UPDATE SET
+           jd_id = EXCLUDED.jd_id, effective_date = EXCLUDED.effective_date,
+           source = 'manual', source_import_id = NULL,
+           updated_by_account_id = EXCLUDED.updated_by_account_id,
+           updated_at = CURRENT_TIMESTAMP`, [persNo, selected.jd_id, effectiveDate, actorAccountId]);
+            await client.query(`INSERT INTO public.security_audit_log (event_type, actor_account_id, event_details)
+         VALUES ('employee_jd_assignment_updated', $1, $2)`, [actorAccountId, {
+                    persNo,
+                    oldJdId: previous?.jd_id ?? null,
+                    newJdId: selected.jd_id,
+                    effectiveDate,
+                }]);
+            return { jdId: selected.jd_id, jdName: selected.role_title, effectiveDate, changed: true };
+        });
     }
 };
 exports.Employee360Repository = Employee360Repository;

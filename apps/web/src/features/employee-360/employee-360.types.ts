@@ -24,6 +24,8 @@ export type Employee360Row = {
   officialEmail: string | null;
   technicalEntryDate: string | null;
   directOrIndirect: string | null;
+  jdId: string | null;
+  jdName: string | null;
 };
 
 export type Employee360Response = {
@@ -35,14 +37,19 @@ export type CareerJourneyEvent = {
   id: string;
   persNo: string;
   eventMonth: string;
-  eventType: "entry_to_ps" | "internal_ps_change" | "manual";
+  eventType: "entry_to_ps" | "internal_ps_change" | "manual" | "job_description_change";
   oldOrganisationalAreaPa: string | null;
   newOrganisationalAreaPa: string | null;
   oldOrganizationalUnit: string | null;
   newOrganizationalUnit: string | null;
   oldPsGroup: string | null;
   newPsGroup: string | null;
-  source: "rbin" | "manual";
+  source: "rbin" | "manual" | "upload";
+  oldJdId: string | null;
+  oldJdName: string | null;
+  newJdId: string | null;
+  newJdName: string | null;
+  readOnly: boolean;
   notes: string | null;
   isReviewed: boolean;
   updatedAt: string;

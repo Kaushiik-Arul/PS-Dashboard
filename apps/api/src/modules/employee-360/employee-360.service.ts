@@ -66,6 +66,26 @@ export class Employee360Service {
     });
   }
 
+  async updateJobDescription(persNoInput: string, body: unknown, user: AuthenticatedUser) {
+    const persNo = await this.assertScopedEmployee(persNoInput, user);
+    const input = this.jobDescriptionInput(body);
+    return this.run(async () => {
+      try {
+        return await this.repository.updateJobDescription(
+          persNo,
+          input.jdId,
+          input.effectiveDate,
+          user.accountId,
+        );
+      } catch (error) {
+        if (error instanceof Error && error.message === 'JD_NOT_FOUND') {
+          throw new NotFoundException('Job description was not found.');
+        }
+        throw error;
+      }
+    });
+  }
+
   private async assertScopedEmployee(persNoInput: string, user: AuthenticatedUser): Promise<string> {
     const persNo = this.persNo(persNoInput);
     await this.getProfile(persNo, user);
@@ -105,6 +125,28 @@ export class Employee360Service {
       throw new BadRequestException('Provide at least one Career Journey value or note.');
     }
     return input;
+  }
+
+  private jobDescriptionInput(body: unknown): { jdId: string; effectiveDate: string } {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new BadRequestException('JD ID and effective date are required.');
+    }
+    const record = body as Record<string, unknown>;
+    const keys = Object.keys(record);
+    if (keys.length !== 2 || keys.some((key) => key !== 'jdId' && key !== 'effectiveDate')) {
+      throw new BadRequestException('Job description update must contain JD ID and effective date.');
+    }
+    if (typeof record.jdId !== 'string' || !record.jdId.trim() || record.jdId.trim().length > 100) {
+      throw new BadRequestException('JD ID is invalid.');
+    }
+    if (typeof record.effectiveDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(record.effectiveDate)) {
+      throw new BadRequestException('Effective date must be in YYYY-MM-DD format.');
+    }
+    const date = new Date(`${record.effectiveDate}T00:00:00Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== record.effectiveDate) {
+      throw new BadRequestException('Effective date is invalid.');
+    }
+    return { jdId: record.jdId.trim().toUpperCase(), effectiveDate: record.effectiveDate };
   }
 
   private persNo(value: string): string {

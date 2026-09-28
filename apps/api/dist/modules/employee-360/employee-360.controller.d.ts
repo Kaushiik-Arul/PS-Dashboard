@@ -11,6 +11,12 @@ export declare class Employee360Controller {
         pppHistory: import("./dto/employee-360.dto").EmployeePppHistoryDto[];
     }>;
     createCareerEvent(persNo: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;
+    updateJobDescription(persNo: string, body: unknown, user: AuthenticatedUser): Promise<{
+        jdId: string;
+        jdName: string;
+        effectiveDate: string;
+        changed: boolean;
+    }>;
     updateCareerEvent(persNo: string, eventId: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;
     deleteCareerEvent(persNo: string, eventId: string, user: AuthenticatedUser): Promise<void>;
 }

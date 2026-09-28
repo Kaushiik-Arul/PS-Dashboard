@@ -9,9 +9,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HrbpPointModule = void 0;
 const common_1 = require("@nestjs/common");
 const database_module_1 = require("../../database/database.module");
+const employee_jd_import_controller_1 = require("./employee-jd-import/employee-jd-import.controller");
+const employee_jd_import_repository_1 = require("./employee-jd-import/employee-jd-import.repository");
+const employee_jd_import_service_1 = require("./employee-jd-import/employee-jd-import.service");
+const employee_jd_movements_controller_1 = require("./employee-jd-movements/employee-jd-movements.controller");
+const employee_jd_movements_repository_1 = require("./employee-jd-movements/employee-jd-movements.repository");
+const employee_jd_movements_service_1 = require("./employee-jd-movements/employee-jd-movements.service");
 const hrbp_point_controller_1 = require("./hrbp-point.controller");
 const hrbp_point_repository_1 = require("./hrbp-point.repository");
 const hrbp_point_service_1 = require("./hrbp-point.service");
+const job_descriptions_controller_1 = require("./job-descriptions/job-descriptions.controller");
+const job_descriptions_repository_1 = require("./job-descriptions/job-descriptions.repository");
+const job_descriptions_service_1 = require("./job-descriptions/job-descriptions.service");
 const namelist_import_controller_1 = require("./namelist-import/namelist-import.controller");
 const namelist_import_repository_1 = require("./namelist-import/namelist-import.repository");
 const namelist_import_service_1 = require("./namelist-import/namelist-import.service");
@@ -33,10 +42,16 @@ exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
-        controllers: [hrbp_point_controller_1.HrbpPointController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController],
+        controllers: [employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController],
         providers: [
+            employee_jd_import_service_1.EmployeeJdImportService,
+            employee_jd_import_repository_1.EmployeeJdImportRepository,
+            employee_jd_movements_service_1.EmployeeJdMovementsService,
+            employee_jd_movements_repository_1.EmployeeJdMovementsRepository,
             hrbp_point_service_1.HrbpPointService,
             hrbp_point_repository_1.HrbpPointRepository,
+            job_descriptions_service_1.JobDescriptionsService,
+            job_descriptions_repository_1.JobDescriptionsRepository,
             namelist_import_service_1.NamelistImportService,
             namelist_import_repository_1.NamelistImportRepository,
             ppp_history_import_service_1.PppHistoryImportService,

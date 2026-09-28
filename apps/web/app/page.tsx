@@ -25,7 +25,22 @@ export default async function OverviewPage({ searchParams }: OverviewPageProps) 
     const firstValue = Array.isArray(value) ? value[0] : value;
     if (firstValue) filters[key] = firstValue;
   });
-  const overview = await getOverview(filters);
+  let overview;
+  try {
+    overview = await getOverview(filters);
+  } catch (error) {
+    console.error("Unable to load workforce overview", error);
+    return (
+      <main className="error-page" role="alert">
+        <strong className="error-page__code">500</strong>
+        <h1>Workforce data could not be loaded</h1>
+        <p>Confirm the API service is running, then reload the dashboard.</p>
+        <a className="a-button a-button--primary" href="/">
+          <span className="a-button__label">Reload dashboard</span>
+        </a>
+      </main>
+    );
+  }
   const filterKey = filterKeys.map((key) => filters[key] ?? "").join("|");
   return <OverviewDashboard key={filterKey} data={overview} activeFilters={filters} />;
 }

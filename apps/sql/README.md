@@ -133,6 +133,30 @@ years are validated against the server UTC year. A successful confirmed import
 atomically replaces the complete normalized history dataset. Employee context
 columns are preview-only; unknown personnel numbers are reported and skipped.
 
+## Employee job descriptions
+
+Apply `employee_jd_assignment_migration.sql` after the authentication, Namelist,
+and Career Journey schemas before enabling Job Description Management:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/employee_jd_assignment_migration.sql"
+```
+
+The JD master maps JD IDs to Role Titles. Employee assignment uploads accept
+one XLSX worksheet containing `Pers.No.` and `JDID`; unrelated source columns
+are ignored. The preview validates employees and master JD IDs before an
+explicitly confirmed transaction deletes and replaces all current assignments.
+Added, changed, and removed assignments create permanent timestamped movements
+with Role Title snapshots for Employee 360 and the HRBP movement tracker.
+
+Preview sessions expire after 24 hours. A scheduled cleanup may run:
+
+```sql
+DELETE FROM public.employee_jd_import_previews
+WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP;
+```
+
 ## RBIN cleaning data foundation
 
 Full cross-stack documentation: [RBIN Namelist to PS Namelist](../../RBIN_NAMELIST_CLEANING.md).

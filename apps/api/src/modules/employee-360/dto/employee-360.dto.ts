@@ -42,6 +42,8 @@ export class Employee360RowDto {
   @ApiPropertyOptional({ nullable: true }) officialEmail!: string | null;
   @ApiPropertyOptional({ nullable: true }) technicalEntryDate!: string | null;
   @ApiPropertyOptional({ nullable: true }) directOrIndirect!: string | null;
+  @ApiPropertyOptional({ nullable: true }) jdId!: string | null;
+  @ApiPropertyOptional({ nullable: true }) jdName!: string | null;
 }
 
 export class Employee360FilterOptionsDto {
