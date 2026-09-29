@@ -647,3 +647,12 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 
 .pool-register-table .data-table-card__header { flex-wrap: wrap; gap: var(--app-space-3); }
 .pool-register-table .data-table-card__actions { flex-wrap: wrap; max-width: 100%; }
+
+/* Consistent compact titles for both pool employee dialogs. */
+.pool-manual-dialog .namelist-editor__header h2 {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  margin: 0;
+}
+.pool-manual-dialog .hrbp-field.has-error select,
+.pool-management .namelist-editor__fields .has-error select { border-color: #b00020; }

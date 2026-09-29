@@ -108,7 +108,7 @@ export function PoolRegisterTable({
         getRowKey={(row) => row.id}
         downloadFileName={`${kind}-pool-register`}
         pageSizeOptions={[5, 10, 25]}
-        headerActions={onAdd ? <button type="button" className="a-button a-button--primary -small" onClick={onAdd} aria-label={`Add employee to ${poolTitles[kind]}`}><span className="a-button__label">Add employee</span></button> : undefined}
+        headerActions={onAdd ? <button type="button" className="a-button a-button--integrated data-table-card__action" title="Add employee" onClick={onAdd} aria-label={`Add employee to ${poolTitles[kind]}`}><i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" /></button> : undefined}
         groupFilters
       />
     </div>

@@ -1,4 +1,5 @@
 "use client";
+import { PoolSelect } from "./PoolSelect";
 import { useRef, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { hasPermission } from "@/auth/permissions";
@@ -173,6 +174,10 @@ export function PoolRegisterManagement({ kind }: { kind: PoolKind }) {
                 key={key}
               >
                 <span>{label}</span>
+                {key === "pool" ? <PoolSelect kind={kind} value={values.pool} disabled={busy} onChange={pool => {
+                  setValues(current => ({ ...current, pool }));
+                  setIssues(current => current.filter(issue => issue.column !== "pool"));
+                }} /> : (
                 <input
                   type={
                     key === "start_date" || key === "end_date" ? "date" : "text"
@@ -202,6 +207,7 @@ export function PoolRegisterManagement({ kind }: { kind: PoolKind }) {
                     );
                   }}
                 />
+                )}
                 {issues
                   .filter((issue) => issue.column === key)
                   .map((issue, index) => (

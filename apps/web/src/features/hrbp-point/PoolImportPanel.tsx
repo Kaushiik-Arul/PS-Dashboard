@@ -1,5 +1,6 @@
 "use client";
 
+import { PoolSelect } from "./PoolSelect";
 import { useRef, useState, type ChangeEvent } from "react";
 import { poolClient } from "./pool-register.http";
 import {
@@ -462,6 +463,7 @@ export function PoolImportPanel({
                         key={key}
                       >
                         <span>{title}</span>
+                        {key === "pool" ? <PoolSelect kind={kind} value={editing.values.pool} disabled={busy} onChange={pool => setEditing(current => current ? { ...current, values: { ...current.values, pool } } : null)} /> : (
                         <input
                           type="text"
                           value={editing.values[key]}
@@ -480,6 +482,7 @@ export function PoolImportPanel({
                             )
                           }
                         />
+                        )}
                         {issues.map((issue, index) => (
                           <small
                             className={
