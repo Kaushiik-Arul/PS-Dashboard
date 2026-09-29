@@ -15,6 +15,7 @@ import { JdManagementPanel } from "./JdManagementPanel";
 import { RbinExceptionsPanel } from "./RbinExceptionsPanel";
 import { httpRbinExceptionsClient } from "./rbin-exceptions.http";
 import { PppHistoryImportPanel } from "./PppHistoryImportPanel";
+import { AvailableTalentImportPanel } from "./AvailableTalentImportPanel";
 import { PoolImportPanel } from "./PoolImportPanel";
 import { ActiveStepImportPanel } from "./ActiveStepImportPanel";
 import "@/components/data-table/data-table.css";
@@ -221,6 +222,7 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
 
       <div className="hrbp-pool-registers">
       {canManageNamelist && <ActiveStepImportPanel />}
+      {canManageNamelist && <AvailableTalentImportPanel kind="available" />}
       {canManageNamelist && <PoolImportPanel kind="development" />}
       {canManageNamelist && <PoolImportPanel kind="talent" />}
       </div>

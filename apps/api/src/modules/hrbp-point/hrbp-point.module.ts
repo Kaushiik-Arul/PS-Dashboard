@@ -1,3 +1,5 @@
+import { AvailableTalentController } from './available-talent/available-talent.controller';
+import { AvailableTalentService } from './available-talent/available-talent.service';
 import { PoolRegisterController } from './pool-register/pool-register.controller';
 import { PoolRegisterService } from './pool-register/pool-register.service';
 import { Module } from '@nestjs/common';
@@ -35,8 +37,8 @@ import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [PoolRegisterController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
-  providers: [
+  controllers: [AvailableTalentController, PoolRegisterController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
+  providers: [AvailableTalentService,
     PoolRegisterService,
     ActiveStepService,
     ActiveStepRepository,

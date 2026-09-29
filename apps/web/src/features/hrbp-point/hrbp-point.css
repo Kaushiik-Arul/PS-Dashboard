@@ -656,3 +656,7 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 }
 .pool-manual-dialog .hrbp-field.has-error select,
 .pool-management .namelist-editor__fields .has-error select { border-color: #b00020; }
+
+.available-jd-input { display: grid; gap: var(--app-space-1); min-width: 0; }
+.available-jd-input__hint { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
+.pool-manual-dialog .hrbp-field textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: var(--app-space-2); font: inherit; resize: vertical; }

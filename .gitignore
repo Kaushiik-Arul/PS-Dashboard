@@ -69,3 +69,5 @@ next-env.d.ts
 
 # Local patch files
 *.patch
+
+!apps/sql/available_talent_migration.sql

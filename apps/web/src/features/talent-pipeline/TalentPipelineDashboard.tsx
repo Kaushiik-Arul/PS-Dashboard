@@ -23,16 +23,8 @@ import {
 } from "@/components/data-table/DataTable";
 
 import "./talent-pipeline.css";
+import { AvailableTalentManagement } from "../hrbp-point/AvailableTalentManagement";
 import { PoolRegisterManagement } from "../hrbp-point/PoolRegisterManagement";
-import { getStatusTone } from "./status";
-
-function renderStatusValue(value: unknown) {
-  return (
-    <span className={`data-table__badge -${getStatusTone(value)}`}>
-      {String(value)}
-    </span>
-  );
-}
 
 /* =========================================================
    CHART DATA
@@ -133,166 +125,6 @@ const talentRangeDistribution = [
   { label: "G4", value: 96 },
   { label: "G5", value: 34 },
   { label: "G6", value: 12 },
-];
-
-/* =========================================================
-   TABLE 1
-   STEP AVAILABLE TALENT
-========================================================= */
-
-interface StepAvailableTalent {
-  personnelNo: string;
-  employeeName: string;
-  talentPool: string;
-  developmentPool: string;
-  functionName: string;
-  orgUnit: string;
-  location: string;
-  stepAvailability: string;
-  preferredFunction: string;
-  preferredLocation: string;
-  availableFrom: string;
-}
-
-const stepAvailableTalentColumns: DataTableColumn<StepAvailableTalent>[] = [
-  {
-    key: "personnelNo",
-    label: "Pers.No.",
-    group: "Employee",
-  },
-  {
-    key: "employeeName",
-    label: "Employee Name",
-    group: "Employee",
-  },
-
-  {
-    key: "talentPool",
-    label: "Talent Pool",
-    group: "Talent",
-    filterable: true,
-  },
-  {
-    key: "developmentPool",
-    label: "Dev. Pool",
-    group: "Talent",
-    filterable: true,
-  },
-
-  {
-    key: "functionName",
-    label: "Function",
-    group: "Current Position",
-    filterable: true,
-  },
-  {
-    key: "orgUnit",
-    label: "Org Unit",
-    group: "Current Position",
-    filterable: true,
-  },
-  {
-    key: "location",
-    label: "Location",
-    group: "Current Position",
-    filterable: true,
-  },
-
-  {
-    key: "stepAvailability",
-    label: "STEP Availability",
-    group: "STEP Preference",
-    filterable: true,
-    render: renderStatusValue,
-  },
-
-  {
-    key: "preferredFunction",
-    label: "Preferred Function",
-    group: "STEP Preference",
-  },
-  {
-    key: "preferredLocation",
-    label: "Preferred Location",
-    group: "STEP Preference",
-  },
-  {
-    key: "availableFrom",
-    label: "Avail. From",
-    group: "STEP Preference",
-  }
-];
-
-const stepAvailableTalent: StepAvailableTalent[] = [
-  {
-    personnelNo: "3005409",
-    employeeName: "Sujith Sugathan",
-    talentPool: "TP1",
-    developmentPool: "Future Talent",
-    functionName: "R&D",
-    orgUnit: "PS-DC/ENG-IN",
-    location: "Bangalore",
-    stepAvailability: "Available",
-    preferredFunction: "Engineering / Project Mgmt",
-    preferredLocation: "Bangalore / Germany",
-    availableFrom: "01-Jan-2027",
-  },
-  {
-    personnelNo: "31195420",
-    employeeName: "Mohan Murugan R",
-    talentPool: "TP1",
-    developmentPool: "-",
-    functionName: "R&D",
-    orgUnit: "PS-CC/RW-IN",
-    location: "Bangalore",
-    stepAvailability: "Under Discussion",
-    preferredFunction: "R&D",
-    preferredLocation: "Europe",
-    availableFrom: "01-Apr-2027",
-    // preferredNeed: "6-10 Months",
-  },
-  {
-    personnelNo: "3079124",
-    employeeName: "Vijaya Mohan N S",
-    talentPool: "TP1",
-    developmentPool: "Key to Retain",
-    functionName: "General Mgmt",
-    orgUnit: "PS/RP-IN",
-    location: "Bangalore",
-    stepAvailability: "Available",
-    preferredFunction: "General Mgmt",
-    preferredLocation: "Europe / India",
-    availableFrom: "01-Jun-2026",
-    // preferredNeed: "12-24 Months",
-  },
-  {
-    personnelNo: "3063279",
-    employeeName: "Amit Singhal",
-    talentPool: "TP1",
-    developmentPool: "Future Talent",
-    functionName: "Sales",
-    orgUnit: "PS/CA-IN",
-    location: "Bangalore",
-    stepAvailability: "Planned",
-    preferredFunction: "Sales",
-    preferredLocation: "Europe",
-    availableFrom: "01-Sep-2027",
-    // preferredNeed: "12 Months",
-  },
-  {
-    personnelNo: "3075806",
-    employeeName: "Ravindra",
-    talentPool: "TP1",
-    developmentPool: "Key to Retain",
-    functionName: "Logistics",
-    orgUnit: "PS/LOG-IN",
-    location: "Bangalore",
-    stepAvailability: "Not Available",
-    preferredFunction: "-",
-    preferredLocation: "-",
-    availableFrom: "-",
-    // preferredNeed: "-",
-  },
 ];
 
 /* =========================================================
@@ -596,15 +428,7 @@ export function TalentPipelineDashboard() {
         {/* TOP TWO TABLES */}
 
         <div className="talent-table-grid">
-          <DataTable
-            title="STEP-Available Talent (People)"
-            description="Talent currently available or planned for STEP assignments"
-            columns={stepAvailableTalentColumns}
-            rows={stepAvailableTalent}
-            getRowKey={(row) => row.personnelNo}
-            downloadFileName="step-available-talent"
-            pageSizeOptions={[5, 10, 25]}
-          />
+          <AvailableTalentManagement kind="available" />
 
           <div className="talent-active-step">
             {activeStepError && <p role="alert">{activeStepError}</p>}
