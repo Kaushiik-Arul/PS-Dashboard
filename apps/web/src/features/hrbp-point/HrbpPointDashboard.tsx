@@ -15,7 +15,7 @@ import { JdManagementPanel } from "./JdManagementPanel";
 import { RbinExceptionsPanel } from "./RbinExceptionsPanel";
 import { httpRbinExceptionsClient } from "./rbin-exceptions.http";
 import { PppHistoryImportPanel } from "./PppHistoryImportPanel";
-import { PoolRegisterManagement } from "./PoolRegisterManagement";
+import { PoolImportPanel } from "./PoolImportPanel";
 import { ActiveStepImportPanel } from "./ActiveStepImportPanel";
 import "@/components/data-table/data-table.css";
 import "./hrbp-point.css";
@@ -221,8 +221,8 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
 
       <div className="hrbp-pool-registers">
       {canManageNamelist && <ActiveStepImportPanel />}
-      {canManageNamelist && <PoolRegisterManagement kind="development" />}
-      {canManageNamelist && <PoolRegisterManagement kind="talent" />}
+      {canManageNamelist && <PoolImportPanel kind="development" />}
+      {canManageNamelist && <PoolImportPanel kind="talent" />}
       </div>
 
       <dialog className="hrbp-dialog" ref={editorRef} onClose={() => setFormError("")}>

@@ -24,6 +24,7 @@ interface DataTableProps<Row extends object> {
   downloadFileName: string;
   pageSizeOptions?: number[];
   groupFilters?: boolean;
+  headerActions?: ReactNode;
 }
 
 const BLANK_FILTER = "\u0000";
@@ -52,6 +53,7 @@ export function DataTable<Row extends object>({
   downloadFileName,
   pageSizeOptions = [5, 10, 25],
   groupFilters = false,
+  headerActions,
 }: DataTableProps<Row>) {
   const { role } = useAuth();
   const canDownload = hasPermission(role, "exportCharts");
@@ -153,6 +155,7 @@ export function DataTable<Row extends object>({
           {isDescriptionVisible && <p className="data-table-card__description">{description}</p>}
         </div>
         <div className="data-table-card__actions">
+          {headerActions}
           <div
             className="data-table-card__menu-control"
             onBlur={(event) => {

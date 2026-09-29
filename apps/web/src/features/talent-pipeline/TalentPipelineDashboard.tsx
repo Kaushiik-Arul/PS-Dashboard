@@ -23,7 +23,7 @@ import {
 } from "@/components/data-table/DataTable";
 
 import "./talent-pipeline.css";
-import { PoolRegisterTable } from "../hrbp-point/PoolRegisterTable";
+import { PoolRegisterManagement } from "../hrbp-point/PoolRegisterManagement";
 import { getStatusTone } from "./status";
 
 function renderStatusValue(value: unknown) {
@@ -621,8 +621,8 @@ export function TalentPipelineDashboard() {
           </div>
         </div>
 
-        <PoolRegisterTable kind="development" />
-        <PoolRegisterTable kind="talent" />
+        <PoolRegisterManagement kind="development" />
+        <PoolRegisterManagement kind="talent" />
       </section>
     </main>
   );

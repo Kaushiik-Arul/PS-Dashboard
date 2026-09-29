@@ -2,6 +2,7 @@ import type { UserRole } from "./roles";
 
 export type Permission =
   | "exportCharts"
+  | "manageTalentPipeline"
   | "manageEmployeeStatus"
   | "manageNamelist"
   | "viewHrbpPoint"
@@ -12,6 +13,7 @@ export type Permission =
 
 export const permissions: Record<Permission, readonly UserRole[]> = {
   exportCharts: ["hrbp"],
+  manageTalentPipeline: ["hrbp"],
   manageEmployeeStatus: ["hrbp"],
   manageNamelist: ["hrbp"],
   viewHrbpPoint: ["hrbp"],

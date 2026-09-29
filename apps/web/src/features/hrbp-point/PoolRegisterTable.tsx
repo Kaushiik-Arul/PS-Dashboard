@@ -15,11 +15,13 @@ import {
 export function PoolRegisterTable({
   kind,
   refresh = 0,
+  onAdd,
   onEdit,
   onDelete,
 }: {
   kind: PoolKind;
   refresh?: number;
+  onAdd?: () => void;
   onEdit?: (row: PoolRecord) => void;
   onDelete?: (row: PoolRecord) => void;
 }) {
@@ -106,6 +108,7 @@ export function PoolRegisterTable({
         getRowKey={(row) => row.id}
         downloadFileName={`${kind}-pool-register`}
         pageSizeOptions={[5, 10, 25]}
+        headerActions={onAdd ? <button type="button" className="a-button a-button--primary -small" onClick={onAdd} aria-label={`Add employee to ${poolTitles[kind]}`}><span className="a-button__label">Add employee</span></button> : undefined}
         groupFilters
       />
     </div>

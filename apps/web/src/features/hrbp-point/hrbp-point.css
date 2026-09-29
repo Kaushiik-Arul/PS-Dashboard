@@ -644,3 +644,6 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 
 .pool-manual-dialog .namelist-editor__fields > p { grid-column: 1 / -1; }
 @media (max-width: 600px) { .pool-manual-dialog .namelist-editor__fields { grid-template-columns: 1fr; } }
+
+.pool-register-table .data-table-card__header { flex-wrap: wrap; gap: var(--app-space-3); }
+.pool-register-table .data-table-card__actions { flex-wrap: wrap; max-width: 100%; }

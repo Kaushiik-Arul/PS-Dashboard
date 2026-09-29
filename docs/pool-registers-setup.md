@@ -47,7 +47,8 @@ npm run dev
 ## Behavior
 
 - Remove People to STEP Position Matching and replace the old dummy combined register with Development Pool Register and Talent Pool Register.
-- HRBP Point: XLSX upload/preview and manual add/edit/delete for each register.
+- HRBP Point: XLSX upload and preview for each register.
+- Talent Pipeline: HRBP-only Add employee button and edit/delete controls in each register. Other roles retain their scoped read-only view.
 - Manual entry fetches employee name, PS Group, Org Unit, Range and (for Talent) Gender from the current namelist after leaving Pers.No. Missing employees can be entered manually.
 - Excel uploads retain supplied values. Missing namelist employees and differences are nonblocking warnings under their cells.
 - Repeated personnel numbers are invalid within a register; the same employee can belong to both registers.

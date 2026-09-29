@@ -16,7 +16,7 @@ export function PoolImportPanel({
   onCommitted,
 }: {
   kind: PoolKind;
-  onCommitted: () => void;
+  onCommitted?: () => void;
 }) {
   const title = poolTitles[kind];
   const stepColumns = columnsFor(kind);
@@ -151,7 +151,7 @@ export function PoolImportPanel({
     try {
       const result = await client.commit(preview.id);
       reset();
-      onCommitted();
+      onCommitted?.();
       setMessage(
         `${title} updated: ${result.importedRows} rows imported, ${result.replacedRows} previous rows replaced.`,
       );

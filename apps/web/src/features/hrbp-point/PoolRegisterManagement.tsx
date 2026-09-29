@@ -1,6 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
-import { PoolImportPanel } from "./PoolImportPanel";
+import { useAuth } from "@/auth/AuthProvider";
+import { hasPermission } from "@/auth/permissions";
+import "./hrbp-point.css";
 import { PoolRegisterTable } from "./PoolRegisterTable";
 import { poolClient, PoolRequestError } from "./pool-register.http";
 import {
@@ -14,6 +16,8 @@ import {
 } from "./pool-register.types";
 
 export function PoolRegisterManagement({ kind }: { kind: PoolKind }) {
+  const { role } = useAuth();
+  const canManage = hasPermission(role, "manageTalentPipeline");
   const editor = useRef<HTMLDialogElement>(null);
   const lastLookup = useRef("");
   const deletion = useRef<HTMLDialogElement>(null);
@@ -112,25 +116,14 @@ export function PoolRegisterManagement({ kind }: { kind: PoolKind }) {
       setBusy(false);
     }
   };
+  if (!canManage) return <PoolRegisterTable kind={kind} />;
   return (
     <section className="pool-management">
-      <PoolImportPanel kind={kind} onCommitted={changed} />
-      <div className="pool-management__toolbar">
-        <button
-          type="button"
-          className="a-button a-button--primary"
-          onClick={() => openEditor()}
-        >
-          <span className="a-button__label">
-            Add {kind === "development" ? "development" : "talent"} pool
-            employee
-          </span>
-        </button>
-        {message && <p role="status">{message}</p>}
-      </div>
+      {message && <p role="status">{message}</p>}
       <PoolRegisterTable
         kind={kind}
         refresh={refresh}
+        onAdd={() => openEditor()}
         onEdit={openEditor}
         onDelete={(row) => {
           setPendingDelete(row);
