@@ -2,6 +2,8 @@ import { AvailableTalentController } from './available-talent/available-talent.c
 import { AvailableTalentService } from './available-talent/available-talent.service';
 import { PoolRegisterController } from './pool-register/pool-register.controller';
 import { PoolRegisterService } from './pool-register/pool-register.service';
+import { NominationStatusController } from './nomination-status/nomination-status.controller';
+import { NominationStatusService } from './nomination-status/nomination-status.service';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
 import { ActiveStepController } from './active-step/active-step.controller';
@@ -37,9 +39,10 @@ import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [AvailableTalentController, PoolRegisterController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
+  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController],
   providers: [AvailableTalentService,
     PoolRegisterService,
+    NominationStatusService,
     ActiveStepService,
     ActiveStepRepository,
     EmployeeJdImportService,

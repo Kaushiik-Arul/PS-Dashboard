@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { Employee360Module } from './modules/employee-360/employee-360.module';
 import { HrbpPointModule } from './modules/hrbp-point/hrbp-point.module';
 import { OverviewModule } from './modules/overview/overview.module';
+import { TalentPipelineModule } from './modules/talent-pipeline/talent-pipeline.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { OverviewModule } from './modules/overview/overview.module';
     Employee360Module,
     HrbpPointModule,
     OverviewModule,
+    TalentPipelineModule,
   ],
   controllers: [AppController],
   providers: [AppService],

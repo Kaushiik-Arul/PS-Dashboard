@@ -61,10 +61,15 @@ next-env.d.ts
 !apps/sql/employee_jd_allow_unassigned.sql
 !apps/sql/active_step_migration.sql
 !apps/sql/pool_registers_migration.sql
+!apps/sql/split_pool_register_tables_migration.sql
+!apps/sql/nomination_status_migration.sql
+!apps/sql/talent_pipeline_functions_migration.sql
 !apps/sql/reset_rbin_automation_data.sql
 !apps/sql/functions/
 !apps/sql/functions/overview/
 !apps/sql/functions/overview/*.sql
+!apps/sql/functions/talent-pipeline/
+!apps/sql/functions/talent-pipeline/*.sql
 
 
 # Local patch files

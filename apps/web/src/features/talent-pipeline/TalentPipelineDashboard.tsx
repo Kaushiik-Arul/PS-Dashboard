@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { startTransition, useEffect, useRef, useState } from "react";
 import {
   emptyDashboardFilters,
   OverviewFilters,
+  type DashboardFilterKey,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 
@@ -15,6 +17,7 @@ import {
   DonutChart,
   HorizontalBarChart,
   VerticalBarChart,
+  type ChartDatum,
 } from "@/components/charts/OverviewCharts";
 
 import {
@@ -25,107 +28,79 @@ import {
 import "./talent-pipeline.css";
 import { AvailableTalentManagement } from "../hrbp-point/AvailableTalentManagement";
 import { PoolRegisterManagement } from "../hrbp-point/PoolRegisterManagement";
+import type {
+  TalentPipelineChartDatum,
+  TalentPipelineFilterOptions,
+  TalentPipelineQueryFilters,
+  TalentPipelineResponse,
+} from "./talent-pipeline.types";
 
-/* =========================================================
-   CHART DATA
-========================================================= */
-
-const talentPoolDistribution = [
-  { label: "TP1", value: 212 },
-  { label: "TP2", value: 148 },
-  { label: "TP3", value: 78 },
-  { label: "TP4", value: 28 },
-  { label: "TP5", value: 16 },
+const talentFilterFields: readonly DashboardFilterKey[] = [
+  "functionName", "orgUnit", "range", "location", "gender", "employmentType",
 ];
 
-const activePassiveDistribution = [
-  {
-    label: "Active",
-    value: 352,
-    displayValue: "352 (73.0%)",
-    color: "var(--data-visualization-3)",
-  },
-  {
-    label: "Passive",
-    value: 130,
-    displayValue: "130 (27.0%)",
-    color: "var(--data-visualization-5)",
-  },
-];
+function toDashboardFilters(filters: TalentPipelineQueryFilters): DashboardFilters {
+  return {
+    ...emptyDashboardFilters,
+    functionName: filters.functionName ?? "All",
+    orgUnit: filters.orgUnit ?? "All",
+    range: filters.range ?? "All",
+    location: filters.location ?? "All",
+    gender: filters.gender ?? "All",
+    employmentType: filters.directOrIndirect ?? "All",
+  };
+}
 
-const nominationStatusDistribution = [
-  {
-    label: "Green",
-    value: 259,
-    displayValue: "259 (53.7%)",
-    color: "var(--signal-success-pure__enabled__default__front)",
-  },
-  {
-    label: "Amber",
-    value: 134,
-    displayValue: "134 (27.8%)",
-    color: "var(--signal-warning-pure__enabled__default__front)",
-  },
-  {
-    label: "Red",
-    value: 89,
-    displayValue: "89 (18.5%)",
-    color: "var(--signal-error-pure__enabled__default__front)",
-  },
-];
+function toSearchParams(filters: DashboardFilters) {
+  const params = new URLSearchParams();
+  const values = [
+    ["functionName", filters.functionName],
+    ["orgUnit", filters.orgUnit],
+    ["range", filters.range],
+    ["location", filters.location],
+    ["gender", filters.gender],
+    ["directOrIndirect", filters.employmentType],
+  ] as const;
+  values.forEach(([key, value]) => {
+    if (value !== "All") params.set(key, value);
+  });
+  return params;
+}
 
-const developmentPoolDistribution = [
-  {
-    label: "Female talent",
-    value: 268,
-    displayValue: "268 (55.6%)",
-    color: "var(--data-visualization-4)",
-  },
-  {
-    label: "Key to retain",
-    value: 72,
-    displayValue: "72 (14.9%)",
-    color: "var(--data-visualization-1)",
-  },
-  {
-    label: "Future talent",
-    value: 94,
-    displayValue: "94 (19.5%)",
-    color: "var(--data-visualization-3)",
-  },
-  {
-    label: "Change wanted",
-    value: 48,
-    displayValue: "48 (10.0%)",
-    color: "var(--data-visualization-5)",
-  },
-];
+function displayValue(item: TalentPipelineChartDatum) {
+  const count = item.value.toLocaleString("en-US");
+  return item.percentage === null
+    ? count
+    : `${count} (${item.percentage.toLocaleString("en-US", { maximumFractionDigits: 1 })}%)`;
+}
 
-const talentGenderDistribution = [
-  {
-    label: "Male",
-    value: 374,
-    displayValue: "374 (77.6%)",
-    color: "var(--data-visualization-1)",
-  },
-  {
-    label: "Female",
-    value: 108,
-    displayValue: "108 (22.4%)",
-    color: "var(--data-visualization-4)",
-  },
-];
+function mapChart(data: TalentPipelineChartDatum[]): ChartDatum[] {
+  return data.map((item) => ({
+    label: item.label,
+    value: item.value,
+    displayValue: displayValue(item),
+  }));
+}
 
-const talentRangeDistribution = [
-  { label: "SL1", value: 25 },
-  { label: "SL2", value: 12 },
-  { label: "G1", value: 20 },
-  { label: "G2", value: 92 },
-  { label: "G3", value: 168 },
-  { label: "G4", value: 96 },
-  { label: "G5", value: 34 },
-  { label: "G6", value: 12 },
-];
+function mapDonut(
+  data: TalentPipelineChartDatum[],
+  colors: Record<string, string>,
+): Array<ChartDatum & { color: string }> {
+  return data.map((item, index) => ({
+    label: item.label,
+    value: item.value,
+    displayValue: displayValue(item),
+    color: colors[item.label] ?? `var(--data-visualization-${(index % 6) + 1})`,
+  }));
+}
+
+function percentageLabel(value: number | null, denominator: string) {
+  return value === null ? "N/A" : `${value.toFixed(1)}% of ${denominator}`;
+}
+
+function ChartUnavailable() {
+  return <p role="status">Data is not available for the selected filters.</p>;
+}
 
 /* =========================================================
    TABLE 2
@@ -161,105 +136,24 @@ const activeStepColumns: DataTableColumn<ActiveStepRow>[] = [
   { key: "locationTo", label: "Location To", group: "Location", filterable: true },
 ];
 
-const talentPipelineKpis: KpiMetric[] = [
-  {
-    id: "total-talent-pool",
-    title: "Total talent pool",
-    value: "482",
-    comparisonLabel: "vs Aug 2026",
-    trendValue: "+3.1%",
-    trendDirection: "up",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "blue",
-  },
-  {
-    id: "active-talent-pool",
-    title: "Active talent pool",
-    value: "352",
-    comparisonLabel: "73.0% of total",
-    trendValue: "+2.6%",
-    trendDirection: "up",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "green",
-  },
-  {
-    id: "passive-talent-pool",
-    title: "Passive talent pool members",
-    value: "130",
-    comparisonLabel: "27.0% of total",
-    trendValue: "+5.7%",
-    trendDirection: "up",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "orange",
-  },
-  {
-    id: "development-pool",
-    title: "Development pool",
-    value: "482",
-    comparisonLabel: "vs Aug 2026",
-    trendValue: "+1.9%",
-    trendDirection: "up",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-chart-line",
-    iconColor: "purple",
-  },
-  {
-    id: "female-talent",
-    title: "Female talent",
-    value: "268",
-    comparisonLabel: "55.6% of development pool",
-    trendValue: "+1.3%",
-    trendDirection: "up",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "red",
-  },
-  {
-    id: "key-to-retain",
-    title: "Key to retain",
-    value: "72",
-    comparisonLabel: "15.0% of development pool",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "orange",
-  },
-  {
-    id: "future-talent",
-    title: "Future talent",
-    value: "94",
-    comparisonLabel: "19.5% of development pool",
-    icon: "boschicon-bosch-ic-chart-line",
-    iconColor: "green",
-  },
-  {
-    id: "change-wanted",
-    title: "Change wanted",
-    value: "48",
-    comparisonLabel: "10.0% of development pool",
-    icon: "boschicon-bosch-ic-refresh",
-    iconColor: "blue",
-  },
-  {
-    id: "talent-pool-expiring",
-    title: "Talent pool expiring soon",
-    value: "",
-    comparisonLabel: "",
-    breakdown: [
-      { label: "≤ 6 months", value: "28" },
-      { label: "≤ 12 months", value: "61" },
-    ],
-    icon: "boschicon-bosch-ic-calendar",
-    iconColor: "blue",
-  },
-];
-
 /* =========================================================
    PAGE
 ========================================================= */
 
-export function TalentPipelineDashboard() {
+export function TalentPipelineDashboard({
+  data,
+  activeFilters,
+}: {
+  data: TalentPipelineResponse;
+  activeFilters: TalentPipelineQueryFilters;
+}) {
+  const router = useRouter();
+  const appliedFilters = toDashboardFilters(activeFilters);
+  const [draftFilters, setDraftFilters] = useState(appliedFilters);
+  const [filterOptions, setFilterOptions] = useState(data.filterOptions);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(false);
+  const optionRequestId = useRef(0);
   const [activeStepRows, setActiveStepRows] = useState<ActiveStepRow[]>([]);
   const [activeStepError, setActiveStepError] = useState("");
   useEffect(() => {
@@ -273,28 +167,75 @@ export function TalentPipelineDashboard() {
     return () => controller.abort();
   }, []);
 
-  const [draftFilters, setDraftFilters] = useState<DashboardFilters>({
-    ...emptyDashboardFilters,
-  });
-
-  const [activeFilters, setActiveFilters] = useState<DashboardFilters>({
-    ...emptyDashboardFilters,
-  });
-
-  const clearFilters = () => {
-    setDraftFilters({ ...emptyDashboardFilters });
-    setActiveFilters({ ...emptyDashboardFilters });
+  const applyFilters = (filters: DashboardFilters) => {
+    const params = toSearchParams(filters);
+    setIsFiltering(true);
+    startTransition(() => {
+      router.push(params.size ? `/talent-pipeline?${params}` : "/talent-pipeline");
+    });
   };
+
+  const refreshFilterOptions = async (filters: DashboardFilters) => {
+    const requestId = ++optionRequestId.current;
+    setIsLoadingOptions(true);
+    try {
+      const params = toSearchParams(filters);
+      const query = params.size ? `?${params}` : "";
+      const response = await fetch(`/api/talent-pipeline/filter-options${query}`);
+      if (!response.ok) return;
+      const options = (await response.json()) as TalentPipelineFilterOptions;
+      if (requestId === optionRequestId.current) setFilterOptions(options);
+    } catch {
+      // Retain current choices; Apply still validates filters on the server.
+    } finally {
+      if (requestId === optionRequestId.current) setIsLoadingOptions(false);
+    }
+  };
+
+  const kpis: KpiMetric[] = [
+    { id: "total-talent-pool", title: "Total talent pool", value: data.kpis.totalTalentPool.value.toLocaleString("en-US"), comparisonLabel: "Current register", icon: "boschicon-bosch-ic-user", iconColor: "blue" },
+    { id: "active-talent-pool", title: "Active talent pool", value: data.kpis.activeTalentPool.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.activeTalentPool.percentage, "total"), icon: "boschicon-bosch-ic-user", iconColor: "green" },
+    { id: "passive-talent-pool", title: "Passive talent pool members", value: data.kpis.passiveTalentPool.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.passiveTalentPool.percentage, "total"), icon: "boschicon-bosch-ic-user", iconColor: "orange" },
+    { id: "development-pool", title: "Development pool", value: data.kpis.developmentPool.value.toLocaleString("en-US"), comparisonLabel: "Current register", icon: "boschicon-bosch-ic-chart-line", iconColor: "purple" },
+    { id: "female-talent", title: "Female talent", value: data.kpis.femaleTalent.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.femaleTalent.percentage, "development pool"), icon: "boschicon-bosch-ic-user", iconColor: "red" },
+    { id: "key-to-retain", title: "Key to retain", value: data.kpis.keyToRetain.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.keyToRetain.percentage, "development pool"), icon: "boschicon-bosch-ic-user", iconColor: "orange" },
+    { id: "future-talent", title: "Future talent", value: data.kpis.futureTalent.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.futureTalent.percentage, "development pool"), icon: "boschicon-bosch-ic-chart-line", iconColor: "green" },
+    { id: "change-wanted", title: "Change wanted", value: data.kpis.changeWanted.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.changeWanted.percentage, "development pool"), icon: "boschicon-bosch-ic-refresh", iconColor: "blue" },
+    { id: "talent-pool-expiring", title: "Talent pool expiring soon", value: "", comparisonLabel: "", breakdown: [
+      { label: "≤ 6 months", value: data.kpis.talentPoolExpiring.within6Months.toLocaleString("en-US") },
+      { label: "≤ 12 months", value: data.kpis.talentPoolExpiring.within12Months.toLocaleString("en-US") },
+    ], icon: "boschicon-bosch-ic-calendar", iconColor: "blue" },
+  ];
+  const talentPoolDistribution = mapChart(data.charts.talentPoolDistribution.data);
+  const activePassiveDistribution = mapDonut(data.charts.activePassiveDistribution.data, { Active: "var(--data-visualization-3)", Passive: "var(--data-visualization-5)" });
+  const nominationStatusDistribution = mapDonut(data.charts.nominationStatusDistribution.data, { Green: "var(--signal-success-pure__enabled__default__front)", Amber: "var(--signal-warning-pure__enabled__default__front)", Red: "var(--signal-error-pure__enabled__default__front)" });
+  const developmentPoolDistribution = mapDonut(data.charts.developmentPoolDistribution.data, { "Female talent": "var(--data-visualization-4)", "Key to retain": "var(--data-visualization-1)", "Future talent": "var(--data-visualization-3)", "Change wanted": "var(--data-visualization-5)" });
+  const talentGenderDistribution = mapDonut(data.charts.talentGenderDistribution.data, { Male: "var(--data-visualization-1)", Female: "var(--data-visualization-4)" });
+  const talentRangeDistribution = mapChart(data.charts.talentRangeDistribution.data);
+  const talentRangeMaximum = Math.max(...talentRangeDistribution.map((item) => item.value), 0);
+  const rangeColumnSize = Math.ceil(talentRangeDistribution.length / 2);
+  const talentRangeColumns = [
+    talentRangeDistribution.slice(0, rangeColumnSize),
+    talentRangeDistribution.slice(rangeColumnSize),
+  ].filter((column) => column.length > 0);
+  const talentTotal = data.kpis.totalTalentPool.value.toLocaleString("en-US");
+  const developmentTotal = data.kpis.developmentPool.value.toLocaleString("en-US");
+  const nominationTotal = data.charts.nominationStatusDistribution.data.reduce((sum, item) => sum + item.value, 0).toLocaleString("en-US");
 
   return (
     <main className="overview-page">
       <OverviewFilters
         value={draftFilters}
-        activeValue={activeFilters}
-        onChange={setDraftFilters}
-        onApply={() => setActiveFilters({ ...draftFilters })}
-        onClear={clearFilters}
+        activeValue={appliedFilters}
+        fields={talentFilterFields}
+        options={{ functionName: filterOptions.functionName, orgUnit: filterOptions.orgUnit, range: filterOptions.range, location: filterOptions.location, gender: filterOptions.gender, employmentType: filterOptions.directOrIndirect }}
+        onChange={(filters) => { setDraftFilters(filters); void refreshFilterOptions(filters); }}
+        onApply={() => applyFilters(draftFilters)}
+        onClear={() => { setDraftFilters(emptyDashboardFilters); applyFilters(emptyDashboardFilters); }}
       />
+
+      {isLoadingOptions && <p className="overview-page__filtering" role="status">Updating filter choices...</p>}
+      {isFiltering && <p className="overview-page__filtering" role="status">Updating dashboard...</p>}
 
       {/* KPI SECTION */}
 
@@ -319,7 +260,7 @@ export function TalentPipelineDashboard() {
         </div>
 
         <KpiGrid>
-          {talentPipelineKpis.map((kpi) => (
+          {kpis.map((kpi) => (
             <KpiCard key={kpi.id} metric={kpi} />
           ))}
         </KpiGrid>
@@ -347,59 +288,56 @@ export function TalentPipelineDashboard() {
             title="Talent pool distribution"
             description="Members by talent pool level"
           >
-            <VerticalBarChart data={talentPoolDistribution} />
+            {talentPoolDistribution.length ? <VerticalBarChart data={talentPoolDistribution} /> : <ChartUnavailable />}
           </ChartCard>
 
           <ChartCard
             title="Active vs passive"
             description="Current status of talent pool members"
           >
-            <DonutChart
-              data={activePassiveDistribution}
-              total="482"
-            />
+            {activePassiveDistribution.length ? <DonutChart data={activePassiveDistribution} total={talentTotal} /> : <ChartUnavailable />}
           </ChartCard>
 
           <ChartCard
             title="Nomination status (RAG)"
             description="Nomination health across the talent pool"
           >
-            <DonutChart
-              data={nominationStatusDistribution}
-              total="482"
-            />
+            {nominationStatusDistribution.length ? <DonutChart data={nominationStatusDistribution} total={nominationTotal} /> : <ChartUnavailable />}
           </ChartCard>
 
           <ChartCard
             title="Development pool distribution"
             description="Members across development pool categories"
           >
-            <DonutChart
-              data={developmentPoolDistribution}
-              total="482"
-            />
+            {developmentPoolDistribution.length ? <DonutChart data={developmentPoolDistribution} total={developmentTotal} /> : <ChartUnavailable />}
           </ChartCard>
 
           <ChartCard
             title="Gender and range distribution"
             description="Talent pool composition by gender and range"
+            className="talent-demographics-card"
           >
             <div className="talent-demographics">
               <div className="talent-demographics__group">
                 <h3>By gender</h3>
 
-                <DonutChart
-                  data={talentGenderDistribution}
-                  total="482"
-                />
+                {talentGenderDistribution.length ? <DonutChart data={talentGenderDistribution} total={talentTotal} /> : <ChartUnavailable />}
               </div>
 
               <div className="talent-demographics__group">
                 <h3>By range</h3>
 
-                <HorizontalBarChart
-                  data={talentRangeDistribution}
-                />
+                {talentRangeColumns.length ? (
+                  <div className="talent-range-columns">
+                    {talentRangeColumns.map((column) => (
+                      <HorizontalBarChart
+                        key={column[0].label}
+                        data={column}
+                        maximum={talentRangeMaximum}
+                      />
+                    ))}
+                  </div>
+                ) : <ChartUnavailable />}
               </div>
             </div>
           </ChartCard>

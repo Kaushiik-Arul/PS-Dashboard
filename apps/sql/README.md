@@ -33,6 +33,33 @@ Source tables: public.employee_namelist, public.employee_status
 - Store function definitions in apps/sql/functions.
 - Apply database changes through versioned migrations.
 
+## Talent Pipeline database contract
+
+| Function | Arguments | Return type | Purpose |
+| --- | --- | --- | --- |
+| `public.get_talent_pipeline_kpis()` | DATE, six optional TEXT filters, authenticated account UUID | JSONB | Scope-filtered Talent and Development Pool KPI values |
+| `public.get_talent_pipeline_charts()` | DATE, six optional TEXT filters, authenticated account UUID | JSONB | Scope-filtered Talent Pipeline chart distributions |
+
+The KPI function reads `talent_pool_register` for total, Active, Passive, and
+To-date expiry counts. It reads `development_pool_register` for the total and
+the Female Talent, Key to Retain, Future Talent, and Change Wanted categories.
+The six dashboard filters and `master_access` authorization are evaluated using
+the matching `employee_namelist` row.
+
+The chart function returns Talent Pool, Active/Passive, Development Pool,
+Talent gender, Talent range, and nomination RAG distributions. Nomination RAG
+uses all rows in the current `nomination_status_rows` replacement snapshot and maps Cleared to Green,
+Amber to Amber, and Not Cleared to Red. Current register tables are replacement
+snapshots, so the functions do not return unsupported month-over-month trends.
+
+Apply both functions after the Pool Register split and Nomination Status
+migrations:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/talent_pipeline_functions_migration.sql"
+```
+
 ## Authentication database contract
 
 Schema file: `apps/sql/auth_creation.sql`

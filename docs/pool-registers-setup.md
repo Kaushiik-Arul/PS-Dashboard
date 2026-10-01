@@ -10,25 +10,30 @@ git apply --check .\pool-registers.patch
 git apply .\pool-registers.patch
 ```
 
-## Database migration (once)
+## Database migration
 
-SQL: `apps/sql/pool_registers_migration.sql`.
+SQL: `apps/sql/pool_registers_migration.sql`, followed by
+`apps/sql/split_pool_register_tables_migration.sql`.
 The runner uses the existing DATABASE_URL from apps/api/.env and the installed pg dependency.
-It skips the migration if the pool-register schema is already present.
+It creates the base schema when needed, then migrates committed rows into the separate
+`development_pool_register` and `talent_pool_register` tables. The shared preview,
+revision, and import-audit tables remain unchanged.
 
 ```powershell
 cd C:\Projects\PS-Dashboard\apps\api
 node --env-file=.env scripts/migrate-pool-registers.cjs
 ```
 
-Alternative, if psql is installed and DATABASE_URL is already set in PowerShell:
+Alternative for an existing combined schema, if psql is installed and DATABASE_URL is already set in PowerShell:
 
 ```powershell
 cd C:\Projects\PS-Dashboard
-psql "$env:DATABASE_URL" -v ON_ERROR_STOP=1 -f .\apps\sql\pool_registers_migration.sql
+psql "$env:DATABASE_URL" -v ON_ERROR_STOP=1 -f .\apps\sql\split_pool_register_tables_migration.sql
 ```
 
-Run only one of the two migration methods. The SQL creates new tables and does not modify the namelist or Active STEP data.
+Run only one migration method. The split migration copies and verifies every existing
+register row before dropping the old combined `pool_register_rows` table. It does not
+modify the namelist or Active STEP data.
 
 Restart the API and web processes after applying the patch and migration:
 

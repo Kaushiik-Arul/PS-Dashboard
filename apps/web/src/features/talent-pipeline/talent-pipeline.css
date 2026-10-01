@@ -18,15 +18,31 @@
   grid-template-columns: 2.5rem minmax(4rem, 1fr) auto;
 }
 
+.talent-range-columns {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 600px) {
+  .talent-demographics-card {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (min-width: 1196px) {
   .talent-demographics {
     gap: 1rem;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-columns: minmax(18rem, 0.65fr) minmax(0, 1.35fr);
   }
 
   .talent-demographics .donut-chart {
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
+  }
+
+  .talent-range-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 /* Talent pipeline table layout */

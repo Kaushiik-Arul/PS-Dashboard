@@ -190,8 +190,14 @@ export function ChartCard({
   );
 }
 
-export function HorizontalBarChart({ data }: { data: ChartDatum[] }) {
-  const maximum = Math.max(...data.map((item) => item.value));
+export function HorizontalBarChart({
+  data,
+  maximum: maximumProp,
+}: {
+  data: ChartDatum[];
+  maximum?: number;
+}) {
+  const maximum = maximumProp ?? Math.max(...data.map((item) => item.value));
 
   return (
     <div className="horizontal-chart" role="group" aria-label="Horizontal bar chart">

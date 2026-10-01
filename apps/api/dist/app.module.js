@@ -17,6 +17,7 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const employee_360_module_1 = require("./modules/employee-360/employee-360.module");
 const hrbp_point_module_1 = require("./modules/hrbp-point/hrbp-point.module");
 const overview_module_1 = require("./modules/overview/overview.module");
+const talent_pipeline_module_1 = require("./modules/talent-pipeline/talent-pipeline.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -33,6 +34,7 @@ exports.AppModule = AppModule = __decorate([
             employee_360_module_1.Employee360Module,
             hrbp_point_module_1.HrbpPointModule,
             overview_module_1.OverviewModule,
+            talent_pipeline_module_1.TalentPipelineModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

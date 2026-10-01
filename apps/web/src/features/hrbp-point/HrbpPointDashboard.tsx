@@ -18,6 +18,7 @@ import { PppHistoryImportPanel } from "./PppHistoryImportPanel";
 import { AvailableTalentImportPanel } from "./AvailableTalentImportPanel";
 import { PoolImportPanel } from "./PoolImportPanel";
 import { ActiveStepImportPanel } from "./ActiveStepImportPanel";
+import { NominationStatusImportPanel } from "./NominationStatusImportPanel";
 import "@/components/data-table/data-table.css";
 import "./hrbp-point.css";
 
@@ -220,12 +221,24 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
       {canManageNamelist && <RbinExceptionsPanel client={httpRbinExceptionsClient} />}
       </div>
 
-      <div className="hrbp-pool-registers">
-      {canManageNamelist && <ActiveStepImportPanel />}
-      {canManageNamelist && <AvailableTalentImportPanel kind="available" />}
-      {canManageNamelist && <PoolImportPanel kind="development" />}
-      {canManageNamelist && <PoolImportPanel kind="talent" />}
-      </div>
+      {canManageNamelist && (
+        <section className="talent-development-management" aria-labelledby="talent-development-title">
+          <header className="hrbp-page__heading">
+            <div>
+              <p className="hrbp-section__eyebrow">Talent pipeline</p>
+              <h2 id="talent-development-title">Talent &amp; Development</h2>
+              <p>Maintain talent, development, nomination, and STEP registers.</p>
+            </div>
+          </header>
+          <div className="hrbp-pool-registers">
+            <ActiveStepImportPanel />
+            <AvailableTalentImportPanel kind="available" />
+            <NominationStatusImportPanel />
+            <PoolImportPanel kind="development" />
+            <PoolImportPanel kind="talent" />
+          </div>
+        </section>
+      )}
 
       <dialog className="hrbp-dialog" ref={editorRef} onClose={() => setFormError("")}>
         <form method="dialog" onSubmit={submitForm}>
