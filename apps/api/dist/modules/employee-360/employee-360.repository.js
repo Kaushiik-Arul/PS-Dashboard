@@ -97,6 +97,33 @@ let Employee360Repository = class Employee360Repository {
     constructor(database) {
         this.database = database;
     }
+    async getIdpStatus(persNo) {
+        const result = await this.database.query(`SELECT
+         status.pers_no IS NOT NULL AS available,
+         NULLIF(BTRIM(status.comments), '') AS comments
+       FROM (SELECT 1) seed
+       LEFT JOIN public.employee_idp_status status
+         ON status.pers_no = $1::BIGINT`, [persNo]);
+        const row = result.rows[0];
+        return {
+            available: row.available,
+            comments: row.available ? row.comments : null,
+        };
+    }
+    async updateIdpStatus(persNo, available, comments, actor) {
+        if (available) {
+            await this.database.query(`INSERT INTO public.employee_idp_status (pers_no, comments, updated_by)
+         VALUES ($1::BIGINT, $2, $3::UUID)
+         ON CONFLICT (pers_no) DO UPDATE SET
+           comments = EXCLUDED.comments,
+           updated_by = EXCLUDED.updated_by,
+           updated_at = CURRENT_TIMESTAMP`, [persNo, comments ?? '', actor]);
+        }
+        else {
+            await this.database.query(`DELETE FROM public.employee_idp_status WHERE pers_no = $1::BIGINT`, [persNo]);
+        }
+        return { available, comments: available ? comments : null };
+    }
     async updateStepAvailability(persNo, available, preferences, comments, actor) {
         return this.database.transaction(async (client) => {
             await client.query(`SELECT revision

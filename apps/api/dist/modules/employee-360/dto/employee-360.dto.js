@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Employee360ProfileResponseDto = exports.EmployeeDevelopmentPortfolioDto = exports.EmployeeTalentPortfolioDto = exports.EmployeeTalentPortfolioEntryDto = exports.EmployeeStepOverviewDto = exports.EmployeeStepAvailabilityDto = exports.EmployeeActiveStepDto = exports.EmployeePppHistoryDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
+exports.Employee360ProfileResponseDto = exports.EmployeeDevelopmentPortfolioDto = exports.EmployeeTalentPortfolioDto = exports.EmployeeTalentPortfolioEntryDto = exports.EmployeeIdpStatusDto = exports.EmployeeStepOverviewDto = exports.EmployeeStepAvailabilityDto = exports.EmployeeActiveStepDto = exports.EmployeePppHistoryDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class Employee360QueryDto {
     search;
@@ -305,6 +305,19 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: EmployeeStepAvailabilityDto }),
     __metadata("design:type", EmployeeStepAvailabilityDto)
 ], EmployeeStepOverviewDto.prototype, "availability", void 0);
+class EmployeeIdpStatusDto {
+    available;
+    comments;
+}
+exports.EmployeeIdpStatusDto = EmployeeIdpStatusDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], EmployeeIdpStatusDto.prototype, "available", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeIdpStatusDto.prototype, "comments", void 0);
 class EmployeeTalentPortfolioEntryDto {
     type;
     startDate;
@@ -364,6 +377,7 @@ class Employee360ProfileResponseDto {
     careerJourney;
     pppHistory;
     stepOverview;
+    idpStatus;
     talentPortfolio;
     developmentPortfolio;
 }
@@ -384,6 +398,10 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: EmployeeStepOverviewDto }),
     __metadata("design:type", EmployeeStepOverviewDto)
 ], Employee360ProfileResponseDto.prototype, "stepOverview", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: EmployeeIdpStatusDto }),
+    __metadata("design:type", EmployeeIdpStatusDto)
+], Employee360ProfileResponseDto.prototype, "idpStatus", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ type: EmployeeTalentPortfolioDto }),
     __metadata("design:type", EmployeeTalentPortfolioDto)

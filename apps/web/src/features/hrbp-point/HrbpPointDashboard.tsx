@@ -19,6 +19,7 @@ import { AvailableTalentImportPanel } from "./AvailableTalentImportPanel";
 import { PoolImportPanel } from "./PoolImportPanel";
 import { ActiveStepImportPanel } from "./ActiveStepImportPanel";
 import { NominationStatusImportPanel } from "./NominationStatusImportPanel";
+import { SuccessionPlanningImportPanel } from "./SuccessionPlanningImportPanel";
 import "@/components/data-table/data-table.css";
 import "./hrbp-point.css";
 
@@ -236,6 +237,21 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
             <NominationStatusImportPanel />
             <PoolImportPanel kind="development" />
             <PoolImportPanel kind="talent" />
+          </div>
+        </section>
+      )}
+
+      {canManageNamelist && (
+        <section className="talent-development-management" aria-labelledby="succession-planning-management-title">
+          <header className="hrbp-page__heading">
+            <div>
+              <p className="hrbp-section__eyebrow">Succession planning</p>
+              <h2 id="succession-planning-management-title">Succession Planning</h2>
+              <p>Import and validate the position-level incumbent and successor register.</p>
+            </div>
+          </header>
+          <div className="hrbp-pool-registers">
+            <SuccessionPlanningImportPanel />
           </div>
         </section>
       )}

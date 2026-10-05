@@ -33,14 +33,15 @@ export class Employee360Service {
     const result = await this.repository.getEmployees(this.normalize({ search: persNo }), user.accountId, user.persNo);
     const employee = result.employees.find((item) => item.persNo === persNo);
     if (!employee) throw new NotFoundException('Employee was not found within your workforce scope.');
-    const [careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio] = await Promise.all([
+    const [careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio] = await Promise.all([
       this.careerJourneyRepository.list(persNo),
       this.repository.getPppHistory(persNo),
       this.repository.getStepOverview(persNo),
+      this.repository.getIdpStatus(persNo),
       this.repository.getTalentPortfolio(persNo),
       this.repository.getDevelopmentPortfolio(persNo),
     ]);
-    return { employee, careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio };
+    return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio };
   }
 
   async createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent> {
@@ -101,6 +102,20 @@ export class Employee360Service {
         user.accountId,
       ),
       'Unable to update STEP availability.',
+    );
+  }
+
+  async updateIdpStatus(persNoInput: string, body: unknown, user: AuthenticatedUser) {
+    const persNo = await this.assertScopedEmployee(persNoInput, user);
+    const input = this.idpStatusInput(body);
+    return this.run(
+      () => this.repository.updateIdpStatus(
+        persNo,
+        input.available,
+        input.comments,
+        user.accountId,
+      ),
+      'Unable to update IDP status.',
     );
   }
 
@@ -192,6 +207,28 @@ export class Employee360Service {
       preferences: record.available ? text('preferences') : null,
       comments: record.available ? text('comments') : null,
     };
+  }
+
+  private idpStatusInput(body: unknown): { available: boolean; comments: string | null } {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new BadRequestException('IDP status values are required.');
+    }
+    const record = body as Record<string, unknown>;
+    const keys = ['available', 'comments'];
+    if (Object.keys(record).length !== keys.length || Object.keys(record).some((key) => !keys.includes(key))) {
+      throw new BadRequestException('IDP status must contain exactly available and comments.');
+    }
+    if (typeof record.available !== 'boolean') {
+      throw new BadRequestException('IDP availability must be Yes or No.');
+    }
+    if (!record.available) return { available: false, comments: null };
+    if (record.comments === null || record.comments === '') {
+      return { available: true, comments: null };
+    }
+    if (typeof record.comments !== 'string' || record.comments.trim().length > 4000) {
+      throw new BadRequestException('comments is invalid.');
+    }
+    return { available: true, comments: record.comments.trim() || null };
   }
 
   private persNo(value: string): string {

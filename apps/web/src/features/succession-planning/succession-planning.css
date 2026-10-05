@@ -1,0 +1,27 @@
+.succession-planning-heading {
+  margin-block-end: var(--app-space-4);
+}
+
+.succession-planning-heading h1 {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  margin: 0;
+}
+
+.succession-planning-kpis .kpi-grid {
+  align-items: stretch;
+}
+
+.succession-planning-charts .chart-card {
+  min-height: 24rem;
+}
+
+@media (min-width: 1196px) {
+  .succession-planning-kpis .kpi-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .succession-planning-charts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

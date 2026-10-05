@@ -1,215 +1,207 @@
 "use client";
 
-import { useState } from "react";
-import { emptyDashboardFilters, OverviewFilters, type DashboardFilters } from "@/components/filters/OverviewFilters";
+import {
+  ChartCard,
+  DonutChart,
+  VerticalBarChart,
+  type ChartDatum,
+} from "@/components/charts/OverviewCharts";
+import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
 import { KpiGrid } from "@/components/kpi/KpiGrid";
-import { ChartCard, DonutChart, VerticalBarChart } from "@/components/charts/OverviewCharts";
-import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
-import { redirect } from "next/navigation";
-import { useAuth } from "@/auth/AuthProvider";
-import { hasPermission } from "@/auth/permissions";
+import {
+  successionPlanningColumns,
+  type SuccessionPlanningRecord,
+  type SuccessionPlanningResponse,
+} from "./succession-planning.types";
+import "./succession-planning.css";
 
-const positionsbyCriticality = [
-  { label: "High", value: 46, displayValue: "46 (47.9%)", color: "var(--signal-success-pure__enabled__default__front)" },
-  { label: "Medium", value: 34, displayValue: "34 (35.4%)", color: "var(--signal-warning-pure__enabled__default__front)" },
-  { label: "Low", value: 18, displayValue: "18 (18.8%)", color: "var(--signal-error-pure__enabled__default__front)" },
-];
+const nonFilterableColumns = new Set([
+  "jd_name",
+  "reason_for_change",
+]);
 
-const incumbentChangeExpected = [
-  { label: "2027", value: 8 },
-  { label: "2028", value: 12 },
-  { label: "2029", value: 10 },
-  { label: "2030+", value: 66 },
-];
+const columns: DataTableColumn<SuccessionPlanningRecord>[] = successionPlanningColumns.map(
+  ([key, label, group]) => ({
+    key,
+    label,
+    group,
+    filterable: !nonFilterableColumns.has(key),
+  }),
+);
 
-interface SuccessionPosition {
-  status: "critical" | "attention" | "covered" | "neutral";
-  area: string;
-  jobId: string;
-  position: string;
-  criticality: string;
-  incumbent: string;
-  orgUnit: string;
-  age: number;
-  changeYear: string;
-  successor: string;
-  readiness: string;
-  action: string;
+const readinessOrder = [
+  "Ready now",
+  "Ready in 1-2 years",
+  "Ready in 2-3 years",
+  "Ready in 3-4 years",
+  "Ready later / TBD",
+] as const;
+
+type Readiness = (typeof readinessOrder)[number];
+
+function readinessCategory(value: string): Readiness | null {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized.includes("now")) return "Ready now";
+  if (/1\s*-\s*2/.test(normalized)) return "Ready in 1-2 years";
+  if (/2\s*-\s*3/.test(normalized)) return "Ready in 2-3 years";
+  if (/3\s*-\s*4/.test(normalized)) return "Ready in 3-4 years";
+  return "Ready later / TBD";
 }
 
-const successionColumns: DataTableColumn<SuccessionPosition>[] = [
-  {
-    key: "status",
-    label: "Status",
-    group: "Position information",
-    filterable: true,
-    render: (value) => (
-      <span className="data-table__status">
-        <i className={`data-table__status-dot -${String(value)}`} aria-hidden="true" />
-        <span className="data-table__badge">{String(value)}</span>
-      </span>
-    ),
-  },
-  { key: "area", label: "Area", group: "Position information", filterable: true },
-  { key: "jobId", label: "Job ID", group: "Position information" },
-  { key: "position", label: "Position name", group: "Position information" },
-  {
-    key: "criticality",
-    label: "Criticality",
-    group: "Position information",
-    filterable: true,
-    render: (value) => <span className="data-table__badge">{String(value)}</span>,
-  },
-  { key: "incumbent", label: "Incumbent", group: "Current incumbent" },
-  { key: "orgUnit", label: "Org unit", group: "Current incumbent" },
-  { key: "age", label: "Age", group: "Current incumbent" },
-  { key: "changeYear", label: "Change year", group: "Current incumbent", filterable: true },
-  { key: "successor", label: "Successor", group: "Successor 1" },
-  { key: "readiness", label: "Readiness", group: "Successor 1", filterable: true },
-  { key: "action", label: "Remarks / action", group: "Actions" },
-];
+function employeeCount(value: string) {
+  return value.match(/\d+/g)?.length ?? 0;
+}
 
-const successionPositions: SuccessionPosition[] = [
-  { status: "critical", area: "RP", jobId: "PSEN04454", position: "Product Management DC", criticality: "Critical", incumbent: "Narayanan S V", orgUnit: "PS-DC/PM-A", age: 53, changeYear: "2031", successor: "Lakshmi Krishnagowda", readiness: "Ready later", action: "Build market exposure" },
-  { status: "attention", area: "RP", jobId: "PSENL01150", position: "Engineering Test Centre Lead", criticality: "Critical", incumbent: "Aravind Krishnan", orgUnit: "PS/ETC-IN", age: 53, changeYear: "2030", successor: "Arvind Karingannur", readiness: "Ready now", action: "Confirm transition plan" },
-  { status: "covered", area: "RP", jobId: "PSENL5220", position: "Engineering Sensors", criticality: "Critical", incumbent: "Sandeep D", orgUnit: "PS-SW/ENG-IN", age: 44, changeYear: "2027", successor: "Buddhadeb B", readiness: "Ready in 1-2 yrs", action: "Discuss development plan" },
-  { status: "neutral", area: "RP", jobId: "PSENL0926", position: "Engineering Advanced Technology Lead", criticality: "Niche", incumbent: "Rajsekhar N B", orgUnit: "PS/EAT-IN", age: 58, changeYear: "2028", successor: "Pranav Upadhya", readiness: "Ready in 2-3 yrs", action: "Monitor readiness" },
-  { status: "covered", area: "RP", jobId: "PSENCS211", position: "Regional Product Area Engineering", criticality: "Critical", incumbent: "Nagash A", orgUnit: "PS-GPF/ENG-IN", age: 51, changeYear: "2030", successor: "Balachandra D", readiness: "Ready now", action: "Start shadow assignment" },
-  { status: "neutral", area: "RP", jobId: "PSENCS219", position: "Regional Product Development", criticality: "Niche", incumbent: "Prashanth G", orgUnit: "PS-GR/ENG-IN", age: 51, changeYear: "2030", successor: "Avinash L", readiness: "Ready and active", action: "No action required" },
-  { status: "neutral", area: "RP", jobId: "PSENCS184", position: "Quality Management", criticality: "Niche", incumbent: "Puttaswamy L S", orgUnit: "PS-DC/QM-IN", age: 55, changeYear: "2031", successor: "-", readiness: "Not identified", action: "Identify candidates" },
-  { status: "attention", area: "RP", jobId: "PSENMG222", position: "Product Management SB", criticality: "Critical", incumbent: "Pavan Kumar", orgUnit: "PS-GR/PM-IN", age: 49, changeYear: "2027", successor: "Varun Rao", readiness: "Ready in 1-2 yrs", action: "Strengthen leadership scope" },
-  { status: "attention", area: "RP", jobId: "PSENLM196", position: "Engineering Powertrain Testing", criticality: "Critical", incumbent: "Aravind K", orgUnit: "PS/ETW-IN", age: 52, changeYear: "2030", successor: "Praveen B N", readiness: "Ready in 2-3 yrs", action: "Add cross-BU assignment" },
-  { status: "covered", area: "BD", jobId: "PSENBD102", position: "Business Development Lead", criticality: "Critical", incumbent: "Meera Joshi", orgUnit: "PS/BD-IN", age: 47, changeYear: "2029", successor: "Rahul Menon", readiness: "Ready now", action: "Plan phased handover" },
-  { status: "critical", area: "SC", jobId: "PSENSC087", position: "Supply Chain Director", criticality: "Critical", incumbent: "Vikram Shah", orgUnit: "PS/SC-IN", age: 59, changeYear: "2027", successor: "-", readiness: "Not identified", action: "Open successor search" },
-  { status: "covered", area: "FN", jobId: "PSENFN063", position: "Finance Operations Lead", criticality: "Niche", incumbent: "Anita Rao", orgUnit: "PS/FN-IN", age: 46, changeYear: "2032", successor: "Kiran Patel", readiness: "Ready in 1-2 yrs", action: "Continue rotation plan" },
-];
+function percentage(value: number, total: number) {
+  return total ? `${((value / total) * 100).toFixed(1)}% of positions` : "No positions";
+}
 
-const SuccessionPlanningKpis: KpiMetric[] = [
-  {
-      id: "total-position",
-    title: "Total Position",
-    value: "96",
-    comparisonLabel: "vs Aug 2026",
-    trendValue: "100%",
-    trendDirection: "neutral",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "blue",
-  },
-  {
-      id: "ready-now",
-    title: "Ready now",
-    value: "16",
-    comparisonLabel: "vs Aug 2026",
-    trendValue: "16.7%",
-    trendDirection: "neutral",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "red",
-  },
-  {
-      id: "ready-1to2-years",
-    title: "Ready in 1 to 2 years",
-    value: "24",
-    comparisonLabel: "vs Aug 2026",
-    trendValue: "25.0%",
-    trendDirection: "neutral",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "orange",
-  },
-  {
-      id: "ready-3to4-years",
-    title: "Ready in 3 to 4 years",
-    value: "31",
-    comparisonLabel: "vs Aug 2026",
-    trendValue: "+32.1%",
-    trendDirection: "neutral",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "red",
-  },{
-      id: "ready-successors",
-    title: "Position w/o Ready Successors",
-    value: "23",
-    comparisonLabel: "vs Aug 2026",
-    trendValue: "+23.1%",
-    trendDirection: "neutral",
-    trendTone: "favorable",
-    icon: "boschicon-bosch-ic-user",
-    iconColor: "green",
-  }
-];
-
-
-export function SuccessionPlanningDashboard() {
-  const { role } = useAuth();
-  if (!role || !hasPermission(role, "successionPlanningPoint")) {
-    redirect("/");
-  }
-    const [draftFilters, setDraftFilters] = useState<DashboardFilters>({
-    ...emptyDashboardFilters,
-  });
-  const [activeFilters, setActiveFilters] = useState<DashboardFilters>({
-    ...emptyDashboardFilters,
-  });
-
-  const clearFilters = () => {
-    setDraftFilters({ ...emptyDashboardFilters });
-    setActiveFilters({ ...emptyDashboardFilters });
+function chartValue(label: string, value: number, total: number): ChartDatum {
+  return {
+    label,
+    value,
+    displayValue: `${value.toLocaleString("en-US")} (${total ? ((value / total) * 100).toFixed(1) : "0.0"}%)`,
   };
+}
+
+function summarize(rows: SuccessionPlanningRecord[]) {
+  const readiness = new Map<Readiness, number>(readinessOrder.map((label) => [label, 0]));
+  const priorities = new Map(["High", "Medium", "Low", "Not specified"].map((label) => [label, 0]));
+  let positionsWithoutReadySuccessor = 0;
+
+  for (const row of rows) {
+    const priority = row.priority.trim().toLowerCase();
+    const priorityLabel = priority.includes("high")
+      ? "High"
+      : priority.includes("medium")
+        ? "Medium"
+        : priority.includes("low")
+          ? "Low"
+          : "Not specified";
+    priorities.set(priorityLabel, (priorities.get(priorityLabel) ?? 0) + 1);
+
+    const successors = [
+      [row.successor1_pers_no, row.successor1_readiness],
+      [row.successor2_pers_no, row.successor2_readiness],
+    ] as const;
+    let hasReadySuccessor = false;
+    for (const [employeeNumbers, readinessValue] of successors) {
+      const count = employeeCount(employeeNumbers);
+      const category = readinessCategory(readinessValue);
+      if (!count || !category) continue;
+      readiness.set(category, (readiness.get(category) ?? 0) + count);
+      if (category !== "Ready later / TBD") hasReadySuccessor = true;
+    }
+    if (!hasReadySuccessor) positionsWithoutReadySuccessor += 1;
+  }
+
+  const totalPositions = rows.length;
+  const readinessTotal = [...readiness.values()].reduce((sum, value) => sum + value, 0);
+  const currentYear = new Date().getUTCFullYear();
+  const yearLabels = [String(currentYear + 1), String(currentYear + 2), String(currentYear + 3), `${currentYear + 4}+`];
+  const years = new Map(yearLabels.map((label) => [label, 0]));
+  for (const row of rows) {
+    const year = Number(row.incumbent_change_year.match(/\d{4}/)?.[0]);
+    if (!Number.isInteger(year) || year < currentYear + 1) continue;
+    const label = year >= currentYear + 4 ? `${currentYear + 4}+` : String(year);
+    if (years.has(label)) years.set(label, (years.get(label) ?? 0) + 1);
+  }
+
+  return {
+    totalPositions,
+    positionsWithoutReadySuccessor,
+    readiness,
+    readinessChart: readinessOrder.map((label) => chartValue(label, readiness.get(label) ?? 0, readinessTotal)),
+    priorityChart: [...priorities.entries()]
+      .filter(([, value]) => value > 0)
+      .map(([label, value]) => ({
+        ...chartValue(label, value, totalPositions),
+        color: label === "High"
+          ? "var(--signal-error-pure__enabled__default__front)"
+          : label === "Medium"
+            ? "var(--signal-warning-pure__enabled__default__front)"
+            : label === "Low"
+              ? "var(--signal-success-pure__enabled__default__front)"
+              : "var(--base-major__disabled__default__fill)",
+      })),
+    yearChart: [...years.entries()].map(([label, value]) => ({ label, value })),
+  };
+}
+
+function importDescription(data: SuccessionPlanningResponse) {
+  if (!data.importedAt) return "Current position, incumbent, and successor register";
+  const imported = new Date(data.importedAt);
+  const date = Number.isNaN(imported.getTime())
+    ? data.importedAt
+    : new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeZone: "UTC",
+      }).format(imported);
+  return `${data.rows.length} positions · Imported ${date}${data.fileName ? ` from ${data.fileName}` : ""}`;
+}
+
+export function SuccessionPlanningDashboard({ data }: { data: SuccessionPlanningResponse }) {
+  const summary = summarize(data.rows);
+  const kpis: KpiMetric[] = [
+    { id: "total-positions", title: "Total positions", value: summary.totalPositions.toLocaleString("en-US"), comparisonLabel: "Current register", icon: "boschicon-bosch-ic-briefcase", iconColor: "blue" },
+    { id: "ready-now", title: "Ready now", value: (summary.readiness.get("Ready now") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(summary.readiness.get("Ready now") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-checkmark", iconColor: "green" },
+    { id: "ready-one-two", title: "Ready in 1-2 years", value: (summary.readiness.get("Ready in 1-2 years") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(summary.readiness.get("Ready in 1-2 years") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-people", iconColor: "orange" },
+    { id: "ready-three-four", title: "Ready in 3-4 years", value: (summary.readiness.get("Ready in 3-4 years") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(summary.readiness.get("Ready in 3-4 years") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-people", iconColor: "purple" },
+    { id: "without-ready-successor", title: "Positions without ready successor", value: summary.positionsWithoutReadySuccessor.toLocaleString("en-US"), comparisonLabel: percentage(summary.positionsWithoutReadySuccessor, summary.totalPositions), icon: "boschicon-bosch-ic-alert-error", iconColor: "red" },
+  ];
 
   return (
     <main className="overview-page">
-      <OverviewFilters
-        value={draftFilters}
-        activeValue={activeFilters}
-        onChange={setDraftFilters}
-        onApply={() => setActiveFilters({ ...draftFilters })}
-        onClear={clearFilters}
-      />
+      <header className="dashboard-section__heading succession-planning-heading">
+        <h1 id="succession-planning-title">Succession Planning</h1>
+        <p>Position-level incumbent coverage and successor readiness</p>
+      </header>
 
-
-      <section className="kpi-section" aria-labelledby="succession-pipeline-summary-title">
+      <section className="kpi-section succession-planning-kpis" aria-labelledby="succession-summary-title">
         <div className="kpi-section__header">
           <div>
-            <h1 id="succession-pipeline-summary-title" className="kpi-section__title">
-              Succession pipeline summary
-            </h1>
-            <p className="kpi-section__description">
-              Position coverage, succession readiness, development status and cross-BU opportunities
-            </p>
+            <h2 className="kpi-section__title" id="succession-summary-title">Succession summary</h2>
+            <p className="kpi-section__description">Current position coverage and near-term successor availability</p>
           </div>
         </div>
-        <KpiGrid>
-          {SuccessionPlanningKpis.map((kpi) => (
-            <KpiCard key={kpi.id} metric={kpi} />
-           ))}
-        </KpiGrid>
+        <KpiGrid>{kpis.map((kpi) => <KpiCard key={kpi.id} metric={kpi} />)}</KpiGrid>
       </section>
-      <section className="dashboard-section" aria-labelledby="Succession-planning-distribution-title">
+
+      <section className="dashboard-section" aria-labelledby="succession-distribution-title">
         <div className="dashboard-section__heading">
-          <h2 id="Succession-planning-distribution-title">Succession Planning Distribution</h2>
-          <p>Succession Planning Distribution by various metrics</p>
+          <h2 id="succession-distribution-title">Succession distribution</h2>
+          <p>Position priority, successor readiness, and expected incumbent changes</p>
         </div>
-        <div className="chart-grid chart-grid--composition">
-          <ChartCard title="Active vs passive" description="Current status of position by criticality" onDownload={()=>console.log("Export Position")}>
-            <DonutChart data={positionsbyCriticality} total="98" />
+        <div className="chart-grid succession-planning-charts">
+          <ChartCard title="Positions by priority" description="Current positions classified as high, medium, or low priority">
+            {summary.priorityChart.length ? <DonutChart data={summary.priorityChart} total={summary.totalPositions.toLocaleString("en-US")} /> : <p>No priority data available.</p>}
           </ChartCard>
-          <ChartCard title="Incumbent Change Expected" description="Expected changes in incumbents by year">
-            <VerticalBarChart data={incumbentChangeExpected} />
-          </ChartCard>          
+          <ChartCard title="Successor readiness" description="Identified successors by readiness horizon">
+            {summary.readinessChart.some((item) => item.value > 0) ? <DonutChart data={summary.readinessChart.map((item, index) => ({ ...item, color: `var(--data-visualization-${(index % 6) + 1})` }))} total={summary.readinessChart.reduce((sum, item) => sum + item.value, 0).toLocaleString("en-US")} /> : <p>No successor readiness data available.</p>}
+          </ChartCard>
+          <ChartCard title="Incumbent change expected" description="Positions by expected change year">
+            {summary.yearChart.some((item) => item.value > 0) ? <VerticalBarChart data={summary.yearChart} /> : <p>No expected change-year data available.</p>}
+          </ChartCard>
         </div>
       </section>
-      <DataTable
-        title="Succession plan - position level register"
-        description="Position coverage, incumbent transitions, successor readiness, and actions"
-        columns={successionColumns}
-        rows={successionPositions}
-        getRowKey={(row) => row.jobId}
-        downloadFileName="succession-position-register"
-      />
+
+      <section className="dashboard-section" aria-label="Succession Planning position register">
+        <DataTable
+          title="Succession Planning position register"
+          description={importDescription(data)}
+          columns={columns}
+          rows={data.rows}
+          getRowKey={(row) => row.id}
+          downloadFileName="succession-planning-position-register"
+          pageSizeOptions={[10, 25, 50]}
+          defaultPageSize={50}
+          groupFilters
+          groupedHeaders
+          neutralAppearance
+        />
+      </section>
     </main>
   );
 }

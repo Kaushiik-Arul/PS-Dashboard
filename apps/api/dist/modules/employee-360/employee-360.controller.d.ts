@@ -10,6 +10,7 @@ export declare class Employee360Controller {
         careerJourney: import("./career-journey.types").CareerJourneyEvent[];
         pppHistory: import("./dto/employee-360.dto").EmployeePppHistoryDto[];
         stepOverview: import("./dto/employee-360.dto").EmployeeStepOverviewDto;
+        idpStatus: import("./dto/employee-360.dto").EmployeeIdpStatusDto;
         talentPortfolio: import("./dto/employee-360.dto").EmployeeTalentPortfolioDto;
         developmentPortfolio: import("./dto/employee-360.dto").EmployeeDevelopmentPortfolioDto | null;
     }>;
@@ -21,6 +22,7 @@ export declare class Employee360Controller {
         changed: boolean;
     }>;
     updateStepAvailability(persNo: string, body: unknown, user: AuthenticatedUser): Promise<import("./dto/employee-360.dto").EmployeeStepAvailabilityDto>;
+    updateIdpStatus(persNo: string, body: unknown, user: AuthenticatedUser): Promise<import("./dto/employee-360.dto").EmployeeIdpStatusDto>;
     updateCareerEvent(persNo: string, eventId: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;
     deleteCareerEvent(persNo: string, eventId: string, user: AuthenticatedUser): Promise<void>;
 }

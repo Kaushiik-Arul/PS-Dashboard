@@ -91,6 +91,11 @@ export class EmployeeStepOverviewDto {
   availability!: EmployeeStepAvailabilityDto;
 }
 
+export class EmployeeIdpStatusDto {
+  @ApiProperty() available!: boolean;
+  @ApiPropertyOptional({ nullable: true }) comments!: string | null;
+}
+
 export class EmployeeTalentPortfolioEntryDto {
   @ApiProperty() type!: string;
   @ApiPropertyOptional({ nullable: true }) startDate!: string | null;
@@ -119,6 +124,7 @@ export class Employee360ProfileResponseDto {
   @ApiProperty({ type: [Object] }) careerJourney!: unknown[];
   @ApiProperty({ type: [EmployeePppHistoryDto] }) pppHistory!: EmployeePppHistoryDto[];
   @ApiProperty({ type: EmployeeStepOverviewDto }) stepOverview!: EmployeeStepOverviewDto;
+  @ApiProperty({ type: EmployeeIdpStatusDto }) idpStatus!: EmployeeIdpStatusDto;
   @ApiProperty({ type: EmployeeTalentPortfolioDto }) talentPortfolio!: EmployeeTalentPortfolioDto;
   @ApiPropertyOptional({ type: EmployeeDevelopmentPortfolioDto, nullable: true })
   developmentPortfolio!: EmployeeDevelopmentPortfolioDto | null;

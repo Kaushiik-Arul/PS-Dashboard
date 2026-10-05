@@ -48,6 +48,12 @@ export class Employee360Controller {
     return this.service.updateStepAvailability(persNo, body, user);
   }
 
+  @Patch(':persNo/idp-status')
+  @RequirePermission('workforce:edit')
+  updateIdpStatus(@Param('persNo') persNo: string, @Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.updateIdpStatus(persNo, body, user);
+  }
+
   @Patch(':persNo/career-journey/:eventId')
   @RequirePermission('workforce:edit')
   updateCareerEvent(@Param('persNo') persNo: string, @Param('eventId') eventId: string, @Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {

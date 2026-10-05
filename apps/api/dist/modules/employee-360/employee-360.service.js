@@ -31,14 +31,15 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
         const employee = result.employees.find((item) => item.persNo === persNo);
         if (!employee)
             throw new common_1.NotFoundException('Employee was not found within your workforce scope.');
-        const [careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio] = await Promise.all([
+        const [careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio] = await Promise.all([
             this.careerJourneyRepository.list(persNo),
             this.repository.getPppHistory(persNo),
             this.repository.getStepOverview(persNo),
+            this.repository.getIdpStatus(persNo),
             this.repository.getTalentPortfolio(persNo),
             this.repository.getDevelopmentPortfolio(persNo),
         ]);
-        return { employee, careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio };
+        return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio };
     }
     async createCareerEvent(persNoInput, body, user) {
         const persNo = await this.assertScopedEmployee(persNoInput, user);
@@ -83,6 +84,11 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
         const persNo = await this.assertScopedEmployee(persNoInput, user);
         const input = this.stepAvailabilityInput(body);
         return this.run(() => this.repository.updateStepAvailability(persNo, input.available, input.preferences, input.comments, user.accountId), 'Unable to update STEP availability.');
+    }
+    async updateIdpStatus(persNoInput, body, user) {
+        const persNo = await this.assertScopedEmployee(persNoInput, user);
+        const input = this.idpStatusInput(body);
+        return this.run(() => this.repository.updateIdpStatus(persNo, input.available, input.comments, user.accountId), 'Unable to update IDP status.');
     }
     async assertScopedEmployee(persNoInput, user) {
         const persNo = this.persNo(persNoInput);
@@ -173,6 +179,28 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
             preferences: record.available ? text('preferences') : null,
             comments: record.available ? text('comments') : null,
         };
+    }
+    idpStatusInput(body) {
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            throw new common_1.BadRequestException('IDP status values are required.');
+        }
+        const record = body;
+        const keys = ['available', 'comments'];
+        if (Object.keys(record).length !== keys.length || Object.keys(record).some((key) => !keys.includes(key))) {
+            throw new common_1.BadRequestException('IDP status must contain exactly available and comments.');
+        }
+        if (typeof record.available !== 'boolean') {
+            throw new common_1.BadRequestException('IDP availability must be Yes or No.');
+        }
+        if (!record.available)
+            return { available: false, comments: null };
+        if (record.comments === null || record.comments === '') {
+            return { available: true, comments: null };
+        }
+        if (typeof record.comments !== 'string' || record.comments.trim().length > 4000) {
+            throw new common_1.BadRequestException('comments is invalid.');
+        }
+        return { available: true, comments: record.comments.trim() || null };
     }
     persNo(value) {
         if (!/^[1-9]\d{0,18}$/.test(value) || BigInt(value) > 9223372036854775807n)

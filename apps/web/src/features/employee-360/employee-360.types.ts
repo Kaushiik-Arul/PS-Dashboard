@@ -86,6 +86,11 @@ export type EmployeeStepOverview = {
   availability: EmployeeStepAvailability;
 };
 
+export type EmployeeIdpStatus = {
+  available: boolean;
+  comments: string | null;
+};
+
 export type EmployeeTalentPortfolioEntry = {
   type: string;
   startDate: string | null;
@@ -109,6 +114,7 @@ export type Employee360Profile = {
   careerJourney: CareerJourneyEvent[];
   pppHistory: EmployeePppHistory[];
   stepOverview: EmployeeStepOverview;
+  idpStatus: EmployeeIdpStatus;
   talentPortfolio: EmployeeTalentPortfolio;
   developmentPortfolio: EmployeeDevelopmentPortfolio | null;
 };

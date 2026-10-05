@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
-import type { CareerJourneyEvent, Employee360Row, EmployeeDevelopmentPortfolio, EmployeePppHistory, EmployeeStepOverview, EmployeeTalentPortfolio } from "./employee-360.types";
+import type { CareerJourneyEvent, Employee360Row, EmployeeDevelopmentPortfolio, EmployeeIdpStatus, EmployeePppHistory, EmployeeStepOverview, EmployeeTalentPortfolio } from "./employee-360.types";
 import { CareerJourneyPanel } from "./CareerJourneyPanel";
+import { EmployeeIdpStatusPanel } from "./EmployeeIdpStatusPanel";
 import { EmployeePppHistoryPanel } from "./EmployeePppHistoryPanel";
 import { EmployeeStepOverviewPanel } from "./EmployeeStepOverviewPanel";
 import { EmployeeTalentPortfolioPanel } from "./EmployeeTalentPortfolioPanel";
@@ -44,6 +45,7 @@ export function EmployeeProfileView({
   careerJourney,
   pppHistory,
   stepOverview,
+  idpStatus,
   talentPortfolio,
   developmentPortfolio,
   canEditCareerJourney,
@@ -53,6 +55,7 @@ export function EmployeeProfileView({
   careerJourney: CareerJourneyEvent[];
   pppHistory: EmployeePppHistory[];
   stepOverview: EmployeeStepOverview;
+  idpStatus: EmployeeIdpStatus;
   talentPortfolio: EmployeeTalentPortfolio;
   developmentPortfolio: EmployeeDevelopmentPortfolio | null;
   canEditCareerJourney: boolean;
@@ -200,7 +203,7 @@ export function EmployeeProfileView({
         <EmployeeStepOverviewPanel persNo={employee.persNo} overview={stepOverview} canEdit={canEditCareerJourney} />
         <EmployeePppHistoryPanel history={pppHistory} />
         <EmptyPanel title="Succession portfolio" icon="boschicon-bosch-ic-people" />
-        <EmptyPanel title="IDP status" icon="boschicon-bosch-ic-document" />
+        <EmployeeIdpStatusPanel persNo={employee.persNo} initialStatus={idpStatus} canEdit={canEditCareerJourney} />
       </div>
 
       <dialog className="career-journey__dialog career-journey__dialog--confirm" ref={jdDialogRef}>

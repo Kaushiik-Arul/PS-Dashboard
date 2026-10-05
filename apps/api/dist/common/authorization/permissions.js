@@ -5,6 +5,8 @@ exports.hasPermission = hasPermission;
 exports.permissions = [
     'workforce:view',
     'dashboard-history:view',
+    'succession-planning:view',
+    'succession-planning:import',
     'hrbp-point:view',
     'hrbp-point:manage',
     'namelist:import',
@@ -16,10 +18,10 @@ exports.permissions = [
 ];
 const rolePermissions = {
     hrbp: new Set(exports.permissions),
-    admin: new Set(['workforce:view']),
-    range_head: new Set(['workforce:view']),
-    department_head: new Set(['workforce:view']),
-    sub_department_head: new Set(['workforce:view']),
+    admin: new Set(['workforce:view', 'succession-planning:view']),
+    range_head: new Set(['workforce:view', 'succession-planning:view']),
+    department_head: new Set(['workforce:view', 'succession-planning:view']),
+    sub_department_head: new Set(['workforce:view', 'succession-planning:view']),
 };
 function hasPermission(roles, permission) {
     return roles.some((role) => rolePermissions[role].has(permission));

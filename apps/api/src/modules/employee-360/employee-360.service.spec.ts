@@ -16,9 +16,11 @@ describe('Employee360Service', () => {
   let getEmployees: jest.Mock;
   let getPppHistory: jest.Mock;
   let getStepOverview: jest.Mock;
+  let getIdpStatus: jest.Mock;
   let getTalentPortfolio: jest.Mock;
   let getDevelopmentPortfolio: jest.Mock;
   let updateStepAvailability: jest.Mock;
+  let updateIdpStatus: jest.Mock;
   let listCareerJourney: jest.Mock;
 
   beforeEach(() => {
@@ -28,6 +30,7 @@ describe('Employee360Service', () => {
       active: null,
       availability: { available: false, preferences: null, comments: null },
     });
+    getIdpStatus = jest.fn().mockResolvedValue({ available: false, comments: null });
     getTalentPortfolio = jest.fn().mockResolvedValue({
       active: null,
       passive: null,
@@ -35,14 +38,17 @@ describe('Employee360Service', () => {
     });
     getDevelopmentPortfolio = jest.fn().mockResolvedValue(null);
     updateStepAvailability = jest.fn();
+    updateIdpStatus = jest.fn();
     listCareerJourney = jest.fn().mockResolvedValue([]);
     repository = {
       getEmployees,
       getPppHistory,
       getStepOverview,
+      getIdpStatus,
       getTalentPortfolio,
       getDevelopmentPortfolio,
       updateStepAvailability,
+      updateIdpStatus,
     } as unknown as jest.Mocked<Employee360Repository>;
     careerJourneyRepository = {
       list: listCareerJourney,
@@ -112,6 +118,8 @@ describe('Employee360Service', () => {
     getEmployees.mockResolvedValue({ employees: [employee], filterOptions: {} as never });
     getPppHistory.mockResolvedValue(pppHistory);
     getStepOverview.mockResolvedValue(stepOverview);
+    const idpStatus = { available: true, comments: 'Development dialog created' };
+    getIdpStatus.mockResolvedValue(idpStatus);
     getTalentPortfolio.mockResolvedValue(talentPortfolio);
     getDevelopmentPortfolio.mockResolvedValue(developmentPortfolio);
 
@@ -120,11 +128,13 @@ describe('Employee360Service', () => {
       careerJourney: [],
       pppHistory,
       stepOverview,
+      idpStatus,
       talentPortfolio,
       developmentPortfolio,
     });
     expect(getPppHistory).toHaveBeenCalledWith('67890');
     expect(getStepOverview).toHaveBeenCalledWith('67890');
+    expect(getIdpStatus).toHaveBeenCalledWith('67890');
     expect(getTalentPortfolio).toHaveBeenCalledWith('67890');
     expect(getDevelopmentPortfolio).toHaveBeenCalledWith('67890');
     expect(listCareerJourney).toHaveBeenCalledWith('67890');
@@ -136,6 +146,7 @@ describe('Employee360Service', () => {
     );
     expect(getPppHistory).not.toHaveBeenCalled();
     expect(getStepOverview).not.toHaveBeenCalled();
+    expect(getIdpStatus).not.toHaveBeenCalled();
     expect(getTalentPortfolio).not.toHaveBeenCalled();
     expect(getDevelopmentPortfolio).not.toHaveBeenCalled();
     expect(listCareerJourney).not.toHaveBeenCalled();
@@ -164,5 +175,72 @@ describe('Employee360Service', () => {
       comments: null,
     }, user)).rejects.toThrow('Employee was not found within your workforce scope.');
     expect(updateStepAvailability).not.toHaveBeenCalled();
+  });
+
+  it('updates IDP availability with normalized comments after confirming workforce scope', async () => {
+    const employee = { persNo: '67890' } as never;
+    getEmployees.mockResolvedValue({ employees: [employee], filterOptions: {} as never });
+    updateIdpStatus.mockResolvedValue({ available: true, comments: 'Development dialog created' });
+
+    await expect(service.updateIdpStatus('67890', {
+      available: true,
+      comments: '  Development dialog created  ',
+    }, user)).resolves.toEqual({ available: true, comments: 'Development dialog created' });
+    expect(updateIdpStatus).toHaveBeenCalledWith(
+      '67890',
+      true,
+      'Development dialog created',
+      user.accountId,
+    );
+  });
+
+  it('clears IDP comments when availability is No', async () => {
+    const employee = { persNo: '67890' } as never;
+    getEmployees.mockResolvedValue({ employees: [employee], filterOptions: {} as never });
+    updateIdpStatus.mockResolvedValue({ available: false, comments: null });
+
+    await service.updateIdpStatus('67890', {
+      available: false,
+      comments: 'This value must be discarded',
+    }, user);
+
+    expect(updateIdpStatus).toHaveBeenCalledWith('67890', false, null, user.accountId);
+  });
+
+  it('normalizes whitespace-only IDP comments to null', async () => {
+    const employee = { persNo: '67890' } as never;
+    getEmployees.mockResolvedValue({ employees: [employee], filterOptions: {} as never });
+    updateIdpStatus.mockResolvedValue({ available: true, comments: null });
+
+    await service.updateIdpStatus('67890', {
+      available: true,
+      comments: '   ',
+    }, user);
+
+    expect(updateIdpStatus).toHaveBeenCalledWith('67890', true, null, user.accountId);
+  });
+
+  it('rejects malformed or overlong IDP status input', async () => {
+    const employee = { persNo: '67890' } as never;
+    getEmployees.mockResolvedValue({ employees: [employee], filterOptions: {} as never });
+
+    await expect(service.updateIdpStatus('67890', {
+      available: true,
+      comments: null,
+      unexpected: true,
+    }, user)).rejects.toThrow(BadRequestException);
+    await expect(service.updateIdpStatus('67890', {
+      available: true,
+      comments: 'x'.repeat(4001),
+    }, user)).rejects.toThrow(BadRequestException);
+    expect(updateIdpStatus).not.toHaveBeenCalled();
+  });
+
+  it('does not update IDP status outside the workforce scope', async () => {
+    await expect(service.updateIdpStatus('67890', {
+      available: true,
+      comments: null,
+    }, user)).rejects.toThrow('Employee was not found within your workforce scope.');
+    expect(updateIdpStatus).not.toHaveBeenCalled();
   });
 });

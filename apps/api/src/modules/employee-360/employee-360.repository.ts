@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import type {
   EmployeeDevelopmentPortfolioDto,
+  EmployeeIdpStatusDto,
   EmployeeStepAvailabilityDto,
   EmployeeStepOverviewDto,
   EmployeeTalentPortfolioDto,
@@ -124,6 +125,51 @@ const scopedEmployees = `
 @Injectable()
 export class Employee360Repository {
   constructor(private readonly database: DatabaseService) {}
+
+  async getIdpStatus(persNo: string): Promise<EmployeeIdpStatusDto> {
+    const result = await this.database.query<{
+      available: boolean;
+      comments: string | null;
+    }>(
+      `SELECT
+         status.pers_no IS NOT NULL AS available,
+         NULLIF(BTRIM(status.comments), '') AS comments
+       FROM (SELECT 1) seed
+       LEFT JOIN public.employee_idp_status status
+         ON status.pers_no = $1::BIGINT`,
+      [persNo],
+    );
+    const row = result.rows[0];
+    return {
+      available: row.available,
+      comments: row.available ? row.comments : null,
+    };
+  }
+
+  async updateIdpStatus(
+    persNo: string,
+    available: boolean,
+    comments: string | null,
+    actor: string,
+  ): Promise<EmployeeIdpStatusDto> {
+    if (available) {
+      await this.database.query(
+        `INSERT INTO public.employee_idp_status (pers_no, comments, updated_by)
+         VALUES ($1::BIGINT, $2, $3::UUID)
+         ON CONFLICT (pers_no) DO UPDATE SET
+           comments = EXCLUDED.comments,
+           updated_by = EXCLUDED.updated_by,
+           updated_at = CURRENT_TIMESTAMP`,
+        [persNo, comments ?? '', actor],
+      );
+    } else {
+      await this.database.query(
+        `DELETE FROM public.employee_idp_status WHERE pers_no = $1::BIGINT`,
+        [persNo],
+      );
+    }
+    return { available, comments: available ? comments : null };
+  }
 
   async updateStepAvailability(
     persNo: string,

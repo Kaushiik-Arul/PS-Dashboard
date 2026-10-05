@@ -45,13 +45,15 @@ const rbin_exceptions_service_1 = require("./rbin-exceptions/rbin-exceptions.ser
 const rbin_mappings_controller_1 = require("./rbin-mappings/rbin-mappings.controller");
 const rbin_mappings_repository_1 = require("./rbin-mappings/rbin-mappings.repository");
 const rbin_mappings_service_1 = require("./rbin-mappings/rbin-mappings.service");
+const succession_planning_import_controller_1 = require("./succession-planning-import/succession-planning-import.controller");
+const succession_planning_import_service_1 = require("./succession-planning-import/succession-planning-import.service");
 let HrbpPointModule = class HrbpPointModule {
 };
 exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
-        controllers: [available_talent_controller_1.AvailableTalentController, pool_register_controller_1.PoolRegisterController, nomination_status_controller_1.NominationStatusController, active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController],
+        controllers: [available_talent_controller_1.AvailableTalentController, pool_register_controller_1.PoolRegisterController, nomination_status_controller_1.NominationStatusController, active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController, succession_planning_import_controller_1.SuccessionPlanningImportController],
         providers: [available_talent_service_1.AvailableTalentService,
             pool_register_service_1.PoolRegisterService,
             nomination_status_service_1.NominationStatusService,
@@ -75,6 +77,7 @@ exports.HrbpPointModule = HrbpPointModule = __decorate([
             rbin_mappings_repository_1.RbinMappingsRepository,
             rbin_exceptions_service_1.RbinExceptionsService,
             rbin_exceptions_repository_1.RbinExceptionsRepository,
+            succession_planning_import_service_1.SuccessionPlanningImportService,
         ],
     })
 ], HrbpPointModule);

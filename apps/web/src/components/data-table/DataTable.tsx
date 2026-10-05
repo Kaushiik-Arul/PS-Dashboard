@@ -23,7 +23,10 @@ interface DataTableProps<Row extends object> {
   getRowKey: (row: Row) => string;
   downloadFileName: string;
   pageSizeOptions?: number[];
+  defaultPageSize?: number;
   groupFilters?: boolean;
+  groupedHeaders?: boolean;
+  neutralAppearance?: boolean;
   headerActions?: ReactNode;
 }
 
@@ -52,12 +55,18 @@ export function DataTable<Row extends object>({
   getRowKey,
   downloadFileName,
   pageSizeOptions = [5, 10, 25],
+  defaultPageSize,
   groupFilters = false,
+  groupedHeaders = false,
+  neutralAppearance = false,
   headerActions,
 }: DataTableProps<Row>) {
   const { role } = useAuth();
   const canDownload = hasPermission(role, "exportCharts");
-  const [pageSize, setPageSize] = useState(pageSizeOptions[0] ?? 10);
+  const initialPageSize = defaultPageSize && pageSizeOptions.includes(defaultPageSize)
+    ? defaultPageSize
+    : (pageSizeOptions[0] ?? 10);
+  const [pageSize, setPageSize] = useState(initialPageSize);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
@@ -85,6 +94,12 @@ export function DataTable<Row extends object>({
   const safePage = Math.min(currentPage, pageCount);
   const startIndex = (safePage - 1) * pageSize;
   const visibleRows = filteredRows.slice(startIndex, startIndex + pageSize);
+  const columnHeaderGroups = columns.reduce<Array<{ label: string; span: number }>>((groups, column) => {
+    const current = groups.at(-1);
+    if (current?.label === column.group) current.span += 1;
+    else groups.push({ label: column.group, span: 1 });
+    return groups;
+  }, []);
 
   useEffect(() => {
     if (!isExpanded) return;
@@ -144,7 +159,7 @@ export function DataTable<Row extends object>({
   return (
     <section
       ref={tableCardRef}
-      className={`data-table-card${isExpanded ? " data-table-card--expanded" : ""}`}
+      className={`data-table-card${isExpanded ? " data-table-card--expanded" : ""}${neutralAppearance ? " data-table-card--neutral" : ""}`}
       aria-label={title}
       aria-modal={isExpanded || undefined}
       role={isExpanded ? "dialog" : undefined}
@@ -195,7 +210,7 @@ export function DataTable<Row extends object>({
                   onClick={() => {
                     setFilters({});
                     setCurrentPage(1);
-                    setPageSize(pageSizeOptions[0] ?? 10);
+                    setPageSize(initialPageSize);
                     setIsMenuOpen(false);
                   }}
                 >
@@ -300,8 +315,15 @@ export function DataTable<Row extends object>({
       )}
 
       <div className="data-table-scroll">
-        <table className="data-table">
+        <table className={`data-table${groupedHeaders ? " data-table--grouped" : ""}`}>
           <thead>
+            {groupedHeaders && (
+              <tr className="data-table__group-header">
+                {columnHeaderGroups.map((group, index) => (
+                  <th className={`data-table__column-group -group-${(index % 7) + 1}`} colSpan={group.span} key={`${group.label}-${index}`} scope="colgroup">{group.label}</th>
+                ))}
+              </tr>
+            )}
             <tr className="data-table__column-header">
               {columns.map((column) => (
                 <th key={String(column.key)} scope="col">{column.label}</th>

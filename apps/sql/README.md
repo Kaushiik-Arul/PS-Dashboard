@@ -185,6 +185,43 @@ DELETE FROM public.namelist_import_previews
 WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP;
 ```
 
+## Succession Planning register
+
+Apply `succession_planning_migration.sql` after authentication, Namelist, and
+Job Description Master are available:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/succession_planning_migration.sql"
+```
+
+For an existing Succession Planning installation, allow vacant positions:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/succession_planning_allow_unassigned_incumbent.sql"
+```
+
+Then preserve employee-number and numeric-looking workbook cells as text,
+including cells containing multiple personnel numbers:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/succession_planning_text_values_migration.sql"
+```
+
+HRBP Point accepts one XLSX worksheet with the grouped Position Listing,
+Current Incumbent, Successor 1, and Successor 2 columns. The parser detects the
+actual column-header row below merged group headings and ignores `SL no`.
+Preview rows can be edited or deleted before a confirmed import atomically
+replaces the current register.
+
+Workbook values are retained without blocking reference-data validation, and
+vacant positions may omit an incumbent employee number. A nonblocking warning
+identifies employees assigned more than twice across the Successor 1 and
+Successor 2 columns. Current register rows use generated UUID keys; the
+workbook `Updated By` value and authenticated importer audit are stored
+separately. Preview sessions expire after 24 hours.
+
 ## Employee PPP history
 
 Apply `employee_ppp_history_migration.sql` after the authentication and

@@ -79,3 +79,5 @@ next-env.d.ts
 *.patch
 
 !apps/sql/available_talent_migration.sql
+!apps/sql/succession_planning_migration.sql
+!apps/sql/employee_idp_status_migration.sql

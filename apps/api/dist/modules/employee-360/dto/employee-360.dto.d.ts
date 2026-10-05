@@ -77,6 +77,10 @@ export declare class EmployeeStepOverviewDto {
     active: EmployeeActiveStepDto | null;
     availability: EmployeeStepAvailabilityDto;
 }
+export declare class EmployeeIdpStatusDto {
+    available: boolean;
+    comments: string | null;
+}
 export declare class EmployeeTalentPortfolioEntryDto {
     type: string;
     startDate: string | null;
@@ -97,6 +101,7 @@ export declare class Employee360ProfileResponseDto {
     careerJourney: unknown[];
     pppHistory: EmployeePppHistoryDto[];
     stepOverview: EmployeeStepOverviewDto;
+    idpStatus: EmployeeIdpStatusDto;
     talentPortfolio: EmployeeTalentPortfolioDto;
     developmentPortfolio: EmployeeDevelopmentPortfolioDto | null;
 }
