@@ -13,6 +13,9 @@ export declare class Employee360Service {
         employee: import("./dto/employee-360.dto").Employee360RowDto;
         careerJourney: CareerJourneyEvent[];
         pppHistory: import("./dto/employee-360.dto").EmployeePppHistoryDto[];
+        stepOverview: import("./dto/employee-360.dto").EmployeeStepOverviewDto;
+        talentPortfolio: import("./dto/employee-360.dto").EmployeeTalentPortfolioDto;
+        developmentPortfolio: import("./dto/employee-360.dto").EmployeeDevelopmentPortfolioDto | null;
     }>;
     createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
     updateCareerEvent(persNoInput: string, idInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
@@ -23,9 +26,11 @@ export declare class Employee360Service {
         effectiveDate: string;
         changed: boolean;
     }>;
+    updateStepAvailability(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<import("./dto/employee-360.dto").EmployeeStepAvailabilityDto>;
     private assertScopedEmployee;
     private careerInput;
     private jobDescriptionInput;
+    private stepAvailabilityInput;
     private persNo;
     private uuid;
     private run;

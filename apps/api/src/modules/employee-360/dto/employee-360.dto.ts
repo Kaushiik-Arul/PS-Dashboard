@@ -68,8 +68,58 @@ export class EmployeePppHistoryDto {
   @ApiPropertyOptional({ nullable: true }) tcl!: string | null;
 }
 
+export class EmployeeActiveStepDto {
+  @ApiProperty() year!: number;
+  @ApiPropertyOptional({ nullable: true }) departmentFrom!: string | null;
+  @ApiPropertyOptional({ nullable: true }) departmentTo!: string | null;
+  @ApiPropertyOptional({ nullable: true }) exchangedWith!: string | null;
+  @ApiPropertyOptional({ nullable: true }) stepPeriodFrom!: string | null;
+  @ApiPropertyOptional({ nullable: true }) stepPeriodTo!: string | null;
+}
+
+export class EmployeeStepAvailabilityDto {
+  @ApiProperty() available!: boolean;
+  @ApiPropertyOptional({ nullable: true }) preferences!: string | null;
+  @ApiPropertyOptional({ nullable: true }) comments!: string | null;
+}
+
+export class EmployeeStepOverviewDto {
+  @ApiPropertyOptional({ type: EmployeeActiveStepDto, nullable: true })
+  active!: EmployeeActiveStepDto | null;
+
+  @ApiProperty({ type: EmployeeStepAvailabilityDto })
+  availability!: EmployeeStepAvailabilityDto;
+}
+
+export class EmployeeTalentPortfolioEntryDto {
+  @ApiProperty() type!: string;
+  @ApiPropertyOptional({ nullable: true }) startDate!: string | null;
+  @ApiProperty() endDateOrAdmission!: string;
+}
+
+export class EmployeeTalentPortfolioDto {
+  @ApiPropertyOptional({ type: EmployeeTalentPortfolioEntryDto, nullable: true })
+  active!: EmployeeTalentPortfolioEntryDto | null;
+
+  @ApiPropertyOptional({ type: EmployeeTalentPortfolioEntryDto, nullable: true })
+  passive!: EmployeeTalentPortfolioEntryDto | null;
+
+  @ApiPropertyOptional({ type: EmployeeTalentPortfolioEntryDto, nullable: true })
+  nomination!: EmployeeTalentPortfolioEntryDto | null;
+}
+
+export class EmployeeDevelopmentPortfolioDto {
+  @ApiProperty() developmentPool!: string;
+  @ApiProperty() poolStartDate!: string;
+  @ApiProperty() poolEndDate!: string;
+}
+
 export class Employee360ProfileResponseDto {
   @ApiProperty({ type: Employee360RowDto }) employee!: Employee360RowDto;
   @ApiProperty({ type: [Object] }) careerJourney!: unknown[];
   @ApiProperty({ type: [EmployeePppHistoryDto] }) pppHistory!: EmployeePppHistoryDto[];
+  @ApiProperty({ type: EmployeeStepOverviewDto }) stepOverview!: EmployeeStepOverviewDto;
+  @ApiProperty({ type: EmployeeTalentPortfolioDto }) talentPortfolio!: EmployeeTalentPortfolioDto;
+  @ApiPropertyOptional({ type: EmployeeDevelopmentPortfolioDto, nullable: true })
+  developmentPortfolio!: EmployeeDevelopmentPortfolioDto | null;
 }

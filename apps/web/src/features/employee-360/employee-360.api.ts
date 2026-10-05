@@ -51,7 +51,7 @@ export async function getEmployee360Profile(persNo: string): Promise<Employee360
   return response.json() as Promise<Employee360Profile>;
 }
 
-export async function forwardCareerJourneyRequest(path: string, init: RequestInit) {
+export async function forwardEmployee360Request(path: string, init: RequestInit) {
   const response = await fetch(`${getApiBaseUrl()}/employee-360${path}`, {
     ...init,
     cache: "no-store",
@@ -59,7 +59,7 @@ export async function forwardCareerJourneyRequest(path: string, init: RequestIni
     signal: AbortSignal.timeout(30_000),
   });
   if (!response.ok) {
-    let message = "Career Journey request failed";
+    let message = "Employee 360 request failed";
     try {
       const body = await response.json() as { message?: string | string[] };
       message = Array.isArray(body.message) ? body.message.join(" ") : body.message ?? message;
@@ -68,6 +68,8 @@ export async function forwardCareerJourneyRequest(path: string, init: RequestIni
   }
   return response;
 }
+
+export const forwardCareerJourneyRequest = forwardEmployee360Request;
 
 export function employee360ErrorResponse(error: unknown, fallback: string) {
   if (error instanceof Employee360ApiError) return Response.json({ message: error.message }, { status: error.status });

@@ -33,11 +33,14 @@ export class Employee360Service {
     const result = await this.repository.getEmployees(this.normalize({ search: persNo }), user.accountId, user.persNo);
     const employee = result.employees.find((item) => item.persNo === persNo);
     if (!employee) throw new NotFoundException('Employee was not found within your workforce scope.');
-    const [careerJourney, pppHistory] = await Promise.all([
+    const [careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio] = await Promise.all([
       this.careerJourneyRepository.list(persNo),
       this.repository.getPppHistory(persNo),
+      this.repository.getStepOverview(persNo),
+      this.repository.getTalentPortfolio(persNo),
+      this.repository.getDevelopmentPortfolio(persNo),
     ]);
-    return { employee, careerJourney, pppHistory };
+    return { employee, careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio };
   }
 
   async createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent> {
@@ -84,6 +87,21 @@ export class Employee360Service {
         throw error;
       }
     });
+  }
+
+  async updateStepAvailability(persNoInput: string, body: unknown, user: AuthenticatedUser) {
+    const persNo = await this.assertScopedEmployee(persNoInput, user);
+    const input = this.stepAvailabilityInput(body);
+    return this.run(
+      () => this.repository.updateStepAvailability(
+        persNo,
+        input.available,
+        input.preferences,
+        input.comments,
+        user.accountId,
+      ),
+      'Unable to update STEP availability.',
+    );
   }
 
   private async assertScopedEmployee(persNoInput: string, user: AuthenticatedUser): Promise<string> {
@@ -149,6 +167,33 @@ export class Employee360Service {
     return { jdId: record.jdId.trim().toUpperCase(), effectiveDate: record.effectiveDate };
   }
 
+  private stepAvailabilityInput(body: unknown): { available: boolean; preferences: string | null; comments: string | null } {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new BadRequestException('STEP availability values are required.');
+    }
+    const record = body as Record<string, unknown>;
+    const keys = ['available', 'preferences', 'comments'];
+    if (Object.keys(record).length !== keys.length || Object.keys(record).some((key) => !keys.includes(key))) {
+      throw new BadRequestException('STEP availability must contain exactly available, preferences, and comments.');
+    }
+    if (typeof record.available !== 'boolean') {
+      throw new BadRequestException('Availability must be Yes or No.');
+    }
+    const text = (key: 'preferences' | 'comments'): string | null => {
+      const value = record[key];
+      if (value === null || value === '') return null;
+      if (typeof value !== 'string' || value.trim().length > 4000) {
+        throw new BadRequestException(`${key} is invalid.`);
+      }
+      return value.trim() || null;
+    };
+    return {
+      available: record.available,
+      preferences: record.available ? text('preferences') : null,
+      comments: record.available ? text('comments') : null,
+    };
+  }
+
   private persNo(value: string): string {
     if (!/^[1-9]\d{0,18}$/.test(value) || BigInt(value) > 9_223_372_036_854_775_807n) throw new BadRequestException('Pers.No is invalid.');
     return value;
@@ -159,12 +204,12 @@ export class Employee360Service {
     return value;
   }
 
-  private async run<Result>(operation: () => Promise<Result>): Promise<Result> {
+  private async run<Result>(operation: () => Promise<Result>, failureMessage = 'Unable to update Career Journey.'): Promise<Result> {
     try { return await operation(); } catch (error) {
       if (error instanceof HttpException) throw error;
       if ((error as { code?: string })?.code === '23505') throw new ConflictException('A Career Journey event already exists for this employee and month.');
-      this.logger.error('Unable to update Career Journey');
-      throw new InternalServerErrorException('Unable to update Career Journey.');
+      this.logger.error(failureMessage);
+      throw new InternalServerErrorException(failureMessage);
     }
   }
 

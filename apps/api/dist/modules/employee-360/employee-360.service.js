@@ -31,11 +31,14 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
         const employee = result.employees.find((item) => item.persNo === persNo);
         if (!employee)
             throw new common_1.NotFoundException('Employee was not found within your workforce scope.');
-        const [careerJourney, pppHistory] = await Promise.all([
+        const [careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio] = await Promise.all([
             this.careerJourneyRepository.list(persNo),
             this.repository.getPppHistory(persNo),
+            this.repository.getStepOverview(persNo),
+            this.repository.getTalentPortfolio(persNo),
+            this.repository.getDevelopmentPortfolio(persNo),
         ]);
-        return { employee, careerJourney, pppHistory };
+        return { employee, careerJourney, pppHistory, stepOverview, talentPortfolio, developmentPortfolio };
     }
     async createCareerEvent(persNoInput, body, user) {
         const persNo = await this.assertScopedEmployee(persNoInput, user);
@@ -75,6 +78,11 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
                 throw error;
             }
         });
+    }
+    async updateStepAvailability(persNoInput, body, user) {
+        const persNo = await this.assertScopedEmployee(persNoInput, user);
+        const input = this.stepAvailabilityInput(body);
+        return this.run(() => this.repository.updateStepAvailability(persNo, input.available, input.preferences, input.comments, user.accountId), 'Unable to update STEP availability.');
     }
     async assertScopedEmployee(persNoInput, user) {
         const persNo = this.persNo(persNoInput);
@@ -139,6 +147,33 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
         }
         return { jdId: record.jdId.trim().toUpperCase(), effectiveDate: record.effectiveDate };
     }
+    stepAvailabilityInput(body) {
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            throw new common_1.BadRequestException('STEP availability values are required.');
+        }
+        const record = body;
+        const keys = ['available', 'preferences', 'comments'];
+        if (Object.keys(record).length !== keys.length || Object.keys(record).some((key) => !keys.includes(key))) {
+            throw new common_1.BadRequestException('STEP availability must contain exactly available, preferences, and comments.');
+        }
+        if (typeof record.available !== 'boolean') {
+            throw new common_1.BadRequestException('Availability must be Yes or No.');
+        }
+        const text = (key) => {
+            const value = record[key];
+            if (value === null || value === '')
+                return null;
+            if (typeof value !== 'string' || value.trim().length > 4000) {
+                throw new common_1.BadRequestException(`${key} is invalid.`);
+            }
+            return value.trim() || null;
+        };
+        return {
+            available: record.available,
+            preferences: record.available ? text('preferences') : null,
+            comments: record.available ? text('comments') : null,
+        };
+    }
     persNo(value) {
         if (!/^[1-9]\d{0,18}$/.test(value) || BigInt(value) > 9223372036854775807n)
             throw new common_1.BadRequestException('Pers.No is invalid.');
@@ -149,7 +184,7 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
             throw new common_1.BadRequestException('Career Journey event ID is invalid.');
         return value;
     }
-    async run(operation) {
+    async run(operation, failureMessage = 'Unable to update Career Journey.') {
         try {
             return await operation();
         }
@@ -158,8 +193,8 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
                 throw error;
             if (error?.code === '23505')
                 throw new common_1.ConflictException('A Career Journey event already exists for this employee and month.');
-            this.logger.error('Unable to update Career Journey');
-            throw new common_1.InternalServerErrorException('Unable to update Career Journey.');
+            this.logger.error(failureMessage);
+            throw new common_1.InternalServerErrorException(failureMessage);
         }
     }
     normalize(input) {

@@ -68,8 +68,47 @@ export type EmployeePppHistory = {
   tcl: string | null;
 };
 
+export type EmployeeStepAvailability = {
+  available: boolean;
+  preferences: string | null;
+  comments: string | null;
+};
+
+export type EmployeeStepOverview = {
+  active: {
+    year: number;
+    departmentFrom: string | null;
+    departmentTo: string | null;
+    exchangedWith: string | null;
+    stepPeriodFrom: string | null;
+    stepPeriodTo: string | null;
+  } | null;
+  availability: EmployeeStepAvailability;
+};
+
+export type EmployeeTalentPortfolioEntry = {
+  type: string;
+  startDate: string | null;
+  endDateOrAdmission: string;
+};
+
+export type EmployeeTalentPortfolio = {
+  active: EmployeeTalentPortfolioEntry | null;
+  passive: EmployeeTalentPortfolioEntry | null;
+  nomination: EmployeeTalentPortfolioEntry | null;
+};
+
+export type EmployeeDevelopmentPortfolio = {
+  developmentPool: string;
+  poolStartDate: string;
+  poolEndDate: string;
+};
+
 export type Employee360Profile = {
   employee: Employee360Row;
   careerJourney: CareerJourneyEvent[];
   pppHistory: EmployeePppHistory[];
+  stepOverview: EmployeeStepOverview;
+  talentPortfolio: EmployeeTalentPortfolio;
+  developmentPortfolio: EmployeeDevelopmentPortfolio | null;
 };

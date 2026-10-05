@@ -60,8 +60,43 @@ export declare class EmployeePppHistoryDto {
     person: string | null;
     tcl: string | null;
 }
+export declare class EmployeeActiveStepDto {
+    year: number;
+    departmentFrom: string | null;
+    departmentTo: string | null;
+    exchangedWith: string | null;
+    stepPeriodFrom: string | null;
+    stepPeriodTo: string | null;
+}
+export declare class EmployeeStepAvailabilityDto {
+    available: boolean;
+    preferences: string | null;
+    comments: string | null;
+}
+export declare class EmployeeStepOverviewDto {
+    active: EmployeeActiveStepDto | null;
+    availability: EmployeeStepAvailabilityDto;
+}
+export declare class EmployeeTalentPortfolioEntryDto {
+    type: string;
+    startDate: string | null;
+    endDateOrAdmission: string;
+}
+export declare class EmployeeTalentPortfolioDto {
+    active: EmployeeTalentPortfolioEntryDto | null;
+    passive: EmployeeTalentPortfolioEntryDto | null;
+    nomination: EmployeeTalentPortfolioEntryDto | null;
+}
+export declare class EmployeeDevelopmentPortfolioDto {
+    developmentPool: string;
+    poolStartDate: string;
+    poolEndDate: string;
+}
 export declare class Employee360ProfileResponseDto {
     employee: Employee360RowDto;
     careerJourney: unknown[];
     pppHistory: EmployeePppHistoryDto[];
+    stepOverview: EmployeeStepOverviewDto;
+    talentPortfolio: EmployeeTalentPortfolioDto;
+    developmentPortfolio: EmployeeDevelopmentPortfolioDto | null;
 }

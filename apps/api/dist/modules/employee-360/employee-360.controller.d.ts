@@ -9,6 +9,9 @@ export declare class Employee360Controller {
         employee: import("./dto/employee-360.dto").Employee360RowDto;
         careerJourney: import("./career-journey.types").CareerJourneyEvent[];
         pppHistory: import("./dto/employee-360.dto").EmployeePppHistoryDto[];
+        stepOverview: import("./dto/employee-360.dto").EmployeeStepOverviewDto;
+        talentPortfolio: import("./dto/employee-360.dto").EmployeeTalentPortfolioDto;
+        developmentPortfolio: import("./dto/employee-360.dto").EmployeeDevelopmentPortfolioDto | null;
     }>;
     createCareerEvent(persNo: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;
     updateJobDescription(persNo: string, body: unknown, user: AuthenticatedUser): Promise<{
@@ -17,6 +20,7 @@ export declare class Employee360Controller {
         effectiveDate: string;
         changed: boolean;
     }>;
+    updateStepAvailability(persNo: string, body: unknown, user: AuthenticatedUser): Promise<import("./dto/employee-360.dto").EmployeeStepAvailabilityDto>;
     updateCareerEvent(persNo: string, eventId: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;
     deleteCareerEvent(persNo: string, eventId: string, user: AuthenticatedUser): Promise<void>;
 }

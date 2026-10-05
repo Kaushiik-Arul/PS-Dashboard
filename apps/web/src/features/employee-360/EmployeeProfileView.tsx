@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
-import type { Employee360Row } from "./employee-360.types";
-import type { CareerJourneyEvent, EmployeePppHistory } from "./employee-360.types";
+import type { CareerJourneyEvent, Employee360Row, EmployeeDevelopmentPortfolio, EmployeePppHistory, EmployeeStepOverview, EmployeeTalentPortfolio } from "./employee-360.types";
 import { CareerJourneyPanel } from "./CareerJourneyPanel";
 import { EmployeePppHistoryPanel } from "./EmployeePppHistoryPanel";
+import { EmployeeStepOverviewPanel } from "./EmployeeStepOverviewPanel";
+import { EmployeeTalentPortfolioPanel } from "./EmployeeTalentPortfolioPanel";
+import { EmployeeDevelopmentPortfolioPanel } from "./EmployeeDevelopmentPortfolioPanel";
 import { jobDescriptionsClient } from "@/features/hrbp-point/jd-management.http";
 import type { JobDescription } from "@/features/hrbp-point/jd-management.types";
 import { updateEmployeeJobDescription } from "./job-description.http";
@@ -41,12 +43,18 @@ export function EmployeeProfileView({
   returnTo,
   careerJourney,
   pppHistory,
+  stepOverview,
+  talentPortfolio,
+  developmentPortfolio,
   canEditCareerJourney,
 }: {
   employee: Employee360Row;
   returnTo: string;
   careerJourney: CareerJourneyEvent[];
   pppHistory: EmployeePppHistory[];
+  stepOverview: EmployeeStepOverview;
+  talentPortfolio: EmployeeTalentPortfolio;
+  developmentPortfolio: EmployeeDevelopmentPortfolio | null;
   canEditCareerJourney: boolean;
 }) {
   const router = useRouter();
@@ -187,10 +195,11 @@ export function EmployeeProfileView({
       <CareerJourneyPanel persNo={employee.persNo} initialEvents={careerJourney} canEdit={canEditCareerJourney} />
 
       <div className="employee-profile__grid">
-        <EmptyPanel title="Talent portfolio" icon="boschicon-bosch-ic-target" />
-        <EmptyPanel title="STEP overview" icon="boschicon-bosch-ic-hierarchy" />
-        <EmptyPanel title="Succession portfolio" icon="boschicon-bosch-ic-people" />
+        <EmployeeTalentPortfolioPanel portfolio={talentPortfolio} />
+        <EmployeeDevelopmentPortfolioPanel portfolio={developmentPortfolio} />
+        <EmployeeStepOverviewPanel persNo={employee.persNo} overview={stepOverview} canEdit={canEditCareerJourney} />
         <EmployeePppHistoryPanel history={pppHistory} />
+        <EmptyPanel title="Succession portfolio" icon="boschicon-bosch-ic-people" />
         <EmptyPanel title="IDP status" icon="boschicon-bosch-ic-document" />
       </div>
 

@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Employee360ProfileResponseDto = exports.EmployeePppHistoryDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
+exports.Employee360ProfileResponseDto = exports.EmployeeDevelopmentPortfolioDto = exports.EmployeeTalentPortfolioDto = exports.EmployeeTalentPortfolioEntryDto = exports.EmployeeStepOverviewDto = exports.EmployeeStepAvailabilityDto = exports.EmployeeActiveStepDto = exports.EmployeePppHistoryDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class Employee360QueryDto {
     search;
@@ -241,10 +241,131 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
     __metadata("design:type", Object)
 ], EmployeePppHistoryDto.prototype, "tcl", void 0);
+class EmployeeActiveStepDto {
+    year;
+    departmentFrom;
+    departmentTo;
+    exchangedWith;
+    stepPeriodFrom;
+    stepPeriodTo;
+}
+exports.EmployeeActiveStepDto = EmployeeActiveStepDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Number)
+], EmployeeActiveStepDto.prototype, "year", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeActiveStepDto.prototype, "departmentFrom", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeActiveStepDto.prototype, "departmentTo", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeActiveStepDto.prototype, "exchangedWith", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeActiveStepDto.prototype, "stepPeriodFrom", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeActiveStepDto.prototype, "stepPeriodTo", void 0);
+class EmployeeStepAvailabilityDto {
+    available;
+    preferences;
+    comments;
+}
+exports.EmployeeStepAvailabilityDto = EmployeeStepAvailabilityDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", Boolean)
+], EmployeeStepAvailabilityDto.prototype, "available", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeStepAvailabilityDto.prototype, "preferences", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeStepAvailabilityDto.prototype, "comments", void 0);
+class EmployeeStepOverviewDto {
+    active;
+    availability;
+}
+exports.EmployeeStepOverviewDto = EmployeeStepOverviewDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: EmployeeActiveStepDto, nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeStepOverviewDto.prototype, "active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: EmployeeStepAvailabilityDto }),
+    __metadata("design:type", EmployeeStepAvailabilityDto)
+], EmployeeStepOverviewDto.prototype, "availability", void 0);
+class EmployeeTalentPortfolioEntryDto {
+    type;
+    startDate;
+    endDateOrAdmission;
+}
+exports.EmployeeTalentPortfolioEntryDto = EmployeeTalentPortfolioEntryDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], EmployeeTalentPortfolioEntryDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeTalentPortfolioEntryDto.prototype, "startDate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], EmployeeTalentPortfolioEntryDto.prototype, "endDateOrAdmission", void 0);
+class EmployeeTalentPortfolioDto {
+    active;
+    passive;
+    nomination;
+}
+exports.EmployeeTalentPortfolioDto = EmployeeTalentPortfolioDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: EmployeeTalentPortfolioEntryDto, nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeTalentPortfolioDto.prototype, "active", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: EmployeeTalentPortfolioEntryDto, nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeTalentPortfolioDto.prototype, "passive", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: EmployeeTalentPortfolioEntryDto, nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeTalentPortfolioDto.prototype, "nomination", void 0);
+class EmployeeDevelopmentPortfolioDto {
+    developmentPool;
+    poolStartDate;
+    poolEndDate;
+}
+exports.EmployeeDevelopmentPortfolioDto = EmployeeDevelopmentPortfolioDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], EmployeeDevelopmentPortfolioDto.prototype, "developmentPool", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], EmployeeDevelopmentPortfolioDto.prototype, "poolStartDate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], EmployeeDevelopmentPortfolioDto.prototype, "poolEndDate", void 0);
 class Employee360ProfileResponseDto {
     employee;
     careerJourney;
     pppHistory;
+    stepOverview;
+    talentPortfolio;
+    developmentPortfolio;
 }
 exports.Employee360ProfileResponseDto = Employee360ProfileResponseDto;
 __decorate([
@@ -259,4 +380,16 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: [EmployeePppHistoryDto] }),
     __metadata("design:type", Array)
 ], Employee360ProfileResponseDto.prototype, "pppHistory", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: EmployeeStepOverviewDto }),
+    __metadata("design:type", EmployeeStepOverviewDto)
+], Employee360ProfileResponseDto.prototype, "stepOverview", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: EmployeeTalentPortfolioDto }),
+    __metadata("design:type", EmployeeTalentPortfolioDto)
+], Employee360ProfileResponseDto.prototype, "talentPortfolio", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: EmployeeDevelopmentPortfolioDto, nullable: true }),
+    __metadata("design:type", Object)
+], Employee360ProfileResponseDto.prototype, "developmentPortfolio", void 0);
 //# sourceMappingURL=employee-360.dto.js.map

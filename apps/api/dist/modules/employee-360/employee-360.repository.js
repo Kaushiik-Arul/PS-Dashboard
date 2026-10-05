@@ -97,6 +97,143 @@ let Employee360Repository = class Employee360Repository {
     constructor(database) {
         this.database = database;
     }
+    async updateStepAvailability(persNo, available, preferences, comments, actor) {
+        return this.database.transaction(async (client) => {
+            await client.query(`SELECT revision
+         FROM public.available_talent_state
+         WHERE kind = 'available'
+         FOR UPDATE`);
+            if (available) {
+                const result = await client.query(`INSERT INTO public.available_talent_rows (
+             kind, pers_no, employee_name, entity, department, hrbp,
+             preferences, current_status, comments, jd_id, updated_by
+           )
+           SELECT
+             'available', e.pers_no, COALESCE(e.personnel_number, ''),
+             COALESCE(e.lp, ''), COALESCE(e.organizational_unit, ''),
+             COALESCE(e.hrbp2_global_id, ''), $2, '', $3, '', $4::UUID
+           FROM public.employee_namelist e
+           WHERE e.pers_no = $1::BIGINT
+           ON CONFLICT (kind, pers_no) DO UPDATE SET
+             preferences = EXCLUDED.preferences,
+             comments = EXCLUDED.comments,
+             updated_by = EXCLUDED.updated_by,
+             updated_at = CURRENT_TIMESTAMP
+           RETURNING id`, [persNo, preferences ?? '', comments ?? '', actor]);
+                if (!result.rowCount)
+                    throw new Error('EMPLOYEE_NOT_FOUND');
+            }
+            else {
+                await client.query(`DELETE FROM public.available_talent_rows
+           WHERE kind = 'available' AND pers_no = $1::BIGINT`, [persNo]);
+            }
+            await client.query(`UPDATE public.available_talent_state
+         SET revision = revision + 1
+         WHERE kind = 'available'`);
+            return {
+                available,
+                preferences: available ? preferences : null,
+                comments: available ? comments : null,
+            };
+        });
+    }
+    async getDevelopmentPortfolio(persNo) {
+        const result = await this.database.query(`SELECT
+         NULLIF(BTRIM(development_pool), '') AS development_pool,
+         pool_start_date,
+         pool_end_date
+       FROM public.development_pool_register
+       WHERE employee_no = $1::BIGINT
+       LIMIT 1`, [persNo]);
+        const row = result.rows[0];
+        if (!row)
+            return null;
+        return {
+            developmentPool: row.development_pool ?? 'Not available',
+            poolStartDate: mapDate(row.pool_start_date) ?? 'Not available',
+            poolEndDate: mapDate(row.pool_end_date) ?? 'Not available',
+        };
+    }
+    async getTalentPortfolio(persNo) {
+        const result = await this.database.query(`SELECT
+         LOWER(NULLIF(BTRIM(talent.active_passive), '')) AS talent_status,
+         NULLIF(BTRIM(talent.talent_pool), '') AS talent_type,
+         talent.from_date AS talent_from_date,
+         talent.to_date AS talent_to_date,
+         NULLIF(BTRIM(nomination.talent_pool), '') AS nomination_type,
+         NULLIF(BTRIM(nomination.admission), '') AS nomination_admission
+       FROM (SELECT 1) seed
+       LEFT JOIN public.talent_pool_register talent
+         ON talent.pers_no = $1::BIGINT
+       LEFT JOIN LATERAL (
+         SELECT talent_pool, admission
+         FROM public.nomination_status_rows
+         WHERE employee_no = $1::BIGINT
+         ORDER BY year DESC, updated_at DESC, id DESC
+         LIMIT 1
+       ) nomination ON TRUE`, [persNo]);
+        const row = result.rows[0];
+        const talentEntry = row.talent_type && row.talent_from_date && row.talent_to_date
+            ? {
+                type: row.talent_type,
+                startDate: mapDate(row.talent_from_date),
+                endDateOrAdmission: mapDate(row.talent_to_date) ?? 'Not available',
+            }
+            : null;
+        const nomination = row.nomination_type
+            ? {
+                type: row.nomination_type,
+                startDate: null,
+                endDateOrAdmission: row.nomination_admission ?? 'Not available',
+            }
+            : null;
+        return {
+            active: row.talent_status === 'active' ? talentEntry : null,
+            passive: row.talent_status === 'passive' ? talentEntry : null,
+            nomination,
+        };
+    }
+    async getStepOverview(persNo) {
+        const result = await this.database.query(`SELECT
+         active.year AS active_year,
+         NULLIF(BTRIM(active.dept_from), '') AS department_from,
+         NULLIF(BTRIM(active.dept_to), '') AS department_to,
+         NULLIF(BTRIM(active.exchanged_with), '') AS exchanged_with,
+         active.step_from AS step_period_from,
+         active.step_to AS step_period_to,
+         available.pers_no IS NOT NULL AS available,
+         NULLIF(BTRIM(available.preferences), '') AS preferences,
+         NULLIF(BTRIM(available.comments), '') AS comments
+       FROM (SELECT 1) seed
+       LEFT JOIN LATERAL (
+         SELECT year, dept_from, dept_to, exchanged_with, step_from, step_to
+         FROM public.active_step_rows
+         WHERE pers_no = $1::BIGINT
+         ORDER BY year DESC, step_from DESC, source_row_number DESC
+         LIMIT 1
+       ) active ON TRUE
+       LEFT JOIN public.available_talent_rows available
+         ON available.kind = 'available'
+        AND available.pers_no = $1::BIGINT`, [persNo]);
+        const row = result.rows[0];
+        return {
+            active: row.active_year === null
+                ? null
+                : {
+                    year: row.active_year,
+                    departmentFrom: row.department_from,
+                    departmentTo: row.department_to,
+                    exchangedWith: row.exchanged_with,
+                    stepPeriodFrom: mapDate(row.step_period_from),
+                    stepPeriodTo: mapDate(row.step_period_to),
+                },
+            availability: {
+                available: row.available,
+                preferences: row.available ? row.preferences : null,
+                comments: row.available ? row.comments : null,
+            },
+        };
+    }
     async getPppHistory(persNo) {
         const result = await this.database.query(`SELECT calendar_year, performance, position, person, tcl
        FROM public.employee_ppp_history

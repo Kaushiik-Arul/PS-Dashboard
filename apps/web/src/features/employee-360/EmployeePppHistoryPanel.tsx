@@ -6,7 +6,7 @@ function valueOrFallback(value: string | null): string {
 
 export function EmployeePppHistoryPanel({ history }: { history: EmployeePppHistory[] }) {
   return (
-    <section className="employee-profile__panel employee-profile__panel--wide employee-profile__panel--ppp">
+    <section className="employee-profile__panel employee-profile__panel--ppp">
       <header>
         <i className="a-icon boschicon-bosch-ic-chart-bar" aria-hidden="true" />
         <h2>Performance history</h2>

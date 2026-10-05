@@ -39,15 +39,64 @@
 .employee-profile__panel header .a-icon { color: var(--accent-major__enabled__default__fill); font-size: 1.25rem; }
 .employee-profile__panel header .a-button--primary .a-icon { color: var(--background); }
 .employee-profile__panel--empty p { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
-.employee-ppp-history__table-wrap { overflow-x: auto; }
-.employee-ppp-history__table { border-collapse: collapse; font-size: 0.75rem; min-width: 31rem; width: 100%; }
+.employee-ppp-history__table-wrap { min-width: 0; }
+.employee-ppp-history__table { border-collapse: collapse; font-size: 0.75rem; table-layout: fixed; width: 100%; }
 .employee-ppp-history__table th { color: var(--base-major__enabled__default__fill); font-weight: 700; text-align: start; }
 .employee-ppp-history__table tbody th { color: var(--foreground); }
 .employee-ppp-history__table th,
-.employee-ppp-history__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); padding: var(--app-space-2); vertical-align: top; }
+.employee-ppp-history__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); overflow-wrap: anywhere; padding: var(--app-space-2); vertical-align: top; }
 .employee-ppp-history__table tr:last-child th,
 .employee-ppp-history__table tr:last-child td { border-block-end: 0; }
 .employee-ppp-history__empty { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; }
+.employee-profile__panel--step { padding-block-end: var(--app-space-3); }
+.employee-step-overview__table { border-collapse: separate; border-spacing: 0; font-size: 0.75rem; table-layout: fixed; width: 100%; }
+.employee-step-overview__table th,
+.employee-step-overview__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); padding: var(--app-space-3); text-align: start; vertical-align: top; }
+.employee-step-overview__table thead th { background: var(--base-minor__enabled__default__fill); color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; font-weight: 700; padding: var(--app-space-2) var(--app-space-3); text-transform: uppercase; }
+.employee-step-overview__table th:first-child { width: 7.5rem; }
+.employee-step-overview__table tbody th { color: var(--foreground); font-size: 0.8125rem; font-weight: 700; }
+.employee-step-overview__availability-heading { align-items: center; display: flex; gap: var(--app-space-1); justify-content: space-between; }
+.employee-step-overview__availability-heading .a-button { flex: 0 0 auto; }
+.employee-step-overview__table tbody tr:last-child th,
+.employee-step-overview__table tbody tr:last-child td { border-block-end: 0; }
+.employee-step-overview__details { gap: var(--app-space-3) var(--app-space-4) !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.employee-step-overview__details > div { border-inline-start: 0.1875rem solid var(--accent-major__enabled__default__fill); min-width: 0; padding-inline-start: var(--app-space-2); }
+.employee-step-overview__details dt { color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; margin-block-end: 0.1875rem; }
+.employee-step-overview__details dd { font-size: 0.8125rem; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.employee-step-overview__choices { align-items: center; display: flex; flex-wrap: wrap; gap: var(--app-space-4); min-height: 1.5rem; }
+.employee-step-overview__choice { align-items: center; display: inline-flex; font-weight: 700; gap: var(--app-space-2); }
+.employee-step-overview__choice input { accent-color: var(--accent-major__enabled__default__fill); height: 1.125rem; margin: 0; opacity: 1; width: 1.125rem; }
+.employee-step-overview__availability-details { display: grid; gap: var(--app-space-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.employee-step-overview__preference { border-inline-start: 0.1875rem solid var(--accent-major__enabled__default__fill); display: grid; gap: var(--app-space-1); margin-block-start: var(--app-space-3); padding-inline-start: var(--app-space-2); }
+.employee-step-overview__preference strong { color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; }
+.employee-step-overview__preference span { font-weight: 700; overflow-wrap: anywhere; }
+.employee-step-overview__editor fieldset { border: 0; display: grid; gap: var(--app-space-3); margin: 0; min-width: 0; padding: 0; }
+.employee-step-overview__editor legend { color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; margin-block-end: var(--app-space-1); }
+.employee-step-overview__editor fieldset > label { display: grid; font-weight: 700; gap: var(--app-space-1); }
+.employee-step-overview__editor textarea { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); font: inherit; min-height: 3.5rem; padding: var(--app-space-2); resize: vertical; width: 100%; }
+.employee-step-overview__editor textarea:disabled { background: var(--base-major__disabled__default__fill); }
+.employee-step-overview__editor-actions { display: flex; gap: var(--app-space-2); justify-content: flex-end; margin-block-start: var(--app-space-3); }
+.employee-step-overview__error { color: var(--signal-danger-pure__enabled__default__front); margin: var(--app-space-2) 0 0; }
+.employee-step-overview__empty { color: var(--base-major__enabled__default__fill); margin: 0; }
+.employee-profile__panel--talent { padding-block-end: var(--app-space-3); }
+.employee-talent-portfolio__table { border-collapse: separate; border-spacing: 0; font-size: 0.75rem; table-layout: fixed; width: 100%; }
+.employee-talent-portfolio__table th,
+.employee-talent-portfolio__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); overflow-wrap: anywhere; padding: var(--app-space-2); text-align: start; vertical-align: middle; }
+.employee-talent-portfolio__table thead th { background: var(--base-minor__enabled__default__fill); color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; font-weight: 700; padding-block: var(--app-space-2); text-transform: uppercase; }
+.employee-talent-portfolio__table thead th:first-child { width: 24%; }
+.employee-talent-portfolio__table thead th:nth-child(2) { width: 18%; }
+.employee-talent-portfolio__table tbody th { color: var(--foreground); font-size: 0.8125rem; font-weight: 700; }
+.employee-talent-portfolio__table tbody td:not(.employee-talent-portfolio__empty) { font-weight: 700; }
+.employee-talent-portfolio__table tbody tr:last-child th,
+.employee-talent-portfolio__table tbody tr:last-child td { border-block-end: 0; }
+.employee-talent-portfolio__empty { color: var(--base-major__enabled__default__fill); }
+.employee-profile__panel--development { padding-block-end: var(--app-space-3); }
+.employee-development-portfolio__table { border-collapse: separate; border-spacing: 0; font-size: 0.75rem; table-layout: fixed; width: 100%; }
+.employee-development-portfolio__table th,
+.employee-development-portfolio__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); overflow-wrap: anywhere; padding: var(--app-space-3); text-align: start; vertical-align: middle; }
+.employee-development-portfolio__table thead th { background: var(--base-minor__enabled__default__fill); color: var(--base-major__enabled__default__fill); font-size: 0.6875rem; font-weight: 700; line-height: 1rem; padding-block: var(--app-space-2); text-transform: uppercase; }
+.employee-development-portfolio__table tbody td { font-weight: 700; }
+.employee-development-portfolio__table tbody tr:last-child td { border-block-end: 0; }
 .employee-profile__details-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 .employee-profile__panel--career { margin-block-start: var(--app-space-3); min-height: 0; }
 .employee-profile__panel--career > header { justify-content: space-between; }
@@ -101,5 +150,7 @@
 @media (max-width: 32rem) {
   .employee-profile dl,
   .employee-profile__details-grid { grid-template-columns: 1fr !important; }
+  .employee-step-overview__details,
+  .employee-step-overview__availability-details { grid-template-columns: 1fr !important; }
   .career-journey__form { grid-template-columns: 1fr; }
 }
