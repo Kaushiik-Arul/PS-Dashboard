@@ -4,6 +4,7 @@ exports.permissions = void 0;
 exports.hasPermission = hasPermission;
 exports.permissions = [
     'workforce:view',
+    'dashboard-history:view',
     'hrbp-point:view',
     'hrbp-point:manage',
     'namelist:import',

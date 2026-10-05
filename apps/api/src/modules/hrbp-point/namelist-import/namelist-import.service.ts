@@ -17,7 +17,30 @@ export class NamelistImportService {
 
   constructor(private readonly repository: NamelistImportRepository) {}
 
-  async createPreview(file: UploadedNamelistFile | undefined, actorAccountId: string): Promise<NamelistPreviewSummary> {
+  async createPreview(
+    file: UploadedNamelistFile | undefined,
+    reportingMonthInput: string | undefined,
+    actorAccountId: string,
+  ): Promise<NamelistPreviewSummary> {
+    const reportingMonth = this.reportingMonth(reportingMonthInput, 'live');
+    return this.createPreviewForMode(file, actorAccountId, reportingMonth, 'live');
+  }
+
+  async createHistoricalPreview(
+    file: UploadedNamelistFile | undefined,
+    reportingMonthInput: string | undefined,
+    actorAccountId: string,
+  ): Promise<NamelistPreviewSummary> {
+    const reportingMonth = this.reportingMonth(reportingMonthInput, 'historical');
+    return this.createPreviewForMode(file, actorAccountId, reportingMonth, 'historical');
+  }
+
+  private async createPreviewForMode(
+    file: UploadedNamelistFile | undefined,
+    actorAccountId: string,
+    reportingMonth: string,
+    importMode: 'live' | 'historical',
+  ): Promise<NamelistPreviewSummary> {
     if (!file) throw new BadRequestException('A CSV or XLSX file is required.');
     let rows: ParsedNamelistRow[];
     try {
@@ -27,7 +50,9 @@ export class NamelistImportService {
       throw new BadRequestException('The uploaded file could not be parsed.');
     }
     return this.runDatabaseOperation(async () => {
-      const previewId = await this.repository.createPreview(actorAccountId, file, rows);
+      const previewId = importMode === 'historical'
+        ? await this.repository.createHistoricalPreview(actorAccountId, file, rows, reportingMonth)
+        : await this.repository.createPreview(actorAccountId, file, rows, reportingMonth);
       const preview = await this.repository.getSummary(previewId, actorAccountId);
       if (!preview) throw new Error('PREVIEW_NOT_FOUND');
       return preview;
@@ -85,6 +110,13 @@ export class NamelistImportService {
     }), 'Unable to import employee namelist');
   }
 
+  async commitHistorical(previewId: string, confirmReplacement: unknown, actorAccountId: string): Promise<{ totalRows: number }> {
+    if (typeof confirmReplacement !== 'boolean') throw new BadRequestException('Replacement confirmation must be a boolean.');
+    return this.runDatabaseOperation(async () => ({
+      totalRows: await this.repository.commitHistorical(previewId, actorAccountId, confirmReplacement),
+    }), 'Unable to import historical employee namelist');
+  }
+
   private validateRowInput(input: unknown): NamelistRowValues {
     if (typeof input !== 'object' || input === null || Array.isArray(input)) throw new BadRequestException('Row values are required.');
     const record = input as Record<string, unknown>;
@@ -108,6 +140,17 @@ export class NamelistImportService {
     return parsed;
   }
 
+  private reportingMonth(value: string | undefined, importMode: 'live' | 'historical'): string {
+    if (!value || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+      throw new BadRequestException('Reporting month must use YYYY-MM format.');
+    }
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    if (value >= currentMonth) {
+      throw new BadRequestException(`${importMode === 'live' ? 'Live' : 'Historical'} reporting month must be earlier than the current month.`);
+    }
+    return `${value}-01`;
+  }
+
   private async runDatabaseOperation<Result>(operation: () => Promise<Result>, publicMessage: string): Promise<Result> {
     try {
       return await operation();
@@ -116,7 +159,11 @@ export class NamelistImportService {
       if (error instanceof Error) {
         if (error.message === 'PREVIEW_NOT_FOUND') throw new NotFoundException('Namelist preview was not found or has expired.');
         if (error.message === 'INVALID_ROWS') throw new ConflictException('All invalid rows must be corrected before import.');
-        if (error.message === 'REPLACEMENT_CONFIRMATION_REQUIRED') throw new ConflictException('Confirm replacement of the completed current-month import.');
+        if (error.message === 'REPLACEMENT_CONFIRMATION_REQUIRED') throw new ConflictException('Confirm replacement of the completed import for this reporting month.');
+        if (error.message === 'PREVIEW_MODE_MISMATCH') throw new ConflictException('The preview cannot be committed with this import mode.');
+        if (error.message === 'LIVE_MONTH_OUT_OF_SEQUENCE') throw new ConflictException('Live reporting months must be imported in chronological order. Use historical import to correct an older month.');
+        if (error.message === 'HISTORICAL_MONTH_NOT_BEFORE_LIVE') throw new ConflictException('A historical reporting month must be earlier than the current live reporting month.');
+        if (error.message === 'SNAPSHOT_VERIFICATION_FAILED') throw new ConflictException('The older reporting month could not be archived. No Namelist data was changed.');
       }
       this.logger.error(publicMessage);
       throw new InternalServerErrorException(publicMessage);

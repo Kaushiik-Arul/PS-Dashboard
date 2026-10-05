@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useRef, useState } from "react";
+import { getCsrfToken } from "@/auth/csrf";
 import {
   emptyDashboardFilters,
   OverviewFilters,
@@ -31,6 +32,7 @@ import { PoolRegisterManagement } from "../hrbp-point/PoolRegisterManagement";
 import type {
   TalentPipelineChartDatum,
   TalentPipelineFilterOptions,
+  TalentPipelineHistoryState,
   TalentPipelineQueryFilters,
   TalentPipelineResponse,
 } from "./talent-pipeline.types";
@@ -38,6 +40,11 @@ import type {
 const talentFilterFields: readonly DashboardFilterKey[] = [
   "functionName", "orgUnit", "range", "location", "gender", "employmentType",
 ];
+
+const currentDate = new Date();
+const latestSnapshotMonth = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() - 1, 1))
+  .toISOString()
+  .slice(0, 7);
 
 function toDashboardFilters(filters: TalentPipelineQueryFilters): DashboardFilters {
   return {
@@ -143,9 +150,13 @@ const activeStepColumns: DataTableColumn<ActiveStepRow>[] = [
 export function TalentPipelineDashboard({
   data,
   activeFilters,
+  historyState,
+  isSnapshot,
 }: {
   data: TalentPipelineResponse;
   activeFilters: TalentPipelineQueryFilters;
+  historyState: TalentPipelineHistoryState | null;
+  isSnapshot: boolean;
 }) {
   const router = useRouter();
   const appliedFilters = toDashboardFilters(activeFilters);
@@ -156,7 +167,12 @@ export function TalentPipelineDashboard({
   const optionRequestId = useRef(0);
   const [activeStepRows, setActiveStepRows] = useState<ActiveStepRow[]>([]);
   const [activeStepError, setActiveStepError] = useState("");
+  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
+  const [snapshotMessage, setSnapshotMessage] = useState("");
+  const [snapshotMonth, setSnapshotMonth] = useState(latestSnapshotMonth);
+  const [isSnapshotPublisherOpen, setIsSnapshotPublisherOpen] = useState(false);
   useEffect(() => {
+    if (isSnapshot) return;
     const controller = new AbortController();
     void fetch("/api/hrbp-point/active-step", { signal: controller.signal }).then(async (response) => {
       if (!response.ok) throw new Error("Active STEP could not be loaded.");
@@ -165,10 +181,15 @@ export function TalentPipelineDashboard({
       if (!controller.signal.aborted) setActiveStepError(error instanceof Error ? error.message : "Active STEP could not be loaded.");
     });
     return () => controller.abort();
-  }, []);
+  }, [isSnapshot]);
+
+  const preserveReportingMonth = (params: URLSearchParams) => {
+    if (activeFilters.reportingMonth) params.set("reportingMonth", activeFilters.reportingMonth);
+    return params;
+  };
 
   const applyFilters = (filters: DashboardFilters) => {
-    const params = toSearchParams(filters);
+    const params = preserveReportingMonth(toSearchParams(filters));
     setIsFiltering(true);
     startTransition(() => {
       router.push(params.size ? `/talent-pipeline?${params}` : "/talent-pipeline");
@@ -176,10 +197,11 @@ export function TalentPipelineDashboard({
   };
 
   const refreshFilterOptions = async (filters: DashboardFilters) => {
+    if (isSnapshot) return;
     const requestId = ++optionRequestId.current;
     setIsLoadingOptions(true);
     try {
-      const params = toSearchParams(filters);
+      const params = preserveReportingMonth(toSearchParams(filters));
       const query = params.size ? `?${params}` : "";
       const response = await fetch(`/api/talent-pipeline/filter-options${query}`);
       if (!response.ok) return;
@@ -189,6 +211,30 @@ export function TalentPipelineDashboard({
       // Retain current choices; Apply still validates filters on the server.
     } finally {
       if (requestId === optionRequestId.current) setIsLoadingOptions(false);
+    }
+  };
+
+  const saveSnapshot = async () => {
+    setIsSavingSnapshot(true);
+    setSnapshotMessage("");
+    try {
+      const csrfToken = getCsrfToken();
+      const response = await fetch("/api/talent-pipeline/snapshots", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        },
+        body: JSON.stringify({ reportingMonth: snapshotMonth }),
+      });
+      const body = await response.json().catch(() => null) as { message?: string; reportingMonth?: string } | null;
+      if (!response.ok) throw new Error(body?.message ?? "The monthly snapshot could not be saved.");
+      setSnapshotMessage(`Saved Talent Pipeline snapshot for ${body?.reportingMonth ?? snapshotMonth}.`);
+      router.refresh();
+    } catch (error) {
+      setSnapshotMessage(error instanceof Error ? error.message : "The monthly snapshot could not be saved.");
+    } finally {
+      setIsSavingSnapshot(false);
     }
   };
 
@@ -221,17 +267,67 @@ export function TalentPipelineDashboard({
   const talentTotal = data.kpis.totalTalentPool.value.toLocaleString("en-US");
   const developmentTotal = data.kpis.developmentPool.value.toLocaleString("en-US");
   const nominationTotal = data.charts.nominationStatusDistribution.data.reduce((sum, item) => sum + item.value, 0).toLocaleString("en-US");
+  const periodOptions = historyState ? [
+    {
+      value: "",
+      label: "Current",
+    },
+    ...historyState.snapshotMonths
+      .map((month) => {
+        const [year, monthNumber] = month.split("-");
+        return { value: month, label: `${monthNumber}/${year}` };
+      }),
+  ] : undefined;
 
   return (
     <main className="overview-page">
       <OverviewFilters
         value={draftFilters}
         activeValue={appliedFilters}
+        period={historyState ? activeFilters.reportingMonth ?? "" : undefined}
+        periodOptions={periodOptions}
         fields={talentFilterFields}
+        filtersDisabled={isSnapshot}
         options={{ functionName: filterOptions.functionName, orgUnit: filterOptions.orgUnit, range: filterOptions.range, location: filterOptions.location, gender: filterOptions.gender, employmentType: filterOptions.directOrIndirect }}
         onChange={(filters) => { setDraftFilters(filters); void refreshFilterOptions(filters); }}
+        onPeriodChange={historyState ? (reportingMonth) => {
+          const params = new URLSearchParams();
+          if (reportingMonth) params.set("reportingMonth", reportingMonth);
+          startTransition(() => router.push(params.size ? `/talent-pipeline?${params}` : "/talent-pipeline"));
+        } : undefined}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => { setDraftFilters(emptyDashboardFilters); applyFilters(emptyDashboardFilters); }}
+        headerActions={historyState && !isSnapshot ? (
+          <div className="talent-history-menu">
+            <button
+              className="a-button a-button--secondary -small talent-history-menu__trigger"
+              type="button"
+              aria-label="Save monthly snapshot"
+              aria-expanded={isSnapshotPublisherOpen}
+              aria-controls="talent-snapshot-publisher"
+              title="Save monthly snapshot"
+              onClick={() => setIsSnapshotPublisherOpen((isOpen) => !isOpen)}
+            >
+              <i className="a-icon a-button__icon boschicon-bosch-ic-save" aria-hidden="true" />
+              <span className="a-button__label">Save monthly snapshot</span>
+            </button>
+            {isSnapshotPublisherOpen && (
+              <div className="talent-history-popover" id="talent-snapshot-publisher" role="dialog" aria-label="Monthly snapshot">
+                <strong>Save monthly snapshot</strong>
+                <p>Archive the organization-wide KPI and chart results for a reporting month.</p>
+                <label className="talent-history-month" htmlFor="talent-snapshot-month">
+                  <span>Reporting month</span>
+                  <input id="talent-snapshot-month" type="month" max={latestSnapshotMonth} value={snapshotMonth} disabled={isSavingSnapshot} onChange={(event) => setSnapshotMonth(event.target.value)} />
+                </label>
+                <button className="a-button a-button--secondary -small" type="button" disabled={!snapshotMonth || isSavingSnapshot} onClick={() => void saveSnapshot()}>
+                  <i className="a-icon a-button__icon boschicon-bosch-ic-save" aria-hidden="true" />
+                  <span className="a-button__label">{isSavingSnapshot ? "Saving..." : "Save snapshot"}</span>
+                </button>
+                {snapshotMessage && <p className="talent-history-popover__message" role="status">{snapshotMessage}</p>}
+              </div>
+            )}
+          </div>
+        ) : undefined}
       />
 
       {isLoadingOptions && <p className="overview-page__filtering" role="status">Updating filter choices...</p>}
@@ -348,7 +444,7 @@ export function TalentPipelineDashboard({
           TALENT / STEP TABLES
       ===================================================== */}
 
-      <section
+      {!isSnapshot && <section
         className="dashboard-section talent-register-section"
         aria-labelledby="talent-register-title"
       >
@@ -385,7 +481,7 @@ export function TalentPipelineDashboard({
 
         <PoolRegisterManagement kind="development" />
         <PoolRegisterManagement kind="talent" />
-      </section>
+      </section>}
     </main>
   );
 }

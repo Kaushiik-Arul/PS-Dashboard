@@ -26,10 +26,11 @@ export type NamelistPreview = {
   id: string;
   fileName: string;
   reportingMonth: string;
+  importMode: "live" | "historical";
   totalRows: number;
   validRows: number;
   invalidRows: number;
-  hasCurrentMonthImport: boolean;
+  hasExistingMonthImport: boolean;
   rows: NamelistPreviewRow[];
   page: number;
   pageSize: number;
@@ -39,7 +40,7 @@ export type NamelistPreview = {
 export type PreviewFilter = "all" | "valid" | "invalid";
 
 export interface NamelistImportClient {
-  createPreview(file: File): Promise<NamelistPreview>;
+  createPreview(file: File, reportingMonth: string, importMode: "live" | "historical"): Promise<NamelistPreview>;
   getRows(previewId: string, filter: PreviewFilter, page: number, pageSize: number): Promise<NamelistPreview>;
   updateRow(previewId: string, row: NamelistPreviewRow, filter: PreviewFilter, page: number, pageSize: number): Promise<NamelistPreview>;
   cancel(previewId: string): Promise<void>;

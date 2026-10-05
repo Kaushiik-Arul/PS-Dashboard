@@ -31,7 +31,9 @@ Full RBIN engineering and operations documentation is available in
 - Associates every preview with the HRBP account that uploaded it.
 - Expires uncommitted previews after 24 hours.
 - Requires explicit confirmation when replacing an import for the same month.
+- Requires an explicit reporting month and defaults live uploads to the previous calendar month.
 - Replaces the live namelist atomically rather than appending rows.
+- Retains one live month plus the two newest detailed months at row level.
 - Leaves `auth_accounts`, `master_access`, and `employee_status` records untouched.
 
 ## Dependencies
@@ -61,6 +63,8 @@ changes.
 | --- | --- |
 | `public.employee_namelist` | Current live employee dataset consumed by dashboards and access workflows. |
 | `public.namelist_imports` | Audit record for import month, uploader, file, row count, timestamp, and outcome. |
+| `public.employee_namelist_monthly` | Detailed rows for the two reporting months preceding live. |
+| `public.dashboard_json_snapshots` | Versioned, checksummed JSON for older HRBP-only Overview months. |
 
 ### Staging tables
 
@@ -87,7 +91,7 @@ WHERE status = 'ready'
 
 ## Upload and validation workflow
 
-1. The HRBP selects a CSV or XLSX file in HRBP Point.
+1. The HRBP selects a reporting month and a CSV or XLSX file in HRBP Point.
 2. The browser sends multipart form data to the Next.js Route Handler.
 3. The Route Handler forwards the file, authenticated session cookie, and CSRF header to NestJS.
 4. NestJS verifies authentication and the `namelist:import` permission.
@@ -96,8 +100,9 @@ WHERE status = 'ready'
 7. The browser requests paginated staged rows for review.
 8. Row edits are sent to NestJS and the complete staged set is revalidated so duplicate employee numbers remain accurate.
 9. Push is enabled only when `invalidRows` is zero and any required same-month confirmation is selected.
-10. Commit acquires a PostgreSQL advisory transaction lock, rechecks the preview, deletes the live rows, inserts every staged row, records the completed import, and commits atomically.
-11. Any transaction failure rolls back the deletion and insertion, preserving the previous live namelist.
+10. A newer live commit preserves outgoing live rows as detailed history before replacing the live table.
+11. Retention keeps the newest three reporting months at row level, including live. Older detail is published as checksummed Overview JSON before deletion.
+12. Any transaction or snapshot verification failure rolls back all replacement, archival, and deletion work.
 
 ## File rules
 
@@ -146,11 +151,13 @@ the `namelist:import` permission.
 
 | Method and path | Purpose |
 | --- | --- |
-| `POST /previews` | Accept multipart field `file`, parse it, validate rows, and create an owned preview. |
+| `POST /previews?reportingMonth=YYYY-MM` | Create an owned live preview for an explicit reporting month. |
+| `POST /historical/previews?reportingMonth=YYYY-MM` | Create a historical-only preview that cannot replace live data. |
 | `GET /previews/:previewId/rows` | Return filtered, paginated preview rows and current summary counts. |
 | `PATCH /previews/:previewId/rows/:rowNumber` | Replace one staged row, then revalidate the staged dataset. |
 | `DELETE /previews/:previewId` | Cancel and delete an uncommitted preview. |
 | `POST /previews/:previewId/commit` | Atomically replace the live namelist after validation and confirmation. |
+| `POST /historical/previews/:previewId/commit` | Replace one historical month and enforce rolling retention. |
 
 Supported row query parameters are `filter=all|valid|invalid`, `page`, and
 `pageSize`. The maximum page size is 100.
@@ -165,6 +172,8 @@ Supported row query parameters are `filter=all|valid|invalid`, `page`, and
 - Preview expiry is enforced when loading and committing.
 - Commit uses `PG_ADVISORY_XACT_LOCK` to serialize namelist replacements.
 - The final `DELETE` and `INSERT ... SELECT` occur in one database transaction.
+- Older detail is deleted only after its active JSON snapshot is inserted and its checksum is read back successfully.
+- Archived Overview discovery and reads require the HRBP-only `dashboard-history:view` permission.
 - SQL inserts list every destination column explicitly and cast staged values to their database types.
 - Related account, access, and leave-status tables are neither modified nor used to block replacement.
 

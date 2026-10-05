@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Query } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import {
   ApiInternalServerErrorResponse,
   ApiOkResponse,
@@ -17,6 +17,29 @@ import { OverviewService } from './overview.service';
 @RequirePermission('workforce:view')
 export class OverviewController {
   constructor(private readonly service: OverviewService) {}
+
+  @Get('available-months')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({ summary: 'List available historical Overview months' })
+  getAvailableMonths(): Promise<{ currentMonth: string | null; detailedMonths: string[] }> {
+    return this.service.getAvailableMonths();
+  }
+
+  @Get('archived-months')
+  @Header('Cache-Control', 'no-store')
+  @RequirePermission('dashboard-history:view')
+  @ApiOperation({ summary: 'List HRBP-only archived Overview months' })
+  getArchivedMonths(): Promise<string[]> {
+    return this.service.getArchivedMonths();
+  }
+
+  @Get('archive/:reportingMonth')
+  @Header('Cache-Control', 'no-store')
+  @RequirePermission('dashboard-history:view')
+  @ApiOperation({ summary: 'Fetch an HRBP-only archived Overview snapshot' })
+  getArchivedOverview(@Param('reportingMonth') reportingMonth: string): Promise<OverviewResponseDto> {
+    return this.service.getArchivedOverview(reportingMonth);
+  }
 
   @Get()
   @Header('Cache-Control', 'no-store')

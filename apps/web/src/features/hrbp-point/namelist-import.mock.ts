@@ -10,6 +10,7 @@ import {
 } from "./namelist-import.types";
 
 const previews = new Map<string, NamelistPreviewRow[]>();
+const previewMetadata = new Map<string, { reportingMonth: string; importMode: "live" | "historical" }>();
 const pageSize = 5;
 
 const dateColumns = new Set<NamelistColumn>([
@@ -72,16 +73,21 @@ function wait() {
 
 function toPage(id: string, fileName: string, filter: PreviewFilter, page: number): NamelistPreview {
   const allRows = previews.get(id) ?? [];
+  const metadata = previewMetadata.get(id) ?? {
+    reportingMonth: new Date().toISOString().slice(0, 7),
+    importMode: "live" as const,
+  };
   const filtered = allRows.filter((row) => filter === "all" || (filter === "valid" ? row.issues.length === 0 : row.issues.length > 0));
   const validRows = allRows.filter((row) => row.issues.length === 0).length;
   return {
     id,
     fileName,
-    reportingMonth: new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
+    reportingMonth: metadata.reportingMonth,
+    importMode: metadata.importMode,
     totalRows: allRows.length,
     validRows,
     invalidRows: allRows.length - validRows,
-    hasCurrentMonthImport: true,
+    hasExistingMonthImport: true,
     rows: filtered.slice((page - 1) * pageSize, page * pageSize),
     page,
     pageSize,
@@ -90,7 +96,7 @@ function toPage(id: string, fileName: string, filter: PreviewFilter, page: numbe
 }
 
 export const mockNamelistImportClient: NamelistImportClient = {
-  async createPreview(file) {
+  async createPreview(file, reportingMonth, importMode) {
     await wait();
     const rows = Array.from({ length: 18 }, (_, index) => ({ rowNumber: index + 2, values: makeValues(index + 1), issues: [] }));
     rows[4].values.official_email = "invalid-email";
@@ -98,6 +104,10 @@ export const mockNamelistImportClient: NamelistImportClient = {
     rows[10].values.joining_date = "03/02/2020";
     const id = crypto.randomUUID();
     previews.set(id, revalidate(rows));
+    previewMetadata.set(id, {
+      reportingMonth,
+      importMode,
+    });
     return toPage(id, file.name, "all", 1);
   },
   async getRows(previewId, filter, page) {
@@ -116,10 +126,11 @@ export const mockNamelistImportClient: NamelistImportClient = {
   async cancel(previewId) {
     await wait();
     previews.delete(previewId);
+    previewMetadata.delete(previewId);
   },
   async commit(preview, confirmReplacement) {
     await wait();
-    if (preview.hasCurrentMonthImport && !confirmReplacement) throw new Error("Confirm replacement of this month's import.");
+    if (preview.hasExistingMonthImport && !confirmReplacement) throw new Error("Confirm replacement of this month's import.");
     return { totalRows: preview.totalRows };
   },
 };

@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { OverviewResponseDto } from './dto/overview-response.dto';
 import {
@@ -17,6 +18,43 @@ export class OverviewService {
 
   constructor(private readonly repository: OverviewRepository) {}
 
+  async getAvailableMonths(): Promise<{ currentMonth: string | null; detailedMonths: string[] }> {
+    try {
+      return await this.repository.getAvailableMonths();
+    } catch (error) {
+      this.logger.error(
+        'Overview available months query failed',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Unable to load available reporting months',
+      );
+    }
+  }
+
+  async getArchivedMonths(): Promise<string[]> {
+    try {
+      return await this.repository.getArchivedMonths();
+    } catch (error) {
+      this.logger.error('Overview archived months query failed', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Unable to load archived reporting months');
+    }
+  }
+
+  async getArchivedOverview(reportingMonthInput: string): Promise<OverviewResponseDto> {
+    const reportingMonth = this.normalizeReportingMonth(reportingMonthInput);
+    if (!reportingMonth) throw new BadRequestException('Reporting month is required');
+    try {
+      const overview = await this.repository.getArchivedOverview(reportingMonth);
+      if (!overview) throw new NotFoundException('Archived Overview month was not found');
+      return overview;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      this.logger.error('Archived Overview query failed', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Unable to load archived workforce overview');
+    }
+  }
+
   async getOverview(
     filters: OverviewFilterDto,
     accountId: string,
@@ -25,8 +63,11 @@ export class OverviewService {
 
     try {
       return await this.repository.getOverview(normalizedFilters, accountId);
-    } catch {
-      this.logger.error('Overview database query failed');
+    } catch (error) {
+      this.logger.error(
+        'Overview database query failed',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new InternalServerErrorException(
         'Unable to load the workforce overview',
       );
@@ -43,6 +84,7 @@ export class OverviewService {
     };
 
     return {
+      reportingMonth: this.normalizeReportingMonth(filters.reportingMonth),
       functionName: normalize(filters.functionName, 'Function'),
       orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
       range: normalize(filters.range, 'Range'),
@@ -53,5 +95,17 @@ export class OverviewService {
         'Direct or indirect',
       ),
     };
+  }
+
+  private normalizeReportingMonth(value: unknown): string | null {
+    if (value === undefined || value === '') return null;
+    if (typeof value !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+      throw new BadRequestException('Reporting month must use YYYY-MM format');
+    }
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    if (value >= currentMonth) {
+      throw new BadRequestException('Historical reporting month must be earlier than the current month');
+    }
+    return `${value}-01`;
   }
 }

@@ -1,4 +1,5 @@
 export declare class OverviewFilterDto {
+    reportingMonth?: string;
     functionName?: string;
     orgUnit?: string;
     range?: string;
@@ -7,6 +8,7 @@ export declare class OverviewFilterDto {
     directOrIndirect?: string;
 }
 export type NormalizedOverviewFilters = {
+    reportingMonth: string | null;
     functionName: string | null;
     orgUnit: string | null;
     range: string | null;

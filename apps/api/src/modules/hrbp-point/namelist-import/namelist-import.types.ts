@@ -29,6 +29,7 @@ export type ParsedNamelistRow = {
 };
 
 export type PreviewFilter = 'all' | 'valid' | 'invalid';
+export type NamelistImportMode = 'live' | 'historical';
 
 export type UploadedNamelistFile = {
   originalname: string;
@@ -39,10 +40,11 @@ export type NamelistPreviewSummary = {
   id: string;
   fileName: string;
   reportingMonth: string;
+  importMode: NamelistImportMode;
   totalRows: number;
   validRows: number;
   invalidRows: number;
-  hasCurrentMonthImport: boolean;
+  hasExistingMonthImport: boolean;
 };
 
 export type NamelistPreviewPage = NamelistPreviewSummary & {

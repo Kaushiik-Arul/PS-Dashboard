@@ -51,6 +51,9 @@ next-env.d.ts
 !apps/sql/access_point_multi_assignment_migration.sql
 !apps/sql/overview_access_scope_migration.sql
 !apps/sql/namelist_import_staging_migration.sql
+!apps/sql/namelist_monthly_history_migration.sql
+!apps/sql/namelist_reporting_month_confirmation_migration.sql
+!apps/sql/dashboard_json_snapshots_migration.sql
 !apps/sql/rbin_namelist_creation.sql
 !apps/sql/rbin_cleaning_migration.sql
 !apps/sql/rbin_employee_exceptions_migration.sql

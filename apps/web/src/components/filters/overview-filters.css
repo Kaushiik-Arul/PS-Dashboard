@@ -9,6 +9,7 @@
 .overview-filters__header,
 .overview-filters__footer,
 .overview-filters__toggle,
+.overview-filters__snapshot,
 .overview-filters__header-actions,
 .overview-filters__actions {
   align-items: center;
@@ -48,6 +49,33 @@
 
 .overview-filters__toggle > .a-icon:last-child {
   font-size: 1.25rem;
+}
+
+.overview-filters__snapshot {
+  gap: 0.75rem;
+}
+
+.overview-filters__snapshot > .a-icon {
+  color: var(--accent-major__enabled__default__fill);
+  font-size: 1.5rem;
+}
+
+.overview-filters__snapshot-copy {
+  display: block;
+}
+
+.overview-filters__snapshot-copy strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.overview-filters__snapshot-copy span {
+  color: var(--base-major__enabled__default__fill);
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  margin-block-start: 0.25rem;
 }
 
 .overview-filters__header-actions {

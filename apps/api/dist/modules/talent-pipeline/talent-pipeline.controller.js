@@ -25,11 +25,50 @@ let TalentPipelineController = class TalentPipelineController {
     constructor(service) {
         this.service = service;
     }
+    getHistoryState() {
+        return this.service.getHistoryState();
+    }
+    getSnapshot(reportingMonth) {
+        return this.service.getSnapshot(reportingMonth);
+    }
+    publishSnapshot(reportingMonth, user) {
+        return this.service.publishSnapshot(reportingMonth, user.accountId);
+    }
     getTalentPipeline(filters, user) {
         return this.service.getTalentPipeline(filters, user.accountId);
     }
 };
 exports.TalentPipelineController = TalentPipelineController;
+__decorate([
+    (0, common_1.Get)('history'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('dashboard-history:view'),
+    (0, swagger_1.ApiOperation)({ summary: 'List HRBP-only Talent Pipeline snapshot months' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], TalentPipelineController.prototype, "getHistoryState", null);
+__decorate([
+    (0, common_1.Get)('history/:reportingMonth'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('dashboard-history:view'),
+    (0, swagger_1.ApiOperation)({ summary: 'Fetch an HRBP-only Talent Pipeline snapshot' }),
+    __param(0, (0, common_1.Param)('reportingMonth')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], TalentPipelineController.prototype, "getSnapshot", null);
+__decorate([
+    (0, common_1.Post)('snapshots'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('dashboard-history:view'),
+    (0, swagger_1.ApiOperation)({ summary: 'Save the current Talent Pipeline monthly snapshot' }),
+    __param(0, (0, common_1.Body)('reportingMonth')),
+    __param(1, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], TalentPipelineController.prototype, "publishSnapshot", null);
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.Header)('Cache-Control', 'no-store'),

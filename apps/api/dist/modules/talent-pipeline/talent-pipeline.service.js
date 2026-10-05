@@ -29,6 +29,52 @@ let TalentPipelineService = TalentPipelineService_1 = class TalentPipelineServic
             throw new common_1.InternalServerErrorException('Unable to load the Talent Pipeline dashboard');
         }
     }
+    async getHistoryState() {
+        try {
+            return await this.repository.getHistoryState();
+        }
+        catch (error) {
+            this.logger.error('Talent Pipeline history state query failed', error instanceof Error ? error.stack : String(error));
+            throw new common_1.InternalServerErrorException('Unable to load Talent Pipeline history');
+        }
+    }
+    async getSnapshot(reportingMonthInput) {
+        const reportingMonth = this.normalizeReportingMonth(reportingMonthInput);
+        try {
+            const snapshot = await this.repository.getSnapshot(reportingMonth);
+            if (!snapshot)
+                throw new common_1.NotFoundException('Talent Pipeline snapshot was not found');
+            return snapshot;
+        }
+        catch (error) {
+            if (error instanceof common_1.NotFoundException)
+                throw error;
+            this.logger.error('Talent Pipeline snapshot query failed', error instanceof Error ? error.stack : String(error));
+            throw new common_1.InternalServerErrorException('Unable to load Talent Pipeline snapshot');
+        }
+    }
+    async publishSnapshot(reportingMonthInput, accountId) {
+        const reportingMonth = this.normalizeReportingMonth(reportingMonthInput);
+        try {
+            return { reportingMonth: await this.repository.publishSnapshot(accountId, reportingMonth) };
+        }
+        catch (error) {
+            if (error instanceof Error && error.message === 'SNAPSHOT_VERIFICATION_FAILED') {
+                throw new common_1.ConflictException('The Talent Pipeline snapshot could not be verified.');
+            }
+            this.logger.error('Talent Pipeline snapshot publication failed', error instanceof Error ? error.stack : String(error));
+            throw new common_1.InternalServerErrorException('Unable to save Talent Pipeline snapshot');
+        }
+    }
+    normalizeReportingMonth(value) {
+        if (typeof value !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+            throw new common_1.BadRequestException('Reporting month must use YYYY-MM format');
+        }
+        if (value >= new Date().toISOString().slice(0, 7)) {
+            throw new common_1.BadRequestException('Historical reporting month must be earlier than the current month');
+        }
+        return `${value}-01`;
+    }
     normalizeFilters(filters) {
         const normalize = (value, label) => {
             if (value === undefined || value === '')

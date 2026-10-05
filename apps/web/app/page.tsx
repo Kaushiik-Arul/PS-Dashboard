@@ -1,14 +1,15 @@
 import { connection } from "next/server";
 import Link from "next/link";
-import { getOverview } from "@/features/overview/overview.api";
+import { getArchivedOverview, getOverview, getOverviewArchivedMonths, getOverviewAvailableMonths } from "@/features/overview/overview.api";
 import { OverviewDashboard } from "@/features/overview/OverviewDashboardView";
-import type { OverviewQueryFilters } from "@/features/overview/overview.types";
+import type { OverviewAvailableMonths, OverviewQueryFilters } from "@/features/overview/overview.types";
 
 type OverviewPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const filterKeys = [
+  "reportingMonth",
   "functionName",
   "orgUnit",
   "range",
@@ -26,9 +27,27 @@ export default async function OverviewPage({ searchParams }: OverviewPageProps) 
     const firstValue = Array.isArray(value) ? value[0] : value;
     if (firstValue) filters[key] = firstValue;
   });
+  const [availableMonths, archivedMonths] = await Promise.all([
+    getOverviewAvailableMonths().catch((): OverviewAvailableMonths => ({ currentMonth: null, detailedMonths: [] })),
+    getOverviewArchivedMonths().catch((): string[] => []),
+  ]);
+  const latestHistoricalMonth = [
+    ...availableMonths.detailedMonths,
+    ...archivedMonths,
+  ].toSorted((left, right) => right.localeCompare(left))[0];
+  const selectedMonth = filters.reportingMonth
+    ?? (!availableMonths.currentMonth ? latestHistoricalMonth : undefined);
+  const isArchived = Boolean(selectedMonth && archivedMonths.includes(selectedMonth));
+  const effectiveFilters: OverviewQueryFilters = selectedMonth
+    ? isArchived
+      ? { reportingMonth: selectedMonth }
+      : { ...filters, reportingMonth: selectedMonth }
+    : filters;
   let overview;
   try {
-    overview = await getOverview(filters);
+    overview = isArchived && selectedMonth
+      ? await getArchivedOverview(selectedMonth)
+      : await getOverview(effectiveFilters);
   } catch (error) {
     console.error("Unable to load workforce overview", error);
     return (
@@ -42,6 +61,6 @@ export default async function OverviewPage({ searchParams }: OverviewPageProps) 
       </main>
     );
   }
-  const filterKey = filterKeys.map((key) => filters[key] ?? "").join("|");
-  return <OverviewDashboard key={filterKey} data={overview} activeFilters={filters} />;
+  const filterKey = filterKeys.map((key) => effectiveFilters[key] ?? "").join("|");
+  return <OverviewDashboard key={filterKey} data={overview} activeFilters={effectiveFilters} availableMonths={availableMonths} archivedMonths={archivedMonths} isArchived={isArchived} />;
 }

@@ -26,12 +26,25 @@ const keyColumns: readonly NamelistColumn[] = [
   "official_email",
 ];
 const dateColumns = new Set<NamelistColumn>(["birth_date", "joining_date", "entry_for_retirement", "technical_entry_date"]);
+const currentDate = new Date();
+const latestHistoricalMonth = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() - 1, 1))
+  .toISOString()
+  .slice(0, 7);
 const labels: Record<NamelistColumn, string> = Object.fromEntries(
   namelistColumns.map((column) => [column, column.split("_").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ")]),
 ) as Record<NamelistColumn, string>;
 
 function displayValue(column: NamelistColumn, value: string) {
   return column === "direct_or_indirect" ? formatDirectOrIndirect(value) : value;
+}
+
+function formatReportingMonth(value: string) {
+  const date = new Date(`${value}-01T00:00:00Z`);
+  return new Intl.DateTimeFormat("en-GB", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
 }
 
 export function NamelistImportPanel() {
@@ -47,6 +60,8 @@ export function NamelistImportPanel() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [confirmReplacement, setConfirmReplacement] = useState(false);
+  const [importMode, setImportMode] = useState<"live" | "historical">("live");
+  const [reportingMonthValue, setReportingMonthValue] = useState(latestHistoricalMonth);
 
   const pageCount = Math.max(1, Math.ceil((preview?.filteredRows ?? 0) / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -69,11 +84,15 @@ export function NamelistImportPanel() {
   };
 
   const upload = async () => {
-    if (!file) return;
+    if (!file || !reportingMonthValue) return;
     setBusy(true);
     setMessage("");
     try {
-      const nextPreview = await httpNamelistImportClient.createPreview(file);
+      const nextPreview = await httpNamelistImportClient.createPreview(
+        file,
+        reportingMonthValue,
+        importMode,
+      );
       setPreview(nextPreview);
       setFilter("all");
       setPage(1);
@@ -149,7 +168,9 @@ export function NamelistImportPanel() {
       setPreview(null);
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      setMessage(`Imported ${result.totalRows} employee rows successfully.`);
+      setMessage(preview.importMode === "historical"
+        ? `Stored ${result.totalRows} historical employee rows for ${preview.reportingMonth}. Live Namelist data was not changed.`
+        : `Imported ${result.totalRows} employee rows successfully.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The preview could not be completed.");
     } finally {
@@ -157,7 +178,7 @@ export function NamelistImportPanel() {
     }
   };
 
-  const reportingMonth = new Date().toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+  const reportingMonth = reportingMonthValue ? formatReportingMonth(reportingMonthValue) : "Select reporting month";
 
   return <section className="namelist-area" aria-label="Namelist operations">
     <div className="hrbp-workflow-heading">
@@ -173,14 +194,43 @@ export function NamelistImportPanel() {
           <div className="namelist-panel__status"><span className="namelist-panel__mode"><i className="a-icon boschicon-bosch-ic-document-check" aria-hidden="true" /> Validated import</span><small>{reportingMonth} reporting month</small></div>
         </div>
         <div className="namelist-panel__body">
+          <div className="namelist-import-options">
+            <label className="hrbp-field" htmlFor="namelist-import-mode">
+              <span>Import destination</span>
+              <select
+                id="namelist-import-mode"
+                value={importMode}
+                disabled={busy}
+                onChange={(event) => {
+                  setImportMode(event.target.value as "live" | "historical");
+                  setMessage("");
+                }}
+              >
+                <option value="live">Current live dataset</option>
+                <option value="historical">Historical month only</option>
+              </select>
+            </label>
+            <label className="hrbp-field" htmlFor="namelist-reporting-month">
+              <span>Reporting month</span>
+              <input
+                id="namelist-reporting-month"
+                type="month"
+                max={latestHistoricalMonth}
+                value={reportingMonthValue}
+                disabled={busy}
+                required
+                onChange={(event) => setReportingMonthValue(event.target.value)}
+              />
+            </label>
+          </div>
           <div className="namelist-upload">
             <i className="a-icon boschicon-bosch-ic-upload" aria-hidden="true" />
             <div><strong>Select cleaned PS Namelist</strong><p>CSV or XLSX · 50 MB maximum · 25,000 rows</p></div>
             <input ref={fileInputRef} id="namelist-file" className="visually-hidden" type="file" accept=".csv,.xlsx" onChange={selectFile} />
             <label className="a-button a-button--secondary" htmlFor="namelist-file"><span className="a-button__label">Choose file</span></label>
           </div>
-          {file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><button className="a-button a-button--primary" type="button" disabled={busy} onClick={upload}><span className="a-button__label">{busy ? "Preparing..." : "Upload and preview"}</span></button></div>}
-          <p className="namelist-panel__notice">Live data changes only after validation and confirmation.</p>
+          {file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><button className="a-button a-button--primary" type="button" disabled={busy || !reportingMonthValue} onClick={upload}><span className="a-button__label">{busy ? "Preparing..." : "Upload and preview"}</span></button></div>}
+          <p className="namelist-panel__notice">{importMode === "historical" ? "Historical imports do not change the current live Namelist." : "Live data changes only after validation and confirmation."}</p>
           {message && <p className="namelist-panel__message" role="status">{message}</p>}
         </div>
       </section>
@@ -197,14 +247,14 @@ export function NamelistImportPanel() {
 
     <dialog className="namelist-dialog" ref={dialogRef} onClose={() => setEditingRow(null)}>
       {preview && <div className="namelist-dialog__layout">
-        <header className="namelist-dialog__header"><div><span>Namelist preview</span><h2>{preview.fileName}</h2><p>{preview.reportingMonth} · {preview.totalRows} employee rows</p></div><button className="a-button a-button--integrated" type="button" aria-label="Close preview" title="Close" disabled={busy} onClick={() => dialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
+        <header className="namelist-dialog__header"><div><span>{preview.importMode === "historical" ? "Historical Namelist preview" : "Namelist preview"}</span><h2>{preview.fileName}</h2><p>{preview.reportingMonth} · {preview.totalRows} employee rows</p></div><button className="a-button a-button--integrated" type="button" aria-label="Close preview" title="Close" disabled={busy} onClick={() => dialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
         <div className="namelist-summary" aria-label="Preview summary"><div><span>Total</span><strong>{preview.totalRows}</strong></div><div><span>Valid</span><strong>{preview.validRows}</strong></div><div className={invalidCount ? "is-error" : ""}><span>Invalid</span><strong>{preview.invalidRows}</strong></div><p>{invalidCount ? "Correct invalid rows before importing." : "All rows passed validation and are ready to import."}</p></div>
         {message && <p className="namelist-dialog__message" role="alert">{message}</p>}
         <div className="namelist-toolbar"><div className="namelist-segments" aria-label="Filter preview rows">{(["all", "valid", "invalid"] as const).map((value) => <button key={value} type="button" disabled={busy} aria-pressed={filter === value} onClick={() => void loadPage(value, 1)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div><div className="namelist-toolbar__view"><span>{preview.filteredRows} rows</span><label htmlFor="namelist-column-view">Columns</label><select id="namelist-column-view" value={showAllColumns ? "all" : "key"} onChange={(event) => setShowAllColumns(event.target.value === "all")}><option value="key">Key fields</option><option value="all">All 29 fields</option></select></div></div>
         <div className={`namelist-grid ${showAllColumns ? "is-all-columns" : ""}`}><table><thead><tr><th scope="col">Row</th><th scope="col">Status</th>{visibleColumns.map((column) => <th scope="col" key={column}>{labels[column]}</th>)}<th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead><tbody>{visibleRows.map((row) => <tr key={row.rowNumber} className={row.issues.length ? "is-invalid" : ""}><td>{row.rowNumber}</td><td><span className={`namelist-status ${row.issues.length ? "is-invalid" : "is-valid"}`}>{row.issues.length ? `${row.issues.length} issues` : "Valid"}</span></td>{visibleColumns.map((column) => <td key={column} title={row.issues.find((issue) => issue.column === column)?.message}>{displayValue(column, row.values[column]) || "-"}</td>)}<td><button className="a-button a-button--integrated -small" type="button" aria-label={`Edit row ${row.rowNumber}`} title="Edit row" onClick={() => setEditingRow(structuredClone(row))}><i className="a-icon a-button__icon boschicon-bosch-ic-edit" aria-hidden="true" /></button></td></tr>)}</tbody></table></div>
         <div className="namelist-pagination"><button className="a-button a-button--integrated -small" type="button" aria-label="Previous page" disabled={busy || currentPage === 1} onClick={() => void loadPage(filter, currentPage - 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-back-left" aria-hidden="true" /></button><span>Page {currentPage} of {pageCount}</span><button className="a-button a-button--integrated -small" type="button" aria-label="Next page" disabled={busy || currentPage === pageCount} onClick={() => void loadPage(filter, currentPage + 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-forward-right" aria-hidden="true" /></button></div>
         {editingRow && <aside className="namelist-editor" aria-labelledby="row-editor-title"><div className="namelist-editor__header"><div><span>Row {editingRow.rowNumber}</span><h3 id="row-editor-title">Edit employee data</h3></div><button className="a-button a-button--integrated" type="button" aria-label="Close row editor" onClick={() => setEditingRow(null)}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></div><div className="namelist-editor__fields">{namelistColumns.map((column) => { const issue = editingRow.issues.find((item) => item.column === column); return <label className={`hrbp-field ${issue ? "has-error" : ""}`} key={column}><span>{labels[column]}</span><input type={dateColumns.has(column) ? "date" : "text"} value={editingRow.values[column]} disabled={busy} onChange={(event) => setEditingRow((current) => current ? { ...current, values: { ...current.values, [column]: event.target.value } } : current)} />{issue && <small>{issue.message}</small>}</label>; })}</div><div className="namelist-editor__footer"><button className="a-button a-button--secondary" type="button" disabled={busy} onClick={() => setEditingRow(null)}><span className="a-button__label">Cancel</span></button><button className="a-button a-button--primary" type="button" disabled={busy} onClick={saveRow}><span className="a-button__label">{busy ? "Validating..." : "Save row"}</span></button></div></aside>}
-        <footer className="namelist-dialog__footer">{preview.hasCurrentMonthImport ? <label className="namelist-confirm"><input type="checkbox" checked={confirmReplacement} onChange={(event) => setConfirmReplacement(event.target.checked)} /><span>I understand this replaces the completed import for {preview.reportingMonth}.</span></label> : <span />}<div><button className="a-button a-button--secondary" type="button" disabled={busy} onClick={() => void cancelPreview()}><span className="a-button__label">Cancel preview</span></button><button className="a-button a-button--primary" type="button" disabled={busy || invalidCount > 0 || (preview.hasCurrentMonthImport && !confirmReplacement)} onClick={commit}><span className="a-button__label">{busy ? "Processing..." : "Push namelist"}</span></button></div></footer>
+        <footer className="namelist-dialog__footer">{preview.hasExistingMonthImport ? <label className="namelist-confirm"><input type="checkbox" checked={confirmReplacement} onChange={(event) => setConfirmReplacement(event.target.checked)} /><span>I understand this replaces the completed {preview.importMode === "historical" ? "historical snapshot" : "live import"} for {preview.reportingMonth}.</span></label> : <span />}<div><button className="a-button a-button--secondary" type="button" disabled={busy} onClick={() => void cancelPreview()}><span className="a-button__label">Cancel preview</span></button><button className="a-button a-button--primary" type="button" disabled={busy || invalidCount > 0 || (preview.hasExistingMonthImport && !confirmReplacement)} onClick={commit}><span className="a-button__label">{busy ? "Processing..." : preview.importMode === "historical" ? "Store historical month" : "Push namelist"}</span></button></div></footer>
       </div>}
     </dialog>
   </section>;

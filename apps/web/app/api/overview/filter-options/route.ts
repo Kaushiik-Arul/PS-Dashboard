@@ -2,6 +2,7 @@ import { getOverview } from "@/features/overview/overview.api";
 import type { OverviewQueryFilters } from "@/features/overview/overview.types";
 
 const filterKeys = [
+  "reportingMonth",
   "functionName",
   "orgUnit",
   "range",

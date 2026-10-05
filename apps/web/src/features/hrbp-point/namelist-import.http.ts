@@ -20,10 +20,13 @@ async function getRows(previewId: string, filter: PreviewFilter, page: number, p
 }
 
 export const httpNamelistImportClient: NamelistImportClient = {
-  async createPreview(file) {
+  async createPreview(file, reportingMonth, importMode) {
     const formData = new FormData();
     formData.set("file", file);
-    const summary = await request("/previews", { method: "POST", body: formData }).then((response) => response.json() as Promise<{ id: string }>);
+    const path = importMode === "historical"
+      ? `/historical/previews?${new URLSearchParams({ reportingMonth })}`
+      : `/previews?${new URLSearchParams({ reportingMonth })}`;
+    const summary = await request(path, { method: "POST", body: formData }).then((response) => response.json() as Promise<{ id: string }>);
     return getRows(summary.id, "all", 1, 25);
   },
   getRows,
@@ -39,7 +42,10 @@ export const httpNamelistImportClient: NamelistImportClient = {
     await request(`/previews/${encodeURIComponent(previewId)}`, { method: "DELETE" });
   },
   async commit(preview, confirmReplacement) {
-    return request(`/previews/${encodeURIComponent(preview.id)}/commit`, {
+    const path = preview.importMode === "historical"
+      ? `/historical/previews/${encodeURIComponent(preview.id)}/commit`
+      : `/previews/${encodeURIComponent(preview.id)}/commit`;
+    return request(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ confirmReplacement }),

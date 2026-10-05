@@ -9,7 +9,7 @@ import { UserProfile } from "./UserProfile";
 import { useEffect, useState, type ReactNode } from "react";
 
 const navigationItems = [
-  { href: "/", label: "Overview", icon: "boschicon-bosch-ic-home" },
+  { href: "/", label: "Demographics", icon: "boschicon-bosch-ic-home" },
   {
     href: "/employee-360",
     label: "Employee 360",

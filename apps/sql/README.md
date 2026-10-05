@@ -2,18 +2,24 @@
 
 API endpoint: GET /api/v1/overview
 
-Source tables: public.employee_namelist, public.employee_status
+Source tables: public.employee_namelist, public.employee_namelist_monthly,
+public.employee_status
 
 | Function | Arguments | Return type | Purpose |
 | --- | --- | --- | --- |
-| public.get_workforce_kpis() | DATE, six optional TEXT filters, authenticated account UUID | JSONB | Scope-filtered overview KPI values |
-| public.get_workforce_charts() | DATE, six optional TEXT filters, authenticated account UUID | JSONB | Scope-filtered overview chart data |
+| public.get_workforce_kpis() | DATE, six optional TEXT filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview KPI values |
+| public.get_workforce_charts() | DATE, six optional TEXT filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview chart data |
 
 ## Rules
 
-- Both functions are read-only. Workforce KPIs and charts use employee_namelist;
-  maternity, sabbatical, and CRL KPIs use active employee_status records.
-- Date-based calculations use CURRENT_DATE.
+- Both functions are read-only. Workforce KPIs and charts use
+  employee_namelist for the current view and employee_namelist_monthly for a
+  selected historical month.
+- Date-based historical calculations use the selected calendar month's final
+  day. Current calculations use CURRENT_DATE.
+- Maternity, sabbatical, and CRL always use current employee_status records,
+  including when a historical Namelist month is selected. The UI labels these
+  cards as current status.
 - Maternity, Sabbatical and CRL KPIs count every stored employee_status record
   within the viewer's authorized workforce scope, regardless of its start and
   end dates.
@@ -28,7 +34,8 @@ Source tables: public.employee_namelist, public.employee_status
   their Ranges; Department and Sub-department Head assignments are limited to
   their exact Range and Organizational Unit tuples. Multiple assignments form
   the union of those scopes, and dashboard filters may only narrow that union.
-- Employee-status KPI filters join employee_status to employee_namelist by pers_no.
+- Employee-status KPI filters join employee_status to the selected current or
+  historical Namelist employee set by pers_no.
 - Update this contract and the response DTOs when output fields change.
 - Store function definitions in apps/sql/functions.
 - Apply database changes through versioned migrations.
@@ -51,6 +58,15 @@ Talent gender, Talent range, and nomination RAG distributions. Nomination RAG
 uses all rows in the current `nomination_status_rows` replacement snapshot and maps Cleared to Green,
 Amber to Amber, and Not Cleared to Red. Current register tables are replacement
 snapshots, so the functions do not return unsupported month-over-month trends.
+
+HRBP users can select a previous reporting month and publish an unfiltered
+monthly Talent Pipeline snapshot independently of Namelist imports. Publication
+stores the existing KPI and chart function JSON in `dashboard_json_snapshots`
+under the `talent-pipeline` key, versions same-month corrections, and verifies
+its checksum in the same transaction. The month picker defaults to the previous
+calendar month. Historical list/read/publish endpoints require
+`dashboard-history:view`; other roles remain live-only. Historical mode disables
+organizational filters and does not display current operational register tables.
 
 Apply both functions after the Pool Register split and Nomination Status
 migrations:
@@ -121,8 +137,21 @@ account-owned preview data used between upload and confirmation requests.
 The import accepts CSV and XLSX files with all 29 `employee_namelist` columns.
 Column order may differ; header matching is case-insensitive and normalizes
 spaces and hyphens to underscores. Every value is required except `function`,
-which may be blank only when `employee_group` is `outbound`. A successful Push
-replaces the complete `employee_namelist` within one transaction.
+which may be blank only when `employee_group` is `outbound`. Both live and
+historical uploads require an explicit reporting month earlier than the current
+calendar month. A successful Push replaces the complete `employee_namelist`
+within one transaction.
+
+Historical Namelist upload is a separate mode. It requires a previous
+reporting month, reuses the same preview validation, and writes only to
+`employee_namelist_monthly`. It never deletes or updates `employee_namelist`.
+Re-importing a historical month replaces only that month's history rows.
+
+Row-level retention covers three reporting months total: the current live month
+plus the two newest detailed months. A newer live import first copies the
+outgoing live rows into monthly detail. Older detail is converted to versioned,
+HRBP-only Overview JSON, and checksum verification must succeed before its rows
+are deleted in the same transaction.
 
 Install the API parser dependencies after pulling this change:
 
@@ -135,6 +164,18 @@ Apply the staging migration once:
 ```powershell
 $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_import_staging_migration.sql"
+```
+
+Apply monthly history and the refreshed Overview functions after the staging
+migration:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_monthly_history_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_reporting_month_confirmation_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/functions/overview/get_workforce_overview_kpis.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/functions/overview/get_workforce_overview_charts.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/dashboard_json_snapshots_migration.sql"
 ```
 
 Preview sessions expire after 24 hours. A scheduled cleanup may run:

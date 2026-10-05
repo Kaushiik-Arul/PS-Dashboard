@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OverviewFilterDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class OverviewFilterDto {
+    reportingMonth;
     functionName;
     orgUnit;
     range;
@@ -20,6 +21,10 @@ class OverviewFilterDto {
     directOrIndirect;
 }
 exports.OverviewFilterDto = OverviewFilterDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ example: '2026-09' }),
+    __metadata("design:type", String)
+], OverviewFilterDto.prototype, "reportingMonth", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     __metadata("design:type", String)

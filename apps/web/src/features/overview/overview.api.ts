@@ -3,6 +3,7 @@ import { getSessionHeaders } from "@/auth/server-session";
 import type {
   KpiValue,
   OverviewDistributionChart,
+  OverviewAvailableMonths,
   OverviewQueryFilters,
   OverviewResponse,
   RetirementRiskRow,
@@ -227,5 +228,54 @@ export async function getOverview(
     throw new Error(`Overview API request failed with status ${response.status}`);
   }
 
+  return parseOverviewResponse(await response.json());
+}
+
+export async function getOverviewAvailableMonths(): Promise<OverviewAvailableMonths> {
+  const sessionHeaders = await getSessionHeaders();
+  const response = await fetch(`${getApiBaseUrl()}/overview/available-months`, {
+    cache: "no-store",
+    headers: { Accept: "application/json", ...sessionHeaders },
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Overview available months request failed with status ${response.status}`);
+  }
+
+  const value = requireRecord(await response.json(), "available months");
+  const currentMonth = value.currentMonth;
+  const detailedMonths = value.detailedMonths;
+  if ((currentMonth !== null && (typeof currentMonth !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(currentMonth)))
+    || !Array.isArray(detailedMonths)
+    || detailedMonths.some((month) => typeof month !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))) {
+    throw new Error("Overview API returned invalid available months");
+  }
+  return { currentMonth: currentMonth as string | null, detailedMonths: detailedMonths as string[] };
+}
+
+export async function getOverviewArchivedMonths(): Promise<string[]> {
+  const sessionHeaders = await getSessionHeaders();
+  const response = await fetch(`${getApiBaseUrl()}/overview/archived-months`, {
+    cache: "no-store",
+    headers: { Accept: "application/json", ...sessionHeaders },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`Overview archived months request failed with status ${response.status}`);
+  const months = await response.json() as unknown;
+  if (!Array.isArray(months) || months.some((month) => typeof month !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))) {
+    throw new Error("Overview API returned invalid archived months");
+  }
+  return months;
+}
+
+export async function getArchivedOverview(reportingMonth: string): Promise<OverviewResponse> {
+  const sessionHeaders = await getSessionHeaders();
+  const response = await fetch(`${getApiBaseUrl()}/overview/archive/${encodeURIComponent(reportingMonth)}`, {
+    cache: "no-store",
+    headers: { Accept: "application/json", ...sessionHeaders },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error(`Archived Overview request failed with status ${response.status}`);
   return parseOverviewResponse(await response.json());
 }

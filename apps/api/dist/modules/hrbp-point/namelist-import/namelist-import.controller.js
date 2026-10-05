@@ -24,8 +24,11 @@ let NamelistImportController = class NamelistImportController {
     constructor(service) {
         this.service = service;
     }
-    createPreview(file, user) {
-        return this.service.createPreview(file, user.accountId);
+    createPreview(file, reportingMonth, user) {
+        return this.service.createPreview(file, reportingMonth, user.accountId);
+    }
+    createHistoricalPreview(file, reportingMonth, user) {
+        return this.service.createHistoricalPreview(file, reportingMonth, user.accountId);
     }
     getRows(previewId, filter, page, pageSize, user) {
         return this.service.getRows(previewId, user.accountId, filter, page, pageSize);
@@ -39,6 +42,9 @@ let NamelistImportController = class NamelistImportController {
     commit(previewId, confirmReplacement, user) {
         return this.service.commit(previewId, confirmReplacement, user.accountId);
     }
+    commitHistorical(previewId, confirmReplacement, user) {
+        return this.service.commitHistorical(previewId, confirmReplacement, user.accountId);
+    }
 };
 exports.NamelistImportController = NamelistImportController;
 __decorate([
@@ -47,11 +53,24 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Upload and validate an employee namelist' }),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } })),
     __param(0, (0, common_1.UploadedFile)()),
-    __param(1, (0, auth_decorators_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('reportingMonth')),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", void 0)
 ], NamelistImportController.prototype, "createPreview", null);
+__decorate([
+    (0, common_1.Post)('historical/previews'),
+    (0, swagger_1.ApiConsumes)('multipart/form-data'),
+    (0, swagger_1.ApiOperation)({ summary: 'Upload and validate a historical employee namelist' }),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } })),
+    __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Query)('reportingMonth')),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:returntype", void 0)
+], NamelistImportController.prototype, "createHistoricalPreview", null);
 __decorate([
     (0, common_1.Get)('previews/:previewId/rows'),
     __param(0, (0, common_1.Param)('previewId')),
@@ -91,6 +110,15 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], NamelistImportController.prototype, "commit", null);
+__decorate([
+    (0, common_1.Post)('historical/previews/:previewId/commit'),
+    __param(0, (0, common_1.Param)('previewId')),
+    __param(1, (0, common_1.Body)('confirmReplacement')),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], NamelistImportController.prototype, "commitHistorical", null);
 exports.NamelistImportController = NamelistImportController = __decorate([
     (0, swagger_1.ApiTags)('HRBP Point - Namelist Imports'),
     (0, common_1.Controller)('hrbp-point/namelist-imports'),

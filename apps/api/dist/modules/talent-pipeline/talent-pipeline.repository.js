@@ -19,9 +19,77 @@ let TalentPipelineRepository = class TalentPipelineRepository {
         this.database = database;
     }
     async getTalentPipeline(filters, accountId) {
+        return (0, talent_pipeline_mapper_1.mapTalentPipelineResponse)(await this.queryDashboard(filters, accountId, null));
+    }
+    async getHistoryState() {
         const result = await this.database.query(`
+      SELECT COALESCE((
+        SELECT ARRAY_AGG(TO_CHAR(reporting_month, 'YYYY-MM') ORDER BY reporting_month DESC)
+        FROM public.dashboard_json_snapshots
+        WHERE dashboard_key = 'talent-pipeline' AND is_active
+      ), ARRAY[]::text[]) AS snapshot_months
+    `);
+        return {
+            snapshotMonths: result.rows[0]?.snapshot_months ?? [],
+        };
+    }
+    async getSnapshot(reportingMonth) {
+        const result = await this.database.query(`SELECT payload AS dashboard
+       FROM public.dashboard_json_snapshots
+       WHERE dashboard_key = 'talent-pipeline'
+         AND reporting_month = $1::date AND is_active`, [reportingMonth]);
+        return result.rows[0]
+            ? (0, talent_pipeline_mapper_1.mapTalentPipelineResponse)(result.rows[0].dashboard)
+            : null;
+    }
+    async publishSnapshot(accountId, reportingMonth) {
+        return this.database.transaction(async (client) => {
+            await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('talent_pipeline_snapshot'))`);
+            const emptyFilters = {
+                functionName: null,
+                orgUnit: null,
+                range: null,
+                location: null,
+                gender: null,
+                directOrIndirect: null,
+            };
+            const dashboard = await this.queryDashboard(emptyFilters, accountId, reportingMonth, client);
+            const snapshot = await client.query(`WITH next_version AS (
+           SELECT COALESCE(MAX(version), 0) + 1 AS version
+           FROM public.dashboard_json_snapshots
+           WHERE dashboard_key = 'talent-pipeline' AND reporting_month = $1::date
+         ), deactivate AS (
+           UPDATE public.dashboard_json_snapshots
+           SET is_active = FALSE
+           WHERE dashboard_key = 'talent-pipeline'
+             AND reporting_month = $1::date AND is_active
+             RETURNING 1
+         )
+         INSERT INTO public.dashboard_json_snapshots (
+           dashboard_key, reporting_month, version, payload, checksum,
+           created_by, is_active
+         )
+         SELECT 'talent-pipeline', $1::date, next_version.version, $2::jsonb,
+                MD5(($2::jsonb)::text), $3::uuid, TRUE
+         FROM next_version
+         RETURNING id::text`, [reportingMonth, JSON.stringify(dashboard), accountId]);
+            const snapshotId = snapshot.rows[0]?.id;
+            if (!snapshotId)
+                throw new Error('SNAPSHOT_VERIFICATION_FAILED');
+            const verification = await client.query(`SELECT checksum = MD5(payload::text) AS verified
+         FROM public.dashboard_json_snapshots WHERE id = $1::bigint`, [snapshotId]);
+            if (!verification.rows[0]?.verified)
+                throw new Error('SNAPSHOT_VERIFICATION_FAILED');
+            return reportingMonth.slice(0, 7);
+        });
+    }
+    async queryDashboard(filters, accountId, reportingMonth, client = this.database) {
+        const result = await client.query(`
       WITH settings AS (
-        SELECT CURRENT_DATE AS as_of_date
+        SELECT CASE
+          WHEN $8::date IS NULL THEN CURRENT_DATE
+          ELSE ($8::date + INTERVAL '1 month - 1 day')::date
+        END AS as_of_date
       ),
       register_employees AS (
         SELECT pers_no FROM public.talent_pool_register
@@ -130,8 +198,9 @@ let TalentPipelineRepository = class TalentPipelineRepository {
             filters.gender,
             filters.directOrIndirect,
             accountId,
+            reportingMonth,
         ]);
-        return (0, talent_pipeline_mapper_1.mapTalentPipelineResponse)(result.rows[0]?.dashboard);
+        return result.rows[0]?.dashboard;
     }
 };
 exports.TalentPipelineRepository = TalentPipelineRepository;

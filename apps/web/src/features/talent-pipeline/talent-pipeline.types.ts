@@ -14,6 +14,7 @@ export type TalentPipelineDistribution = {
 };
 
 export type TalentPipelineQueryFilters = {
+  reportingMonth?: string;
   functionName?: string;
   orgUnit?: string;
   range?: string;
@@ -57,4 +58,8 @@ export type TalentPipelineResponse = {
     talentRangeDistribution: TalentPipelineDistribution;
   };
   filterOptions: TalentPipelineFilterOptions;
+};
+
+export type TalentPipelineHistoryState = {
+  snapshotMonths: string[];
 };

@@ -3,10 +3,38 @@ import { getSessionHeaders } from '@/auth/server-session';
 import type {
   TalentPipelineDistribution,
   TalentPipelineFilterOptions,
+  TalentPipelineHistoryState,
   TalentPipelineKpiValue,
   TalentPipelineQueryFilters,
   TalentPipelineResponse,
 } from './talent-pipeline.types';
+
+export class TalentPipelineApiError extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
+
+function getApiBaseUrl(): string {
+  const configured = process.env.API_BASE_URL?.trim();
+  if (!configured && process.env.NODE_ENV === 'production')
+    throw new Error('API_BASE_URL is required in production');
+  return configured
+    ? new URL(configured).toString().replace(/\/$/, '')
+    : 'http://127.0.0.1:3001/api/v1';
+}
+
+export async function forwardTalentPipelineRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  const response = await fetch(`${getApiBaseUrl()}/talent-pipeline${path}`, {
+    ...init,
+    cache: 'no-store',
+    headers: { Accept: 'application/json', ...(await getSessionHeaders()), ...init.headers },
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { message?: string } | null;
+    throw new TalentPipelineApiError(body?.message ?? 'Talent Pipeline request failed', response.status);
+  }
+  return response;
+}
 
 type JsonRecord = Record<string, unknown>;
 
@@ -140,24 +168,28 @@ function parseResponse(value: unknown): TalentPipelineResponse {
 export async function getTalentPipeline(
   filters: TalentPipelineQueryFilters = {},
 ): Promise<TalentPipelineResponse> {
-  const configured = process.env.API_BASE_URL?.trim();
-  if (!configured && process.env.NODE_ENV === 'production')
-    throw new Error('API_BASE_URL is required in production');
-  const base = configured
-    ? new URL(configured).toString().replace(/\/$/, '')
-    : 'http://127.0.0.1:3001/api/v1';
   const searchParams = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (value) searchParams.set(key, value);
+    if (key !== 'reportingMonth' && value) searchParams.set(key, value);
   });
   const query = searchParams.size ? `?${searchParams}` : '';
-  const response = await fetch(`${base}/talent-pipeline${query}`, {
-    cache: 'no-store',
-    headers: { Accept: 'application/json', ...(await getSessionHeaders()) },
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!response.ok)
-    throw new Error(`Talent Pipeline API failed with status ${response.status}`);
+  const response = await forwardTalentPipelineRequest(query);
+  return parseResponse(await response.json());
+}
+
+export async function getTalentPipelineHistoryState(): Promise<TalentPipelineHistoryState> {
+  const response = await forwardTalentPipelineRequest('/history');
+  const value = record(await response.json(), 'history state');
+  const snapshotMonths = value.snapshotMonths;
+  if (!Array.isArray(snapshotMonths)
+    || snapshotMonths.some((month) => typeof month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))) {
+    throw new Error('Talent Pipeline API returned invalid history state');
+  }
+  return { snapshotMonths: snapshotMonths as string[] };
+}
+
+export async function getTalentPipelineSnapshot(reportingMonth: string): Promise<TalentPipelineResponse> {
+  const response = await forwardTalentPipelineRequest(`/history/${encodeURIComponent(reportingMonth)}`);
   return parseResponse(await response.json());
 }
 

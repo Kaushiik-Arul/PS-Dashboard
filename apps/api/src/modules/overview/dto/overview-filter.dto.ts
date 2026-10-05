@@ -1,6 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class OverviewFilterDto {
+  @ApiPropertyOptional({ example: '2026-09' })
+  reportingMonth?: string;
+
   @ApiPropertyOptional()
   functionName?: string;
 
@@ -21,6 +24,7 @@ export class OverviewFilterDto {
 }
 
 export type NormalizedOverviewFilters = {
+  reportingMonth: string | null;
   functionName: string | null;
   orgUnit: string | null;
   range: string | null;

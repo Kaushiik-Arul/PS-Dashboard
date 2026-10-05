@@ -25,6 +25,7 @@ import type {
   KpiValue,
   OverviewChartDatum,
   OverviewFilterOptions,
+  OverviewAvailableMonths,
   OverviewKpis,
   OverviewQueryFilters,
   OverviewResponse,
@@ -191,9 +192,15 @@ function ChartUnavailable() {
 export function OverviewDashboard({
   data,
   activeFilters,
+  availableMonths,
+  archivedMonths,
+  isArchived,
 }: {
   data: OverviewResponse;
   activeFilters: OverviewQueryFilters;
+  availableMonths: OverviewAvailableMonths;
+  archivedMonths: string[];
+  isArchived: boolean;
 }) {
   const router = useRouter();
   const appliedFilters = toDashboardFilters(activeFilters);
@@ -207,12 +214,17 @@ export function OverviewDashboard({
     month: "long",
     year: "numeric",
   });
-  const comparisonLabel = `As of ${asOfLabel}`;
+  const hasReportingMonth = Boolean(activeFilters.reportingMonth || availableMonths.currentMonth);
+  const comparisonLabel = hasReportingMonth ? `As of ${asOfLabel}` : "Current dataset";
+  const periodDateLabel = hasReportingMonth ? asOfLabel : "Reporting month not set";
   const kpis: KpiMetric[] = kpiDefinitions.map((definition) => ({
     id: definition.id,
     title: definition.title,
     value: formatKpiValue(data.kpis[definition.key], definition.format),
-    comparisonLabel,
+    comparisonLabel: activeFilters.reportingMonth
+      && (definition.key === "maternity" || definition.key === "sabbatical" || definition.key === "crl")
+      ? "Current status"
+      : comparisonLabel,
     icon: definition.icon,
     iconColor: definition.iconColor,
   }));
@@ -226,9 +238,33 @@ export function OverviewDashboard({
   const totalLabel = data.kpis.totalHeadcount.value === null
     ? "N/A"
     : data.kpis.totalHeadcount.value.toLocaleString("en-US");
+  const periodOptions = [
+    {
+      value: "",
+      label: availableMonths.currentMonth
+        ? `Current (${availableMonths.currentMonth.slice(5)}/${availableMonths.currentMonth.slice(0, 4)})`
+        : "Current",
+      disabled: !availableMonths.currentMonth,
+    },
+    ...availableMonths.detailedMonths.map((month) => {
+      const [year, monthNumber] = month.split("-");
+      return { value: month, label: `${monthNumber}/${year}` };
+    }),
+    ...archivedMonths.map((month) => {
+      const [year, monthNumber] = month.split("-");
+      return { value: month, label: `${monthNumber}/${year} (Archived)` };
+    }),
+  ];
+
+  const preserveReportingMonth = (searchParams: URLSearchParams) => {
+    if (activeFilters.reportingMonth) {
+      searchParams.set("reportingMonth", activeFilters.reportingMonth);
+    }
+    return searchParams;
+  };
 
   const applyFilters = (filters: DashboardFilters) => {
-    const searchParams = toSearchParams(filters);
+    const searchParams = preserveReportingMonth(toSearchParams(filters));
     setIsFiltering(true);
     startTransition(() => {
       router.push(searchParams.size > 0 ? `/?${searchParams.toString()}` : "/");
@@ -239,7 +275,7 @@ export function OverviewDashboard({
     const requestId = ++optionRequestId.current;
     setIsLoadingOptions(true);
     try {
-      const searchParams = toSearchParams(filters);
+      const searchParams = preserveReportingMonth(toSearchParams(filters));
       const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
       const response = await fetch(`/api/overview/filter-options${query}`);
       if (!response.ok) return;
@@ -257,7 +293,10 @@ export function OverviewDashboard({
       <OverviewFilters
         value={draftFilters}
         activeValue={appliedFilters}
+        period={activeFilters.reportingMonth ?? ""}
+        periodOptions={periodOptions}
         fields={overviewFilterFields}
+        filtersDisabled={isArchived}
         options={{
           functionName: filterOptions.functionName,
           orgUnit: filterOptions.orgUnit,
@@ -269,6 +308,15 @@ export function OverviewDashboard({
         onChange={(filters) => {
           setDraftFilters(filters);
           void refreshFilterOptions(filters);
+        }}
+        onPeriodChange={(reportingMonth) => {
+          const searchParams = archivedMonths.includes(reportingMonth)
+            ? new URLSearchParams()
+            : toSearchParams(appliedFilters);
+          if (reportingMonth) searchParams.set("reportingMonth", reportingMonth);
+          startTransition(() => {
+            router.push(searchParams.size > 0 ? `/?${searchParams.toString()}` : "/");
+          });
         }}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => {
@@ -286,7 +334,7 @@ export function OverviewDashboard({
             </h1>
             <p className="kpi-section__description">Current calculated workforce indicators</p>
           </div>
-          <span className="kpi-section__period">{asOfLabel}</span>
+          <span className="kpi-section__period">{periodDateLabel}</span>
         </div>
 
         <KpiGrid>

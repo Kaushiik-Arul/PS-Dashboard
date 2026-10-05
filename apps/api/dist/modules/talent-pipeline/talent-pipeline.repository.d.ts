@@ -5,4 +5,10 @@ export declare class TalentPipelineRepository {
     private readonly database;
     constructor(database: DatabaseService);
     getTalentPipeline(filters: NormalizedTalentPipelineFilters, accountId: string): Promise<TalentPipelineResponseDto>;
+    getHistoryState(): Promise<{
+        snapshotMonths: string[];
+    }>;
+    getSnapshot(reportingMonth: string): Promise<TalentPipelineResponseDto | null>;
+    publishSnapshot(accountId: string, reportingMonth: string): Promise<string>;
+    private queryDashboard;
 }

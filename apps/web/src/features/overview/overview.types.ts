@@ -34,6 +34,7 @@ export type RetirementRiskRow = {
 };
 
 export type OverviewQueryFilters = {
+  reportingMonth?: string;
   functionName?: string;
   orgUnit?: string;
   range?: string;
@@ -65,4 +66,9 @@ export type OverviewResponse = {
     workforceMovement: OverviewDistributionChart;
   };
   filterOptions: OverviewFilterOptions;
+};
+
+export type OverviewAvailableMonths = {
+  currentMonth: string | null;
+  detailedMonths: string[];
 };

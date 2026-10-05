@@ -2,6 +2,7 @@ import type { UserRole } from '../../modules/auth/auth.types';
 
 export const permissions = [
   'workforce:view',
+  'dashboard-history:view',
   'hrbp-point:view',
   'hrbp-point:manage',
   'namelist:import',

@@ -30,8 +30,24 @@ export class NamelistImportController {
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload and validate an employee namelist' })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } }))
-  createPreview(@UploadedFile() file: UploadedNamelistFile | undefined, @CurrentUser() user: AuthenticatedUser) {
-    return this.service.createPreview(file, user.accountId);
+  createPreview(
+    @UploadedFile() file: UploadedNamelistFile | undefined,
+    @Query('reportingMonth') reportingMonth: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.createPreview(file, reportingMonth, user.accountId);
+  }
+
+  @Post('historical/previews')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload and validate a historical employee namelist' })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } }))
+  createHistoricalPreview(
+    @UploadedFile() file: UploadedNamelistFile | undefined,
+    @Query('reportingMonth') reportingMonth: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.createHistoricalPreview(file, reportingMonth, user.accountId);
   }
 
   @Get('previews/:previewId/rows')
@@ -68,5 +84,14 @@ export class NamelistImportController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.service.commit(previewId, confirmReplacement, user.accountId);
+  }
+
+  @Post('historical/previews/:previewId/commit')
+  commitHistorical(
+    @Param('previewId') previewId: string,
+    @Body('confirmReplacement') confirmReplacement: unknown,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.commitHistorical(previewId, confirmReplacement, user.accountId);
   }
 }

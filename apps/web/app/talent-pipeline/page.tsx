@@ -1,15 +1,15 @@
 import { connection } from "next/server";
 import Link from "next/link";
 import { TalentPipelineDashboard } from "@/features/talent-pipeline/TalentPipelineDashboard";
-import { getTalentPipeline } from "@/features/talent-pipeline/talent-pipeline.api";
-import type { TalentPipelineQueryFilters } from "@/features/talent-pipeline/talent-pipeline.types";
+import { getTalentPipeline, getTalentPipelineHistoryState, getTalentPipelineSnapshot } from "@/features/talent-pipeline/talent-pipeline.api";
+import type { TalentPipelineHistoryState, TalentPipelineQueryFilters } from "@/features/talent-pipeline/talent-pipeline.types";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const filterKeys = [
-  "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
+  "reportingMonth", "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
 ] as const;
 
 export default async function TalentPipelinePage({ searchParams }: Props) {
@@ -21,10 +21,23 @@ export default async function TalentPipelinePage({ searchParams }: Props) {
     const first = Array.isArray(value) ? value[0] : value;
     if (first) filters[key] = first;
   });
+  const historyState = await getTalentPipelineHistoryState().catch((): TalentPipelineHistoryState | null => null);
+  const requestedMonth = filters.reportingMonth;
+  const selectedMonth = requestedMonth && historyState?.snapshotMonths.includes(requestedMonth)
+    ? requestedMonth
+    : undefined;
+  const isSnapshot = Boolean(selectedMonth && historyState?.snapshotMonths.includes(selectedMonth));
+  const liveFilters = { ...filters };
+  delete liveFilters.reportingMonth;
+  const effectiveFilters: TalentPipelineQueryFilters = isSnapshot && selectedMonth
+    ? { reportingMonth: selectedMonth }
+    : liveFilters;
   try {
-    const data = await getTalentPipeline(filters);
-    const filterKey = filterKeys.map((key) => filters[key] ?? "").join("|");
-    return <TalentPipelineDashboard key={filterKey} data={data} activeFilters={filters} />;
+    const data = isSnapshot && selectedMonth
+      ? await getTalentPipelineSnapshot(selectedMonth)
+      : await getTalentPipeline(effectiveFilters);
+    const filterKey = filterKeys.map((key) => effectiveFilters[key] ?? "").join("|");
+    return <TalentPipelineDashboard key={filterKey} data={data} activeFilters={effectiveFilters} historyState={historyState} isSnapshot={isSnapshot} />;
   } catch (error) {
     console.error("Unable to load Talent Pipeline", error);
     return <main className="error-page" role="alert">

@@ -6,5 +6,13 @@ export declare class TalentPipelineService {
     private readonly logger;
     constructor(repository: TalentPipelineRepository);
     getTalentPipeline(filters: TalentPipelineFilterDto, accountId: string): Promise<TalentPipelineResponseDto>;
+    getHistoryState(): Promise<{
+        snapshotMonths: string[];
+    }>;
+    getSnapshot(reportingMonthInput: string): Promise<TalentPipelineResponseDto>;
+    publishSnapshot(reportingMonthInput: unknown, accountId: string): Promise<{
+        reportingMonth: string;
+    }>;
+    private normalizeReportingMonth;
     private normalizeFilters;
 }

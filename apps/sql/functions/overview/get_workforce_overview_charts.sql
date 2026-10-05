@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS public.get_workforce_charts(DATE);
 DROP FUNCTION IF EXISTS public.get_workforce_charts(DATE, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.get_workforce_charts(DATE, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, UUID);
 
 CREATE OR REPLACE FUNCTION public.get_workforce_charts(
     p_as_of_date DATE DEFAULT CURRENT_DATE,
@@ -9,7 +10,8 @@ CREATE OR REPLACE FUNCTION public.get_workforce_charts(
     p_location TEXT DEFAULT NULL,
     p_gender_key TEXT DEFAULT NULL,
     p_direct_or_indirect TEXT DEFAULT NULL,
-    p_account_id UUID DEFAULT NULL
+    p_account_id UUID DEFAULT NULL,
+    p_reporting_month DATE DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -25,8 +27,34 @@ BEGIN
         RAISE EXCEPTION 'An authenticated account is required';
     END IF;
 
+    IF p_reporting_month IS NOT NULL
+       AND EXTRACT(DAY FROM p_reporting_month) <> 1 THEN
+        RAISE EXCEPTION 'Reporting month must be the first day of a month';
+    END IF;
+
     RETURN (
-        WITH base AS (
+        WITH namelist_source AS (
+            SELECT
+                e.ps_group, e.gender_key, e.function, e.location,
+                e.employee_group, e.birth_date, e.joining_date,
+                e.entry_for_retirement, e.range, e.organizational_unit,
+                e.direct_or_indirect
+            FROM public.employee_namelist e
+            WHERE p_reporting_month IS NULL
+
+            UNION ALL
+
+            SELECT
+                e.ps_group, e.gender_key, e.function, e.location,
+                e.employee_group, e.birth_date, e.joining_date,
+                e.entry_for_retirement, e.range, e.organizational_unit,
+                e.direct_or_indirect
+            FROM public.employee_namelist_monthly e
+            WHERE p_reporting_month IS NOT NULL
+              AND e.reporting_month = p_reporting_month
+        ),
+
+        base AS (
             SELECT
                 NULLIF(BTRIM(e.ps_group), '') AS ps_group_name,
                 NULLIF(BTRIM(e.gender_key), '') AS gender_name,
@@ -51,7 +79,7 @@ BEGIN
                     THEN e.entry_for_retirement
                 END AS retirement_date
 
-            FROM public.employee_namelist e
+            FROM namelist_source e
 
                         WHERE EXISTS (
                                     SELECT 1

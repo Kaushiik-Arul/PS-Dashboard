@@ -1,5 +1,6 @@
 DROP FUNCTION IF EXISTS public.get_workforce_kpis(DATE);
 DROP FUNCTION IF EXISTS public.get_workforce_kpis(DATE, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.get_workforce_kpis(DATE, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, UUID);
 
 CREATE OR REPLACE FUNCTION public.get_workforce_kpis(
     p_as_of_date DATE DEFAULT CURRENT_DATE,
@@ -9,7 +10,8 @@ CREATE OR REPLACE FUNCTION public.get_workforce_kpis(
     p_location TEXT DEFAULT NULL,
     p_gender_key TEXT DEFAULT NULL,
     p_direct_or_indirect TEXT DEFAULT NULL,
-    p_account_id UUID DEFAULT NULL
+    p_account_id UUID DEFAULT NULL,
+    p_reporting_month DATE DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -25,6 +27,11 @@ BEGIN
         RAISE EXCEPTION 'An authenticated account is required';
     END IF;
 
+    IF p_reporting_month IS NOT NULL
+       AND EXTRACT(DAY FROM p_reporting_month) <> 1 THEN
+        RAISE EXCEPTION 'Reporting month must be the first day of a month';
+    END IF;
+
     RETURN (
         WITH settings AS (
             SELECT
@@ -32,6 +39,25 @@ BEGIN
                 'Female'::TEXT AS female_value,
                 'D'::TEXT AS direct_value,
                 'I'::TEXT AS indirect_value
+        ),
+
+        namelist_source AS (
+            SELECT
+                e.pers_no, e.gender_key, e.direct_or_indirect,
+                e.entry_for_retirement, e.birth_date, e.joining_date,
+                e.range, e.organizational_unit, e.function, e.location
+            FROM public.employee_namelist e
+            WHERE p_reporting_month IS NULL
+
+            UNION ALL
+
+            SELECT
+                e.pers_no, e.gender_key, e.direct_or_indirect,
+                e.entry_for_retirement, e.birth_date, e.joining_date,
+                e.range, e.organizational_unit, e.function, e.location
+            FROM public.employee_namelist_monthly e
+            WHERE p_reporting_month IS NOT NULL
+              AND e.reporting_month = p_reporting_month
         ),
 
         prepared AS (
@@ -56,7 +82,7 @@ BEGIN
                     THEN s.as_of_date - e.joining_date
                 END AS tenure_days
 
-            FROM public.employee_namelist e
+            FROM namelist_source e
             CROSS JOIN settings s
 
                         WHERE EXISTS (
@@ -158,7 +184,7 @@ BEGIN
                 COUNT(*) AS active_status_hc
 
             FROM public.employee_status es
-            INNER JOIN public.employee_namelist e
+            INNER JOIN namelist_source e
                 ON e.pers_no = es.pers_no
                         WHERE EXISTS (
                                     SELECT 1
@@ -193,7 +219,10 @@ BEGIN
             'total_hc', JSONB_BUILD_OBJECT(
                 'value', m.total_hc,
                 'inputs', JSONB_BUILD_OBJECT(
-                    'table', 'employee_namelist',
+                    'table', CASE
+                        WHEN p_reporting_month IS NULL THEN 'employee_namelist'
+                        ELSE 'employee_namelist_monthly'
+                    END,
                     'employee_rows', m.total_hc,
                     'direct_plus_indirect',
                         m.direct_hc + m.indirect_hc,

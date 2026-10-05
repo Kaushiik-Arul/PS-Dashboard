@@ -25,11 +25,47 @@ let OverviewController = class OverviewController {
     constructor(service) {
         this.service = service;
     }
+    getAvailableMonths() {
+        return this.service.getAvailableMonths();
+    }
+    getArchivedMonths() {
+        return this.service.getArchivedMonths();
+    }
+    getArchivedOverview(reportingMonth) {
+        return this.service.getArchivedOverview(reportingMonth);
+    }
     getOverview(filters, user) {
         return this.service.getOverview(filters, user.accountId);
     }
 };
 exports.OverviewController = OverviewController;
+__decorate([
+    (0, common_1.Get)('available-months'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    (0, swagger_1.ApiOperation)({ summary: 'List available historical Overview months' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], OverviewController.prototype, "getAvailableMonths", null);
+__decorate([
+    (0, common_1.Get)('archived-months'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('dashboard-history:view'),
+    (0, swagger_1.ApiOperation)({ summary: 'List HRBP-only archived Overview months' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], OverviewController.prototype, "getArchivedMonths", null);
+__decorate([
+    (0, common_1.Get)('archive/:reportingMonth'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('dashboard-history:view'),
+    (0, swagger_1.ApiOperation)({ summary: 'Fetch an HRBP-only archived Overview snapshot' }),
+    __param(0, (0, common_1.Param)('reportingMonth')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], OverviewController.prototype, "getArchivedOverview", null);
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.Header)('Cache-Control', 'no-store'),

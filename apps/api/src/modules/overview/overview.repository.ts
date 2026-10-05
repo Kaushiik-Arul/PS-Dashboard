@@ -12,13 +12,87 @@ type OverviewRow = {
 export class OverviewRepository {
   constructor(private readonly database: DatabaseService) {}
 
+  async getAvailableMonths(): Promise<{ currentMonth: string | null; detailedMonths: string[] }> {
+    const result = await this.database.query<{ current_month: string | null; detailed_months: string[] }>(`
+      SELECT
+        (
+          SELECT TO_CHAR(imports.reporting_month, 'YYYY-MM')
+          FROM public.namelist_imports imports
+          WHERE imports.reporting_month_confirmed
+            AND imports.import_mode = 'live' AND imports.status = 'completed'
+          ORDER BY imports.reporting_month DESC, imports.imported_at DESC, imports.id DESC
+          LIMIT 1
+        ) AS current_month,
+        COALESCE((
+          SELECT ARRAY_AGG(months.reporting_month ORDER BY months.reporting_month DESC)
+          FROM (
+            SELECT DISTINCT TO_CHAR(history.reporting_month, 'YYYY-MM') AS reporting_month
+            FROM public.employee_namelist_monthly history
+          ) months
+        ), ARRAY[]::text[]) AS detailed_months
+    `);
+    return {
+      currentMonth: result.rows[0]?.current_month ?? null,
+      detailedMonths: result.rows[0]?.detailed_months ?? [],
+    };
+  }
+
+  async getArchivedMonths(): Promise<string[]> {
+    const result = await this.database.query<{ reporting_month: string }>(`
+      SELECT TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month
+      FROM public.dashboard_json_snapshots
+      WHERE dashboard_key = 'overview' AND is_active
+      ORDER BY reporting_month DESC
+    `);
+    return result.rows.map((row) => row.reporting_month);
+  }
+
+  async getArchivedOverview(reportingMonth: string): Promise<OverviewResponseDto | null> {
+    const result = await this.database.query<OverviewRow>(
+      `SELECT payload AS dashboard
+       FROM public.dashboard_json_snapshots
+       WHERE dashboard_key = 'overview' AND reporting_month = $1::date AND is_active`,
+      [reportingMonth],
+    );
+    return result.rows[0] ? mapOverviewResponse(result.rows[0].dashboard) : null;
+  }
+
   async getOverview(
     filters: NormalizedOverviewFilters,
     accountId: string,
   ): Promise<OverviewResponseDto> {
     const result = await this.database.query<OverviewRow>(`
       WITH settings AS (
-        SELECT CURRENT_DATE AS as_of_date
+        SELECT
+          CASE
+            WHEN $8::DATE IS NOT NULL THEN ($8::DATE + INTERVAL '1 month - 1 day')::DATE
+            ELSE COALESCE((
+              SELECT (imports.reporting_month + INTERVAL '1 month - 1 day')::DATE
+              FROM public.namelist_imports imports
+              WHERE imports.reporting_month_confirmed
+                AND imports.import_mode = 'live'
+                AND imports.status = 'completed'
+              ORDER BY imports.reporting_month DESC, imports.imported_at DESC, imports.id DESC
+              LIMIT 1
+            ), CURRENT_DATE)
+          END AS as_of_date,
+          $8::DATE AS reporting_month
+      ),
+      namelist_source AS (
+        SELECT
+          e.function, e.organizational_unit, e.range, e.location,
+          e.gender_key, e.direct_or_indirect
+        FROM public.employee_namelist e
+        WHERE $8::DATE IS NULL
+
+        UNION ALL
+
+        SELECT
+          e.function, e.organizational_unit, e.range, e.location,
+          e.gender_key, e.direct_or_indirect
+        FROM public.employee_namelist_monthly e
+        WHERE $8::DATE IS NOT NULL
+          AND e.reporting_month = $8::DATE
       ),
       filter_employees AS (
         SELECT
@@ -28,7 +102,7 @@ export class OverviewRepository {
           NULLIF(BTRIM(e.location), '') AS location_name,
           NULLIF(BTRIM(e.gender_key), '') AS gender_name,
           NULLIF(BTRIM(e.direct_or_indirect), '') AS direct_or_indirect
-        FROM public.employee_namelist e
+        FROM namelist_source e
         WHERE EXISTS (
           SELECT 1
           FROM public.master_access access
@@ -45,11 +119,14 @@ export class OverviewRepository {
       )
       SELECT JSONB_BUILD_OBJECT(
         'kpis', public.get_workforce_kpis(
-          settings.as_of_date, $1, $2, $3, $4, $5, $6, $7::UUID
+          settings.as_of_date, $1, $2, $3, $4, $5, $6, $7::UUID,
+          settings.reporting_month
         ),
         'charts', public.get_workforce_charts(
-          settings.as_of_date, $1, $2, $3, $4, $5, $6, $7::UUID
+          settings.as_of_date, $1, $2, $3, $4, $5, $6, $7::UUID,
+          settings.reporting_month
         ),
+        'reportingMonth', TO_CHAR(settings.reporting_month, 'YYYY-MM'),
         'filterOptions', JSONB_BUILD_OBJECT(
           'functionName', TO_JSONB(ARRAY(
             SELECT DISTINCT e.function_name
@@ -128,6 +205,7 @@ export class OverviewRepository {
       filters.gender,
       filters.directOrIndirect,
       accountId,
+      filters.reportingMonth,
     ]);
 
     const dashboard = result.rows[0]?.dashboard;
