@@ -15,7 +15,14 @@
 }
 
 .talent-demographics__group .horizontal-chart__row {
-  grid-template-columns: 2.5rem minmax(4rem, 1fr) auto;
+  grid-template-columns: minmax(6rem, 8rem) minmax(4rem, 1fr) auto;
+}
+
+.talent-demographics__group .horizontal-chart__label {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .talent-range-columns {
