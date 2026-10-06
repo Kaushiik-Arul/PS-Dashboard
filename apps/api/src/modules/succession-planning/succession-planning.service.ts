@@ -1,16 +1,140 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import type { SuccessionPlanningValues } from '../hrbp-point/succession-planning-import/succession-planning-import.types';
+import type {
+  NormalizedSuccessionPlanningFilters,
+  SuccessionPlanningFilterDto,
+} from './dto/succession-planning-filter.dto';
 
 export type SuccessionPlanningRecord = SuccessionPlanningValues & { id: string };
+
+type FilterEmployee = {
+  functionName: string;
+  orgUnit: string;
+  range: string;
+  location: string;
+  gender: string;
+  directOrIndirect: string;
+};
+
+type RegisterRow = SuccessionPlanningRecord & {
+  filter_employees: FilterEmployee[];
+};
+
+type FilterKey = keyof NormalizedSuccessionPlanningFilters;
+
+const filterKeys: FilterKey[] = [
+  'functionName',
+  'orgUnit',
+  'range',
+  'location',
+  'gender',
+  'directOrIndirect',
+];
 
 @Injectable()
 export class SuccessionPlanningService {
   constructor(private readonly database: DatabaseService) {}
 
-  async getRegister(accountId: string) {
-    const [state, rows] = await Promise.all([
-      this.database.query<{
+  async getRegister(
+    accountId: string,
+    input: SuccessionPlanningFilterDto = {},
+  ) {
+    return this.queryRegister(
+      this.database,
+      accountId,
+      this.normalizeFilters(input),
+    );
+  }
+
+  async getHistoryState(): Promise<{ snapshotMonths: string[] }> {
+    const result = await this.database.query<{ snapshot_months: string[] }>(`
+      SELECT COALESCE((
+        SELECT ARRAY_AGG(TO_CHAR(reporting_month, 'YYYY-MM') ORDER BY reporting_month DESC)
+        FROM public.dashboard_json_snapshots
+        WHERE dashboard_key = 'succession-planning' AND is_active
+      ), ARRAY[]::TEXT[]) AS snapshot_months
+    `);
+    return { snapshotMonths: result.rows[0]?.snapshot_months ?? [] };
+  }
+
+  async getSnapshot(reportingMonthInput: string) {
+    const reportingMonth = this.normalizeReportingMonth(reportingMonthInput);
+    const result = await this.database.query<{ payload: unknown }>(
+      `SELECT payload
+       FROM public.dashboard_json_snapshots
+       WHERE dashboard_key = 'succession-planning'
+         AND reporting_month = $1::DATE AND is_active`,
+      [reportingMonth],
+    );
+    if (!result.rows[0])
+      throw new NotFoundException('Succession Planning snapshot was not found');
+    return result.rows[0].payload;
+  }
+
+  async publishSnapshot(reportingMonthInput: unknown, accountId: string) {
+    const reportingMonth = this.normalizeReportingMonth(reportingMonthInput);
+    return this.database.transaction(async (client) => {
+      await client.query(
+        `SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('succession_planning_snapshot'))`,
+      );
+      const emptyFilters = Object.fromEntries(
+        filterKeys.map((key) => [key, null]),
+      ) as NormalizedSuccessionPlanningFilters;
+      const dashboard = await this.queryRegister(
+        client,
+        accountId,
+        emptyFilters,
+      );
+      const snapshot = await client.query<{ id: string }>(
+        `WITH next_version AS (
+           SELECT COALESCE(MAX(version), 0) + 1 AS version
+           FROM public.dashboard_json_snapshots
+           WHERE dashboard_key = 'succession-planning'
+             AND reporting_month = $1::DATE
+         ), deactivate AS (
+           UPDATE public.dashboard_json_snapshots
+           SET is_active = FALSE
+           WHERE dashboard_key = 'succession-planning'
+             AND reporting_month = $1::DATE AND is_active
+           RETURNING 1
+         )
+         INSERT INTO public.dashboard_json_snapshots (
+           dashboard_key, reporting_month, version, payload, checksum,
+           created_by, is_active
+         )
+         SELECT 'succession-planning', $1::DATE, next_version.version,
+                $2::JSONB, MD5(($2::JSONB)::TEXT), $3::UUID, TRUE
+         FROM next_version
+         RETURNING id::TEXT`,
+        [reportingMonth, JSON.stringify(dashboard), accountId],
+      );
+      const snapshotId = snapshot.rows[0]?.id;
+      if (!snapshotId)
+        throw new ConflictException('Snapshot could not be saved');
+      const verification = await client.query<{ verified: boolean }>(
+        `SELECT checksum = MD5(payload::TEXT) AS verified
+         FROM public.dashboard_json_snapshots WHERE id = $1::BIGINT`,
+        [snapshotId],
+      );
+      if (!verification.rows[0]?.verified)
+        throw new ConflictException('Snapshot could not be verified');
+      return { reportingMonth: reportingMonth.slice(0, 7) };
+    });
+  }
+
+  private async queryRegister(
+    queryable: Pick<DatabaseService, 'query'>,
+    accountId: string,
+    filters: NormalizedSuccessionPlanningFilters,
+  ) {
+    const [state, result] = await Promise.all([
+      queryable.query<{
         revision: string;
         file_name: string | null;
         imported_at: string | null;
@@ -26,7 +150,7 @@ export class SuccessionPlanningService {
          ) latest ON TRUE
          WHERE state.singleton = TRUE`,
       ),
-      this.database.query<SuccessionPlanningRecord>(
+      queryable.query<RegisterRow>(
         `SELECT row.id::TEXT,
                 row.entity, row.updated_by_name, row.area,
                 row.position_jd_id, row.jd_name, row.ipe_level,
@@ -44,8 +168,23 @@ export class SuccessionPlanningService {
                 COALESCE(row.successor2_pers_no::TEXT, '') AS successor2_pers_no,
                 row.successor2_name, row.successor2_dept_code,
                 row.successor2_current_jd_id, row.successor2_readiness,
-                row.successor2_9_box_rating, row.successor2_idp_status
+                row.successor2_9_box_rating, row.successor2_idp_status,
+                COALESCE(people.filter_employees, '[]'::JSONB) AS filter_employees
          FROM public.succession_planning_rows row
+         LEFT JOIN LATERAL (
+           SELECT JSONB_AGG(JSONB_BUILD_OBJECT(
+             'functionName', COALESCE(BTRIM(employee.function), ''),
+             'orgUnit', COALESCE(BTRIM(employee.organizational_unit), ''),
+             'range', COALESCE(BTRIM(employee.range), ''),
+             'location', COALESCE(BTRIM(employee.location), ''),
+             'gender', COALESCE(BTRIM(employee.gender_key), ''),
+             'directOrIndirect', COALESCE(BTRIM(employee.direct_or_indirect), '')
+           )) AS filter_employees
+           FROM public.employee_namelist employee
+           WHERE employee.pers_no::TEXT = ANY(
+             REGEXP_SPLIT_TO_ARRAY(row.incumbent_pers_no, '[^0-9]+')
+           )
+         ) people ON TRUE
          WHERE EXISTS (
            SELECT 1 FROM public.master_access access
            WHERE access.account_id = $1::UUID
@@ -70,11 +209,82 @@ export class SuccessionPlanningService {
         [accountId],
       ),
     ]);
+
+    const authorizedRows = result.rows;
+    const rows = authorizedRows.filter((row) =>
+      filterKeys.every((key) => {
+        const selected = filters[key];
+        return (
+          !selected
+          || row.filter_employees.some((employee) => employee[key] === selected)
+        );
+      }),
+    );
+    const filterOptions = Object.fromEntries(
+      filterKeys.map((optionKey) => {
+        const values = authorizedRows.flatMap((row) =>
+          row.filter_employees
+            .filter((employee) =>
+              filterKeys.every(
+                (filterKey) =>
+                  filterKey === optionKey
+                  || !filters[filterKey]
+                  || employee[filterKey] === filters[filterKey],
+              ),
+            )
+            .map((employee) => employee[optionKey])
+            .filter(Boolean),
+        );
+        return [
+          optionKey,
+          [...new Set(values)].sort((a, b) =>
+            a.localeCompare(b, undefined, { numeric: true }),
+          ),
+        ];
+      }),
+    );
+
     return {
       revision: state.rows[0]?.revision ?? '0',
       fileName: state.rows[0]?.file_name ?? null,
       importedAt: state.rows[0]?.imported_at ?? null,
-      rows: rows.rows,
+      rows: rows.map(({ filter_employees: _filterEmployees, ...row }) => row),
+      filterOptions,
     };
+  }
+
+  private normalizeFilters(
+    filters: SuccessionPlanningFilterDto,
+  ): NormalizedSuccessionPlanningFilters {
+    const normalize = (value: unknown, label: string) => {
+      if (value === undefined || value === '') return null;
+      if (typeof value !== 'string' || value.length > 200)
+        throw new BadRequestException(`${label} filter is invalid`);
+      return value.trim() || null;
+    };
+    return {
+      functionName: normalize(filters.functionName, 'Function'),
+      orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
+      range: normalize(filters.range, 'Range'),
+      location: normalize(filters.location, 'Location'),
+      gender: normalize(filters.gender, 'Gender'),
+      directOrIndirect: normalize(
+        filters.directOrIndirect,
+        'Direct or indirect',
+      ),
+    };
+  }
+
+  private normalizeReportingMonth(value: unknown) {
+    if (
+      typeof value !== 'string'
+      || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)
+    )
+      throw new BadRequestException('Reporting month must use YYYY-MM format');
+    if (value >= new Date().toISOString().slice(0, 7))
+      throw new BadRequestException(
+        'Historical reporting month must be earlier than the current month',
+      );
+    return `${value}-01`;
   }
 }

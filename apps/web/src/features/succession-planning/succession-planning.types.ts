@@ -36,6 +36,26 @@ export const successionPlanningColumns = [
 export type SuccessionPlanningColumn = (typeof successionPlanningColumns)[number][0];
 export type SuccessionPlanningValues = Record<SuccessionPlanningColumn, string>;
 export type SuccessionPlanningRecord = SuccessionPlanningValues & { id: string };
+export type SuccessionPlanningQueryFilters = {
+  reportingMonth?: string;
+  functionName?: string;
+  orgUnit?: string;
+  range?: string;
+  location?: string;
+  gender?: string;
+  directOrIndirect?: string;
+};
+export type SuccessionPlanningFilterOptions = {
+  functionName: string[];
+  orgUnit: string[];
+  range: string[];
+  location: string[];
+  gender: string[];
+  directOrIndirect: string[];
+};
+export type SuccessionPlanningHistoryState = {
+  snapshotMonths: string[];
+};
 export type SuccessionPlanningIssue = {
   column: SuccessionPlanningColumn;
   employeeNumber: string;
@@ -81,4 +101,5 @@ export type SuccessionPlanningResponse = {
   fileName: string | null;
   importedAt: string | null;
   rows: SuccessionPlanningRecord[];
+  filterOptions: SuccessionPlanningFilterOptions;
 };

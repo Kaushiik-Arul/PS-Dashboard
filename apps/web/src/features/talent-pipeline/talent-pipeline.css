@@ -3,7 +3,12 @@
 }
 
 .talent-history-menu__trigger {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+  justify-content: center;
   min-height: 2.5rem;
+  padding-block: 0;
 }
 
 .talent-history-menu__trigger .a-button__icon {
