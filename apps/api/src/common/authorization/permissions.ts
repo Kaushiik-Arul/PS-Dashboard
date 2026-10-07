@@ -7,6 +7,7 @@ export const permissions = [
   'succession-planning:import',
   'hrbp-point:view',
   'hrbp-point:manage',
+  'headcount:import',
   'namelist:import',
   'namelist:transform',
   'namelist:export',

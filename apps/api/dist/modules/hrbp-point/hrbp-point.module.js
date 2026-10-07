@@ -27,6 +27,9 @@ const employee_jd_movements_service_1 = require("./employee-jd-movements/employe
 const hrbp_point_controller_1 = require("./hrbp-point.controller");
 const hrbp_point_repository_1 = require("./hrbp-point.repository");
 const hrbp_point_service_1 = require("./hrbp-point.service");
+const headcount_import_controller_1 = require("./headcount-import/headcount-import.controller");
+const headcount_import_repository_1 = require("./headcount-import/headcount-import.repository");
+const headcount_import_service_1 = require("./headcount-import/headcount-import.service");
 const job_descriptions_controller_1 = require("./job-descriptions/job-descriptions.controller");
 const job_descriptions_repository_1 = require("./job-descriptions/job-descriptions.repository");
 const job_descriptions_service_1 = require("./job-descriptions/job-descriptions.service");
@@ -53,7 +56,7 @@ exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule],
-        controllers: [available_talent_controller_1.AvailableTalentController, pool_register_controller_1.PoolRegisterController, nomination_status_controller_1.NominationStatusController, active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController, succession_planning_import_controller_1.SuccessionPlanningImportController],
+        controllers: [available_talent_controller_1.AvailableTalentController, pool_register_controller_1.PoolRegisterController, nomination_status_controller_1.NominationStatusController, active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, headcount_import_controller_1.HeadcountImportController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController, succession_planning_import_controller_1.SuccessionPlanningImportController],
         providers: [available_talent_service_1.AvailableTalentService,
             pool_register_service_1.PoolRegisterService,
             nomination_status_service_1.NominationStatusService,
@@ -65,6 +68,8 @@ exports.HrbpPointModule = HrbpPointModule = __decorate([
             employee_jd_movements_repository_1.EmployeeJdMovementsRepository,
             hrbp_point_service_1.HrbpPointService,
             hrbp_point_repository_1.HrbpPointRepository,
+            headcount_import_service_1.HeadcountImportService,
+            headcount_import_repository_1.HeadcountImportRepository,
             job_descriptions_service_1.JobDescriptionsService,
             job_descriptions_repository_1.JobDescriptionsRepository,
             namelist_import_service_1.NamelistImportService,

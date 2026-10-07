@@ -18,6 +18,9 @@ import { EmployeeJdMovementsService } from './employee-jd-movements/employee-jd-
 import { HrbpPointController } from './hrbp-point.controller';
 import { HrbpPointRepository } from './hrbp-point.repository';
 import { HrbpPointService } from './hrbp-point.service';
+import { HeadcountImportController } from './headcount-import/headcount-import.controller';
+import { HeadcountImportRepository } from './headcount-import/headcount-import.repository';
+import { HeadcountImportService } from './headcount-import/headcount-import.service';
 import { JobDescriptionsController } from './job-descriptions/job-descriptions.controller';
 import { JobDescriptionsRepository } from './job-descriptions/job-descriptions.repository';
 import { JobDescriptionsService } from './job-descriptions/job-descriptions.service';
@@ -41,7 +44,7 @@ import { SuccessionPlanningImportService } from './succession-planning-import/su
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController],
+  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController],
   providers: [AvailableTalentService,
     PoolRegisterService,
     NominationStatusService,
@@ -53,6 +56,8 @@ import { SuccessionPlanningImportService } from './succession-planning-import/su
     EmployeeJdMovementsRepository,
     HrbpPointService,
     HrbpPointRepository,
+    HeadcountImportService,
+    HeadcountImportRepository,
     JobDescriptionsService,
     JobDescriptionsRepository,
     NamelistImportService,
