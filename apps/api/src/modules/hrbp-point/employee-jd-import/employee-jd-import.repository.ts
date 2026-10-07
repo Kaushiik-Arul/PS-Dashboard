@@ -13,6 +13,7 @@ import type {
 type PreviewRecord = {
   preview_id: string;
   file_name: string;
+  reporting_month: string;
   file_hash: string;
   total_rows: number;
   valid_rows: number;
@@ -55,15 +56,21 @@ export class EmployeeJdImportRepository {
     return matches;
   }
 
-  async createPreview(actorAccountId: string, file: UploadedEmployeeJdFile, rows: ParsedEmployeeJdRow[]): Promise<string> {
+  async createPreview(
+    actorAccountId: string,
+    reportingMonth: string,
+    file: UploadedEmployeeJdFile,
+    rows: ParsedEmployeeJdRow[],
+  ): Promise<string> {
     return this.database.transaction(async (client) => {
       await client.query(`DELETE FROM public.employee_jd_import_previews WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP`);
       const validRows = rows.filter((row) => !hasBlockingEmployeeJdIssues(row.issues)).length;
       const preview = await client.query<{ preview_id: string }>(
         `INSERT INTO public.employee_jd_import_previews (
-           uploaded_by, file_name, file_hash, total_rows, valid_rows, invalid_rows
-         ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING preview_id`,
-        [actorAccountId, file.originalname, createHash('sha256').update(file.buffer).digest('hex'), rows.length, validRows, rows.length - validRows],
+           uploaded_by, reporting_month, file_name, file_hash,
+           total_rows, valid_rows, invalid_rows
+         ) VALUES ($1, $2::DATE, $3, $4, $5, $6, $7) RETURNING preview_id`,
+        [actorAccountId, reportingMonth, file.originalname, createHash('sha256').update(file.buffer).digest('hex'), rows.length, validRows, rows.length - validRows],
       );
       const previewId = preview.rows[0].preview_id;
       for (let offset = 0; offset < rows.length; offset += 500) {
@@ -89,7 +96,8 @@ export class EmployeeJdImportRepository {
 
   async getSummary(previewId: string, actorAccountId: string): Promise<EmployeeJdPreviewSummary | null> {
     const result = await this.database.query<PreviewRecord>(
-      `SELECT preview_id, file_name, file_hash, total_rows, valid_rows, invalid_rows
+            `SELECT preview_id, file_name, TO_CHAR(reporting_month, 'YYYY-MM-DD') AS reporting_month,
+              file_hash, total_rows, valid_rows, invalid_rows
        FROM public.employee_jd_import_previews
        WHERE preview_id = $1 AND uploaded_by = $2 AND status = 'ready'
          AND expires_at > CURRENT_TIMESTAMP`,
@@ -245,7 +253,8 @@ export class EmployeeJdImportRepository {
     return this.database.transaction(async (client) => {
       await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('employee_jd_assignment_import'))`);
       const preview = await client.query<PreviewRecord>(
-        `SELECT preview_id, file_name, file_hash, total_rows, valid_rows, invalid_rows
+        `SELECT preview_id, file_name, TO_CHAR(reporting_month, 'YYYY-MM-DD') AS reporting_month,
+          file_hash, total_rows, valid_rows, invalid_rows
          FROM public.employee_jd_import_previews
          WHERE preview_id = $1 AND uploaded_by = $2 AND status = 'ready'
            AND expires_at > CURRENT_TIMESTAMP FOR UPDATE`,
@@ -273,9 +282,9 @@ export class EmployeeJdImportRepository {
       }
       const importResult = await client.query<{ import_id: string }>(
         `INSERT INTO public.employee_jd_imports (
-           imported_by, file_name, file_hash, total_rows, status
-         ) VALUES ($1, $2, $3, $4, 'processing') RETURNING import_id::TEXT`,
-        [actorAccountId, record.file_name, record.file_hash, record.total_rows],
+           imported_by, reporting_month, file_name, file_hash, total_rows, status
+         ) VALUES ($1, $2::DATE, $3, $4, $5, 'processing') RETURNING import_id::TEXT`,
+        [actorAccountId, record.reporting_month, record.file_name, record.file_hash, record.total_rows],
       );
       const importId = importResult.rows[0].import_id;
       const movements = await client.query(
@@ -297,25 +306,25 @@ export class EmployeeJdImportRepository {
          )
          SELECT COALESCE(current_assignments.pers_no, incoming.pers_no),
                 current_assignments.jd_id, current_assignments.role_title,
-                incoming.jd_id, incoming.role_title, CURRENT_DATE,
+                incoming.jd_id, incoming.role_title, $4::DATE,
                 'upload', $2, $3
          FROM current_assignments
          FULL OUTER JOIN incoming USING (pers_no)
          WHERE current_assignments.jd_id IS DISTINCT FROM incoming.jd_id`,
-        [previewId, importId, actorAccountId],
+        [previewId, importId, actorAccountId, record.reporting_month],
       );
       await client.query('DELETE FROM public.employee_jd_assignments');
       await client.query(
         `INSERT INTO public.employee_jd_assignments (
            pers_no, jd_id, effective_date, source, source_import_id, updated_by_account_id
          ) SELECT (preview_row.row_data->>'pers_no')::BIGINT, job.jd_id,
-                  CURRENT_DATE, 'upload', $2, $3
+                  $4::DATE, 'upload', $2, $3
            FROM public.employee_jd_import_preview_rows preview_row
            LEFT JOIN public.job_descriptions job
              ON LOWER(job.jd_id) = LOWER(preview_row.row_data->>'jd_id')
            WHERE preview_row.preview_id = $1 AND preview_row.is_valid
            ORDER BY preview_row.row_number`,
-        [previewId, importId, actorAccountId],
+        [previewId, importId, actorAccountId, record.reporting_month],
       );
       await client.query(
         `UPDATE public.employee_jd_imports
@@ -339,6 +348,7 @@ export class EmployeeJdImportRepository {
     return {
       id: record.preview_id,
       fileName: record.file_name,
+      reportingMonth: record.reporting_month,
       totalRows: record.total_rows,
       validRows: record.valid_rows,
       invalidRows: record.invalid_rows,

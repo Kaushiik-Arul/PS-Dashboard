@@ -48,8 +48,8 @@ export class AccessAssignmentDto {
   @ApiProperty()
   email!: string;
 
-  @ApiProperty({ enum: ['active', 'inactive', 'locked'] })
-  accountStatus!: 'active' | 'inactive' | 'locked';
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  accountStatus!: 'active' | 'inactive';
 
   @ApiProperty()
   mustChangePassword!: boolean;

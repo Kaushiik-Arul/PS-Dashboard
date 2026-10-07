@@ -4,7 +4,7 @@ import type { UploadedEmployeeJdFile } from './employee-jd-import.types';
 export declare class EmployeeJdImportController {
     private readonly service;
     constructor(service: EmployeeJdImportService);
-    createPreview(file: UploadedEmployeeJdFile | undefined, user: AuthenticatedUser): Promise<import("./employee-jd-import.types").EmployeeJdPreviewSummary>;
+    createPreview(file: UploadedEmployeeJdFile | undefined, reportingMonth: string | undefined, user: AuthenticatedUser): Promise<import("./employee-jd-import.types").EmployeeJdPreviewSummary>;
     getRows(previewId: string, filter: string | undefined, page: string | undefined, pageSize: string | undefined, user: AuthenticatedUser): Promise<import("./employee-jd-import.types").EmployeeJdPreviewPage>;
     updateRow(previewId: string, rowNumber: string, input: unknown, user: AuthenticatedUser): Promise<import("./employee-jd-import.types").EmployeeJdPreviewSummary>;
     deleteRow(previewId: string, rowNumber: string, user: AuthenticatedUser): Promise<void>;

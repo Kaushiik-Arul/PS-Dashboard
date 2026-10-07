@@ -73,14 +73,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (
-      account.accountStatus === 'locked' &&
-      account.lockedUntil &&
-      account.lockedUntil.getTime() > Date.now()
-    ) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
     const passwordMatches = await argon2.verify(account.passwordHash, password);
     if (!passwordMatches) {
       await this.repository.recordFailedLogin(account.accountId);

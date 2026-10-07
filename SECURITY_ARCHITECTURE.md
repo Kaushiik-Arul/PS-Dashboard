@@ -173,7 +173,6 @@ Required controls include:
 - No plaintext password storage or logging.
 - Timing-safe verification through the selected Argon2 implementation.
 - Prevention of immediate reuse of the current password.
-- Temporary lockout after repeated failed login attempts.
 - Rate limiting at the authentication endpoint and reverse-proxy boundary.
 
 ## 9. Authorization Enforcement
@@ -204,8 +203,7 @@ Stores:
 - Display name and normalized unique login email.
 - Argon2id password hash.
 - Forced-password-change state.
-- Active, inactive, or locked account state.
-- Failed login attempts and lock expiry.
+- Active or inactive account state.
 - Last login and maintenance timestamps.
 
 ### `master_access`
@@ -236,7 +234,7 @@ Stores:
 Stores append-only events for:
 
 - Account creation.
-- Login success, failure, and lockout.
+- Login success and failure.
 - Password change and HRBP reset.
 - Role change.
 - Activation and deactivation.

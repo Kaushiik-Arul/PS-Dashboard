@@ -20,6 +20,7 @@ export type UploadedEmployeeJdFile = {
 export type EmployeeJdPreviewSummary = {
     id: string;
     fileName: string;
+    reportingMonth: string;
     totalRows: number;
     validRows: number;
     invalidRows: number;

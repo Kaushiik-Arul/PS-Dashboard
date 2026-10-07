@@ -30,8 +30,12 @@ export class EmployeeJdImportController {
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload and validate employee JD assignments' })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } }))
-  createPreview(@UploadedFile() file: UploadedEmployeeJdFile | undefined, @CurrentUser() user: AuthenticatedUser) {
-    return this.service.createPreview(file, user.accountId);
+  createPreview(
+    @UploadedFile() file: UploadedEmployeeJdFile | undefined,
+    @Body('reportingMonth') reportingMonth: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.createPreview(file, reportingMonth, user.accountId);
   }
 
   @Get('previews/:previewId/rows')

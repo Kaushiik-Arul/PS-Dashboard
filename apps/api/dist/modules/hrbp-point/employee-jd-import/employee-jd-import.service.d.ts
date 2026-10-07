@@ -4,7 +4,8 @@ export declare class EmployeeJdImportService {
     private readonly repository;
     private readonly logger;
     constructor(repository: EmployeeJdImportRepository);
-    createPreview(file: UploadedEmployeeJdFile | undefined, actorAccountId: string): Promise<EmployeeJdPreviewSummary>;
+    createPreview(file: UploadedEmployeeJdFile | undefined, reportingMonthInput: string | undefined, actorAccountId: string): Promise<EmployeeJdPreviewSummary>;
+    private reportingMonth;
     getRows(previewId: string, actorAccountId: string, filterInput?: string, pageInput?: string, pageSizeInput?: string): Promise<EmployeeJdPreviewPage>;
     updateRow(previewId: string, rowNumberInput: string, input: unknown, actorAccountId: string): Promise<EmployeeJdPreviewSummary>;
     deleteRow(previewId: string, rowNumberInput: string, actorAccountId: string): Promise<void>;

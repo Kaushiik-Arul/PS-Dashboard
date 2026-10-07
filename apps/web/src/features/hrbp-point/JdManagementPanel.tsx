@@ -87,6 +87,9 @@ function ImportPanel() {
   const previewRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [reportingMonth, setReportingMonth] = useState(
+    new Date().toISOString().slice(0, 7),
+  );
   const [preview, setPreview] = useState<EmployeeJdPreview | null>(null);
   const [filter, setFilter] = useState<EmployeeJdPreviewFilter>('all');
   const [editing, setEditing] = useState<EmployeeJdPreviewRow | null>(null);
@@ -99,8 +102,8 @@ function ImportPanel() {
     setFile(selected);
   };
   const upload = async () => {
-    if (!file) return; setBusy(true); setMessage('');
-    try { const next = await employeeJdImportClient.createPreview(file); setPreview(next); setConfirmed(false); previewRef.current?.showModal(); }
+    if (!file || !reportingMonth) return; setBusy(true); setMessage('');
+    try { const next = await employeeJdImportClient.createPreview(file, reportingMonth); setPreview(next); setConfirmed(false); previewRef.current?.showModal(); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Workbook could not be uploaded.'); }
     finally { setBusy(false); }
   };
@@ -113,11 +116,11 @@ function ImportPanel() {
   const warningRows = preview?.warningRows ?? 0;
   const previewNeedsUpdatedApi = preview !== null && preview.warningRows === undefined;
 
-  return <section className="namelist-panel jd-import" aria-labelledby="jd-import-title"><div className="namelist-panel__header"><div><p className="namelist-panel__eyebrow">Current assignment snapshot</p><h2 id="jd-import-title">Employee JD upload</h2><p>Validate Pers.No. and JDID before replacing all current assignments. Blank JD IDs are saved without an assignment after confirmation.</p></div></div><div className="namelist-panel__body"><div className="namelist-upload"><i className="a-icon boschicon-bosch-ic-upload" aria-hidden="true" /><div><strong>Select employee JD workbook</strong><p>XLSX · 50 MB maximum · 25,000 rows</p></div><input ref={inputRef} id="employee-jd-file" className="visually-hidden" type="file" accept=".xlsx" onChange={selectFile} /><label className="a-button a-button--secondary" htmlFor="employee-jd-file"><span className="a-button__label">Choose file</span></label></div>{file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><button className="a-button a-button--primary" type="button" disabled={busy} onClick={() => void upload()}><span className="a-button__label">{busy ? 'Preparing...' : 'Upload and preview'}</span></button></div>}{message && <p className="namelist-panel__message" role="status">{message}</p>}</div>
+  return <section className="namelist-panel jd-import" aria-labelledby="jd-import-title"><div className="namelist-panel__header"><div><p className="namelist-panel__eyebrow">Current assignment snapshot</p><h2 id="jd-import-title">Employee JD upload</h2><p>Validate Pers.No. and JDID before replacing all current assignments. Blank JD IDs are saved without an assignment after confirmation.</p></div></div><div className="namelist-panel__body"><div className="namelist-upload"><i className="a-icon boschicon-bosch-ic-upload" aria-hidden="true" /><div><strong>Select employee JD workbook</strong><p>XLSX · 50 MB maximum · 25,000 rows</p></div><input ref={inputRef} id="employee-jd-file" className="visually-hidden" type="file" accept=".xlsx" onChange={selectFile} /><label className="a-button a-button--secondary" htmlFor="employee-jd-file"><span className="a-button__label">Choose file</span></label></div>{file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><label className="rbin-reporting-month"><input aria-label="Reporting month" type="month" required max={new Date().toISOString().slice(0, 7)} value={reportingMonth} disabled={busy} onChange={(event) => setReportingMonth(event.target.value)} /></label><button className="a-button a-button--primary" type="button" disabled={busy || !reportingMonth} onClick={() => void upload()}><span className="a-button__label">{busy ? 'Preparing...' : 'Upload and preview'}</span></button></div>}{message && <p className="namelist-panel__message" role="status">{message}</p>}</div>
     <dialog className="namelist-dialog" ref={previewRef}>
       {preview && <div className="namelist-dialog__layout">
         <header className="namelist-dialog__header">
-          <div><span>Employee JD preview</span><h2>{preview.fileName}</h2><p>{preview.totalRows} employee rows</p></div>
+          <div><span>Employee JD preview</span><h2>{preview.fileName}</h2><p>{new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${preview.reportingMonth}T00:00:00Z`))} · {preview.totalRows} employee rows</p></div>
           <button className="a-button a-button--integrated" type="button" aria-label="Close" onClick={() => previewRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button>
         </header>
         <div className="namelist-summary jd-preview-summary"><div><span>Total</span><strong>{preview.totalRows}</strong></div><div><span>Valid</span><strong>{preview.validRows - warningRows}</strong></div><div className={warningRows ? 'is-warning' : ''}><span>Warnings</span><strong>{warningRows}</strong></div><div className={preview.invalidRows ? 'is-error' : ''}><span>Invalid</span><strong>{preview.invalidRows}</strong></div><p>{previewNeedsUpdatedApi ? 'Restart the API and upload a fresh preview to see JD warnings.' : preview.invalidRows ? 'Correct invalid rows before replacing assignments.' : warningRows ? 'Blank JD IDs will be saved without an assignment after confirmation.' : 'All rows passed validation.'}</p></div>

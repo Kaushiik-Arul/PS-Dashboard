@@ -8,8 +8,6 @@ CREATE TABLE public.auth_accounts (
     password_hash TEXT NOT NULL,
     must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
     account_status TEXT NOT NULL DEFAULT 'active',
-    failed_login_attempts INTEGER NOT NULL DEFAULT 0,
-    locked_until TIMESTAMPTZ,
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -24,11 +22,7 @@ CREATE TABLE public.auth_accounts (
     CONSTRAINT auth_accounts_password_hash_check
         CHECK (password_hash LIKE '$argon2id$%'),
     CONSTRAINT auth_accounts_status_check
-        CHECK (account_status IN ('active', 'inactive', 'locked')),
-    CONSTRAINT auth_accounts_failed_attempts_check
-        CHECK (failed_login_attempts >= 0),
-    CONSTRAINT auth_accounts_lock_state_check
-        CHECK (account_status <> 'locked' OR locked_until IS NOT NULL),
+        CHECK (account_status IN ('active', 'inactive')),
     CONSTRAINT auth_accounts_timestamps_check
         CHECK (updated_at >= created_at)
 );

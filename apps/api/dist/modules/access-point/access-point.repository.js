@@ -236,7 +236,6 @@ let AccessPointRepository = class AccessPointRepository {
         return this.database.transaction(async (client) => {
             const result = await client.query(`UPDATE public.auth_accounts
          SET account_status = 'inactive',
-             locked_until = NULL,
              updated_at = CURRENT_TIMESTAMP
          WHERE account_id = $1
            AND account_id <> $2

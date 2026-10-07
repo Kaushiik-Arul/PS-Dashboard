@@ -25,8 +25,13 @@ export class EmployeeJdImportService {
 
   constructor(private readonly repository: EmployeeJdImportRepository) {}
 
-  async createPreview(file: UploadedEmployeeJdFile | undefined, actorAccountId: string): Promise<EmployeeJdPreviewSummary> {
+  async createPreview(
+    file: UploadedEmployeeJdFile | undefined,
+    reportingMonthInput: string | undefined,
+    actorAccountId: string,
+  ): Promise<EmployeeJdPreviewSummary> {
     if (!file) throw new BadRequestException('An XLSX file is required.');
+    const reportingMonth = this.reportingMonth(reportingMonthInput);
     let parsedRows: ParsedEmployeeJdRow[];
     try {
       parsedRows = await parseEmployeeJdFile(file);
@@ -36,11 +41,38 @@ export class EmployeeJdImportService {
     }
     return this.run(async () => {
       const rows = await this.revalidateRows(parsedRows);
-      const previewId = await this.repository.createPreview(actorAccountId, file, rows);
+      const previewId = await this.repository.createPreview(
+        actorAccountId,
+        reportingMonth,
+        file,
+        rows,
+      );
       const preview = await this.repository.getSummary(previewId, actorAccountId);
       if (!preview) throw new Error('PREVIEW_NOT_FOUND');
       return preview;
     }, 'Unable to create employee JD preview');
+  }
+
+  private reportingMonth(value: string | undefined): string {
+    if (!value || !/^\d{4}-\d{2}-01$/.test(value)) {
+      throw new BadRequestException(
+        'Reporting month must use YYYY-MM-01 format.',
+      );
+    }
+    const parsed = new Date(`${value}T00:00:00Z`);
+    const currentMonth = new Date();
+    currentMonth.setUTCDate(1);
+    currentMonth.setUTCHours(0, 0, 0, 0);
+    if (
+      Number.isNaN(parsed.getTime())
+      || parsed.toISOString().slice(0, 10) !== value
+      || parsed > currentMonth
+    ) {
+      throw new BadRequestException(
+        'Reporting month must be a valid month that is not in the future.',
+      );
+    }
+    return value;
   }
 
   async getRows(previewId: string, actorAccountId: string, filterInput?: string, pageInput?: string, pageSizeInput?: string): Promise<EmployeeJdPreviewPage> {

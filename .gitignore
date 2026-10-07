@@ -48,6 +48,7 @@ next-env.d.ts
 **/*.sql
 !apps/sql/auth_creation.sql
 !apps/sql/auth_account_uuid_migration.sql
+!apps/sql/remove_account_lockout_migration.sql
 !apps/sql/access_point_multi_assignment_migration.sql
 !apps/sql/overview_access_scope_migration.sql
 !apps/sql/namelist_import_staging_migration.sql

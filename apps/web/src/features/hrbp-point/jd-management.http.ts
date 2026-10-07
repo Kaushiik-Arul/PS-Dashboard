@@ -54,9 +54,10 @@ async function getPreviewRows(id: string, filter: EmployeeJdPreviewFilter, page:
 }
 
 export const employeeJdImportClient = {
-  async createPreview(file: File) {
+  async createPreview(file: File, reportingMonth: string) {
     const formData = new FormData();
     formData.set('file', file);
+    formData.set('reportingMonth', `${reportingMonth}-01`);
     const summary = await request('employee-jd-imports', '/previews', { method: 'POST', body: formData })
       .then((response) => response.json() as Promise<{ id: string }>);
     return getPreviewRows(summary.id, 'all', 1, 25);

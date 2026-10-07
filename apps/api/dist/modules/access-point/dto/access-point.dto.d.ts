@@ -15,7 +15,7 @@ export declare class AccessAssignmentDto {
     persNo: string;
     employeeName: string;
     email: string;
-    accountStatus: 'active' | 'inactive' | 'locked';
+    accountStatus: 'active' | 'inactive';
     mustChangePassword: boolean;
     role: ManagedRole;
     assignedRange: string | null;

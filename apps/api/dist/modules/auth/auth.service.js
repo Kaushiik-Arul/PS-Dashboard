@@ -64,11 +64,6 @@ let AuthService = class AuthService {
         if (!account || account.accountStatus === 'inactive') {
             throw new common_1.UnauthorizedException('Invalid email or password');
         }
-        if (account.accountStatus === 'locked' &&
-            account.lockedUntil &&
-            account.lockedUntil.getTime() > Date.now()) {
-            throw new common_1.UnauthorizedException('Invalid email or password');
-        }
         const passwordMatches = await argon2_1.default.verify(account.passwordHash, password);
         if (!passwordMatches) {
             await this.repository.recordFailedLogin(account.accountId);

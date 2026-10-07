@@ -21,9 +21,10 @@ let EmployeeJdImportService = EmployeeJdImportService_1 = class EmployeeJdImport
     constructor(repository) {
         this.repository = repository;
     }
-    async createPreview(file, actorAccountId) {
+    async createPreview(file, reportingMonthInput, actorAccountId) {
         if (!file)
             throw new common_1.BadRequestException('An XLSX file is required.');
+        const reportingMonth = this.reportingMonth(reportingMonthInput);
         let parsedRows;
         try {
             parsedRows = await (0, employee_jd_import_parser_1.parseEmployeeJdFile)(file);
@@ -35,12 +36,27 @@ let EmployeeJdImportService = EmployeeJdImportService_1 = class EmployeeJdImport
         }
         return this.run(async () => {
             const rows = await this.revalidateRows(parsedRows);
-            const previewId = await this.repository.createPreview(actorAccountId, file, rows);
+            const previewId = await this.repository.createPreview(actorAccountId, reportingMonth, file, rows);
             const preview = await this.repository.getSummary(previewId, actorAccountId);
             if (!preview)
                 throw new Error('PREVIEW_NOT_FOUND');
             return preview;
         }, 'Unable to create employee JD preview');
+    }
+    reportingMonth(value) {
+        if (!value || !/^\d{4}-\d{2}-01$/.test(value)) {
+            throw new common_1.BadRequestException('Reporting month must use YYYY-MM-01 format.');
+        }
+        const parsed = new Date(`${value}T00:00:00Z`);
+        const currentMonth = new Date();
+        currentMonth.setUTCDate(1);
+        currentMonth.setUTCHours(0, 0, 0, 0);
+        if (Number.isNaN(parsed.getTime())
+            || parsed.toISOString().slice(0, 10) !== value
+            || parsed > currentMonth) {
+            throw new common_1.BadRequestException('Reporting month must be a valid month that is not in the future.');
+        }
+        return value;
     }
     async getRows(previewId, actorAccountId, filterInput, pageInput, pageSizeInput) {
         const filter = filterInput === 'valid' || filterInput === 'warning' || filterInput === 'invalid' ? filterInput : 'all';

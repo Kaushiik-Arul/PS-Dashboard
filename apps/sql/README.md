@@ -82,7 +82,7 @@ Schema file: `apps/sql/auth_creation.sql`
 
 | Table | Purpose |
 | --- | --- |
-| `public.auth_accounts` | UUID account identity, optional personnel link, login email, Argon2id password hash, account state and lockout data |
+| `public.auth_accounts` | UUID account identity, optional personnel link, login email, Argon2id password hash, and active/inactive state |
 | `public.master_access` | One or more role-and-scope assignments per account |
 | `public.auth_sessions` | Hashed opaque browser sessions, expiry and revocation |
 | `public.security_audit_log` | Append-only security event history |
@@ -176,6 +176,15 @@ $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' }
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/functions/overview/get_workforce_overview_kpis.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/functions/overview/get_workforce_overview_charts.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/dashboard_json_snapshots_migration.sql"
+```
+
+Employee JD workbook imports require a reporting month. Apply the reporting
+month migration once so previews, import audit records, assignments, and
+movement history use the selected period:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/employee_jd_reporting_month_migration.sql"
 ```
 
 Preview sessions expire after 24 hours. A scheduled cleanup may run:

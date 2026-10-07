@@ -11,9 +11,7 @@ export type AccountRecord = {
   loginEmail: string;
   passwordHash: string;
   mustChangePassword: boolean;
-  accountStatus: 'active' | 'inactive' | 'locked';
-  failedLoginAttempts: number;
-  lockedUntil: Date | null;
+  accountStatus: 'active' | 'inactive';
   role: UserRole;
   roles: UserRole[];
 };
@@ -26,8 +24,6 @@ type AccountRow = {
   password_hash: string;
   must_change_password: boolean;
   account_status: AccountRecord['accountStatus'];
-  failed_login_attempts: number;
-  locked_until: Date | null;
   roles: UserRole[];
 };
 
@@ -47,8 +43,6 @@ function mapAccount(row: AccountRow): AccountRecord {
     passwordHash: row.password_hash,
     mustChangePassword: row.must_change_password,
     accountStatus: row.account_status,
-    failedLoginAttempts: row.failed_login_attempts,
-    lockedUntil: row.locked_until,
     role,
     roles: row.roles,
   };
@@ -81,8 +75,6 @@ export class AuthRepository {
          account.password_hash,
          account.must_change_password,
          account.account_status,
-         account.failed_login_attempts,
-         account.locked_until,
          ARRAY_AGG(DISTINCT access.role ORDER BY access.role) AS roles
        FROM public.auth_accounts account
        INNER JOIN public.master_access access
@@ -97,22 +89,6 @@ export class AuthRepository {
 
   async recordFailedLogin(accountId: string): Promise<void> {
     await this.database.transaction(async (client) => {
-      await client.query(
-        `UPDATE public.auth_accounts
-         SET failed_login_attempts = failed_login_attempts + 1,
-             account_status = CASE
-               WHEN failed_login_attempts + 1 >= 5 THEN 'locked'
-               ELSE account_status
-             END,
-             locked_until = CASE
-               WHEN failed_login_attempts + 1 >= 5
-                 THEN CURRENT_TIMESTAMP + INTERVAL '15 minutes'
-               ELSE locked_until
-             END,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE account_id = $1`,
-        [accountId],
-      );
       await this.insertAudit(client, 'login_failed', null, accountId, {});
     });
   }
@@ -128,9 +104,7 @@ export class AuthRepository {
       const sessionId = randomUUID();
       await client.query(
         `UPDATE public.auth_accounts
-         SET failed_login_attempts = 0,
-             locked_until = NULL,
-             account_status = 'active',
+         SET account_status = 'active',
              last_login_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP
          WHERE account_id = $1`,
@@ -180,8 +154,6 @@ export class AuthRepository {
          account.password_hash,
          account.must_change_password,
          account.account_status,
-         account.failed_login_attempts,
-         account.locked_until,
          ARRAY_AGG(DISTINCT access.role ORDER BY access.role) AS roles
        FROM public.auth_sessions session
        INNER JOIN public.auth_accounts account
@@ -233,8 +205,6 @@ export class AuthRepository {
         `UPDATE public.auth_accounts
          SET password_hash = $2,
              must_change_password = FALSE,
-             failed_login_attempts = 0,
-             locked_until = NULL,
              updated_at = CURRENT_TIMESTAMP
          WHERE account_id = $1`,
         [user.accountId, passwordHash],

@@ -5,7 +5,7 @@ export declare class EmployeeJdImportRepository {
     constructor(database: DatabaseService);
     getKnownPersNos(persNos: string[]): Promise<Set<string>>;
     getKnownJdIds(jdIds: string[]): Promise<Map<string, string>>;
-    createPreview(actorAccountId: string, file: UploadedEmployeeJdFile, rows: ParsedEmployeeJdRow[]): Promise<string>;
+    createPreview(actorAccountId: string, reportingMonth: string, file: UploadedEmployeeJdFile, rows: ParsedEmployeeJdRow[]): Promise<string>;
     getSummary(previewId: string, actorAccountId: string): Promise<EmployeeJdPreviewSummary | null>;
     getRows(previewId: string, actorAccountId: string, filter: EmployeeJdPreviewFilter, page: number, pageSize: number): Promise<EmployeeJdPreviewPage | null>;
     getAllRows(previewId: string, actorAccountId: string): Promise<ParsedEmployeeJdRow[] | null>;

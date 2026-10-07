@@ -7,9 +7,7 @@ export type AccountRecord = {
     loginEmail: string;
     passwordHash: string;
     mustChangePassword: boolean;
-    accountStatus: 'active' | 'inactive' | 'locked';
-    failedLoginAttempts: number;
-    lockedUntil: Date | null;
+    accountStatus: 'active' | 'inactive';
     role: UserRole;
     roles: UserRole[];
 };

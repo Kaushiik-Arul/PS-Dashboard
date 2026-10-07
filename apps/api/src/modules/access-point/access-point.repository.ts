@@ -24,7 +24,7 @@ type AssignmentRow = {
   pers_no: string;
   display_name: string;
   login_email: string;
-  account_status: 'active' | 'inactive' | 'locked';
+  account_status: 'active' | 'inactive';
   must_change_password: boolean;
   role: ManagedRole;
   assigned_range: string | null;
@@ -364,7 +364,6 @@ export class AccessPointRepository {
       const result = await client.query(
         `UPDATE public.auth_accounts
          SET account_status = 'inactive',
-             locked_until = NULL,
              updated_at = CURRENT_TIMESTAMP
          WHERE account_id = $1
            AND account_id <> $2

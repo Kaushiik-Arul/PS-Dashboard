@@ -90,7 +90,7 @@ __decorate([
     __metadata("design:type", String)
 ], AccessAssignmentDto.prototype, "email", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ enum: ['active', 'inactive', 'locked'] }),
+    (0, swagger_1.ApiProperty)({ enum: ['active', 'inactive'] }),
     __metadata("design:type", String)
 ], AccessAssignmentDto.prototype, "accountStatus", void 0);
 __decorate([
