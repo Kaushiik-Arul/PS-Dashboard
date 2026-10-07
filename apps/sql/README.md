@@ -231,6 +231,35 @@ Successor 2 columns. Current register rows use generated UUID keys; the
 workbook `Updated By` value and authenticated importer audit are stored
 separately. Preview sessions expire after 24 hours.
 
+## Attrition register
+
+Apply `attrition_import_migration.sql` after authentication and the Org Unit
+Range mapping tables are available:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/attrition_import_migration.sql"
+```
+
+HRBP Point accepts one XLSX workbook containing one worksheet and the fixed
+Attrition columns. `Pers.No.` is required; all other cell values may be blank.
+Duplicate personnel numbers and invalid dates are warnings and remain
+importable. Initiated date and LWD are shown uniformly as `DD.MM.YYYY`; valid
+Excel, ISO, and legacy slash-formatted date cells are normalized during
+preview. The normalized text is retained beside parsed database dates.
+
+When Range is blank, preview generation performs a trimmed, case-insensitive
+Org Unit lookup in `org_unit_range_mappings`. A match fills Range and displays
+a nonblocking warning so the user can keep or edit the value. A supplied Range
+is never overwritten. A confirmed import atomically deletes and replaces the
+complete Attrition register.
+
+Run the focused parser checks from `apps/api`:
+
+```powershell
+npm test -- attrition-import.parser.spec.ts --runInBand
+```
+
 ## Employee PPP history
 
 Apply `employee_ppp_history_migration.sql` after the authentication and

@@ -1,0 +1,29 @@
+.attrition-page .kpi-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.attrition-summary {
+  margin-block-start: 1rem;
+}
+
+.attrition-charts {
+  align-items: stretch;
+}
+
+@media (max-width: 1195px) {
+  .attrition-page .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .attrition-page .kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .attrition-charts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

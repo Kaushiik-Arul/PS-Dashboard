@@ -41,10 +41,12 @@ import { RbinMappingsRepository } from './rbin-mappings/rbin-mappings.repository
 import { RbinMappingsService } from './rbin-mappings/rbin-mappings.service';
 import { SuccessionPlanningImportController } from './succession-planning-import/succession-planning-import.controller';
 import { SuccessionPlanningImportService } from './succession-planning-import/succession-planning-import.service';
+import { AttritionImportController } from './attrition-import/attrition-import.controller';
+import { AttritionImportService } from './attrition-import/attrition-import.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController],
+  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController, AttritionImportController],
   providers: [AvailableTalentService,
     PoolRegisterService,
     NominationStatusService,
@@ -71,6 +73,7 @@ import { SuccessionPlanningImportService } from './succession-planning-import/su
     RbinExceptionsService,
     RbinExceptionsRepository,
     SuccessionPlanningImportService,
+    AttritionImportService,
   ],
 })
 export class HrbpPointModule {}

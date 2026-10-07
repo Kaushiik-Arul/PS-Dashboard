@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validateEnvironment } from './config/environment';
 import { AccessPointModule } from './modules/access-point/access-point.module';
+import { AttritionModule } from './modules/attrition/attrition.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { Employee360Module } from './modules/employee-360/employee-360.module';
 import { HrbpPointModule } from './modules/hrbp-point/hrbp-point.module';
@@ -19,6 +20,7 @@ import { TalentPipelineModule } from './modules/talent-pipeline/talent-pipeline.
       validate: validateEnvironment,
     }),
     AuthModule,
+    AttritionModule,
     AccessPointModule,
     Employee360Module,
     HrbpPointModule,

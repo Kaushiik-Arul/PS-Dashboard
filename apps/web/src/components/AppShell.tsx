@@ -26,6 +26,11 @@ const navigationItems = [
     icon: "boschicon-bosch-ic-target",
   },
   {
+    href: "/attrition",
+    label: "Attrition",
+    icon: "boschicon-bosch-ic-exit",
+  },
+  {
     href: "/hrbp-point",
     label: "HRBP Point",
     icon: "boschicon-bosch-ic-chart-bar",
@@ -85,6 +90,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     if (item.href === "/succession-planning") {
       return hasPermission(role, "successionPlanningPoint");
+    }
+
+    if (item.href === "/attrition") {
+      return hasPermission(role, "attritionPoint");
     }
 
     if (item.href === "/access-point") {

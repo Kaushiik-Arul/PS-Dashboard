@@ -13,6 +13,7 @@ const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const environment_1 = require("./config/environment");
 const access_point_module_1 = require("./modules/access-point/access-point.module");
+const attrition_module_1 = require("./modules/attrition/attrition.module");
 const auth_module_1 = require("./modules/auth/auth.module");
 const employee_360_module_1 = require("./modules/employee-360/employee-360.module");
 const hrbp_point_module_1 = require("./modules/hrbp-point/hrbp-point.module");
@@ -31,6 +32,7 @@ exports.AppModule = AppModule = __decorate([
                 validate: environment_1.validateEnvironment,
             }),
             auth_module_1.AuthModule,
+            attrition_module_1.AttritionModule,
             access_point_module_1.AccessPointModule,
             employee_360_module_1.Employee360Module,
             hrbp_point_module_1.HrbpPointModule,
