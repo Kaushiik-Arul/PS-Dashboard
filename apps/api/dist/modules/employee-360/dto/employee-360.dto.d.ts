@@ -96,6 +96,14 @@ export declare class EmployeeDevelopmentPortfolioDto {
     poolStartDate: string;
     poolEndDate: string;
 }
+export declare class EmployeeSuccessionPortfolioEntryDto {
+    jdId: string;
+    jdName: string;
+}
+export declare class EmployeeSuccessionPortfolioDto {
+    successor1: EmployeeSuccessionPortfolioEntryDto | null;
+    successor2: EmployeeSuccessionPortfolioEntryDto | null;
+}
 export declare class Employee360ProfileResponseDto {
     employee: Employee360RowDto;
     careerJourney: unknown[];
@@ -104,4 +112,5 @@ export declare class Employee360ProfileResponseDto {
     idpStatus: EmployeeIdpStatusDto;
     talentPortfolio: EmployeeTalentPortfolioDto;
     developmentPortfolio: EmployeeDevelopmentPortfolioDto | null;
+    successionPortfolio: EmployeeSuccessionPortfolioDto;
 }

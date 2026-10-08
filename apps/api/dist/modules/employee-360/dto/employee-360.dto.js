@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Employee360ProfileResponseDto = exports.EmployeeDevelopmentPortfolioDto = exports.EmployeeTalentPortfolioDto = exports.EmployeeTalentPortfolioEntryDto = exports.EmployeeIdpStatusDto = exports.EmployeeStepOverviewDto = exports.EmployeeStepAvailabilityDto = exports.EmployeeActiveStepDto = exports.EmployeePppHistoryDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
+exports.Employee360ProfileResponseDto = exports.EmployeeSuccessionPortfolioDto = exports.EmployeeSuccessionPortfolioEntryDto = exports.EmployeeDevelopmentPortfolioDto = exports.EmployeeTalentPortfolioDto = exports.EmployeeTalentPortfolioEntryDto = exports.EmployeeIdpStatusDto = exports.EmployeeStepOverviewDto = exports.EmployeeStepAvailabilityDto = exports.EmployeeActiveStepDto = exports.EmployeePppHistoryDto = exports.Employee360ResponseDto = exports.Employee360FilterOptionsDto = exports.Employee360RowDto = exports.Employee360QueryDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class Employee360QueryDto {
     search;
@@ -372,6 +372,32 @@ __decorate([
     (0, swagger_1.ApiProperty)(),
     __metadata("design:type", String)
 ], EmployeeDevelopmentPortfolioDto.prototype, "poolEndDate", void 0);
+class EmployeeSuccessionPortfolioEntryDto {
+    jdId;
+    jdName;
+}
+exports.EmployeeSuccessionPortfolioEntryDto = EmployeeSuccessionPortfolioEntryDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], EmployeeSuccessionPortfolioEntryDto.prototype, "jdId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], EmployeeSuccessionPortfolioEntryDto.prototype, "jdName", void 0);
+class EmployeeSuccessionPortfolioDto {
+    successor1;
+    successor2;
+}
+exports.EmployeeSuccessionPortfolioDto = EmployeeSuccessionPortfolioDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: EmployeeSuccessionPortfolioEntryDto, nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeSuccessionPortfolioDto.prototype, "successor1", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: EmployeeSuccessionPortfolioEntryDto, nullable: true }),
+    __metadata("design:type", Object)
+], EmployeeSuccessionPortfolioDto.prototype, "successor2", void 0);
 class Employee360ProfileResponseDto {
     employee;
     careerJourney;
@@ -380,6 +406,7 @@ class Employee360ProfileResponseDto {
     idpStatus;
     talentPortfolio;
     developmentPortfolio;
+    successionPortfolio;
 }
 exports.Employee360ProfileResponseDto = Employee360ProfileResponseDto;
 __decorate([
@@ -410,4 +437,8 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)({ type: EmployeeDevelopmentPortfolioDto, nullable: true }),
     __metadata("design:type", Object)
 ], Employee360ProfileResponseDto.prototype, "developmentPortfolio", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: EmployeeSuccessionPortfolioDto }),
+    __metadata("design:type", EmployeeSuccessionPortfolioDto)
+], Employee360ProfileResponseDto.prototype, "successionPortfolio", void 0);
 //# sourceMappingURL=employee-360.dto.js.map

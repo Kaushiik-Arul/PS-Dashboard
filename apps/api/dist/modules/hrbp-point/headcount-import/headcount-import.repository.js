@@ -130,6 +130,38 @@ let HeadcountImportRepository = class HeadcountImportRepository {
              reporting_month text, range_key text, range_name text, headcount integer
            )`, [JSON.stringify(ranges)]);
             }
+            const orgUnits = record.preview_payload.months.flatMap((month) => month.orgUnits.map((orgUnit) => ({
+                reporting_month: month.reportingMonth,
+                org_unit_key: orgUnit.orgUnitKey,
+                org_unit_name: orgUnit.orgUnitName,
+                headcount: orgUnit.headcount,
+            })));
+            if (orgUnits.length) {
+                await client.query(`INSERT INTO public.employee_headcount_by_org_unit
+             (reporting_month, org_unit_key, org_unit_name, headcount)
+           SELECT item.reporting_month::date, item.org_unit_key, item.org_unit_name, item.headcount
+           FROM JSONB_TO_RECORDSET($1::jsonb) AS item(
+             reporting_month text, org_unit_key text, org_unit_name text, headcount integer
+           )`, [JSON.stringify(orgUnits)]);
+            }
+            const rangeOrgUnits = record.preview_payload.months.flatMap((month) => month.rangeOrgUnits.map((item) => ({
+                reporting_month: month.reportingMonth,
+                range_key: item.rangeKey,
+                range_name: item.rangeName,
+                org_unit_key: item.orgUnitKey,
+                org_unit_name: item.orgUnitName,
+                headcount: item.headcount,
+            })));
+            if (rangeOrgUnits.length) {
+                await client.query(`INSERT INTO public.employee_headcount_by_range_org_unit
+             (reporting_month, range_key, range_name, org_unit_key, org_unit_name, headcount)
+           SELECT item.reporting_month::date, item.range_key, item.range_name,
+                  item.org_unit_key, item.org_unit_name, item.headcount
+           FROM JSONB_TO_RECORDSET($1::jsonb) AS item(
+             reporting_month text, range_key text, range_name text,
+             org_unit_key text, org_unit_name text, headcount integer
+           )`, [JSON.stringify(rangeOrgUnits)]);
+            }
             await client.query(`UPDATE public.employee_headcount_imports
          SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id = $1`, [importId]);
             await client.query(`UPDATE public.employee_headcount_import_previews

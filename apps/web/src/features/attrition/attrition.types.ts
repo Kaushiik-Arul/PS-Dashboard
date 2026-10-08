@@ -17,19 +17,39 @@ export const attritionColumns = [
 export type AttritionColumn = (typeof attritionColumns)[number][0];
 export type AttritionRecord = Record<AttritionColumn, string> & { id: string };
 export type AttritionQueryFilters = {
+  year?: string;
+  separationType?: string;
   orgUnit?: string;
   range?: string;
-  gender?: string;
 };
 export type AttritionFilterOptions = {
+  year: string[];
+  separationType: string[];
   orgUnit: string[];
   range: string[];
-  gender: string[];
 };
 export type AttritionResponse = {
   revision: string;
   fileName: string | null;
   importedAt: string | null;
+  selectedYear: number;
+  organizationScope: "unrestricted" | "range" | "rangeOrgUnit";
   rows: AttritionRecord[];
   filterOptions: AttritionFilterOptions;
+  kpis: {
+    total: number;
+    resignations: number;
+    transfers: number;
+    retirements: number;
+    female: number;
+    averageHeadcount: number | null;
+    attritionRate: number | null;
+  };
+  trend: Array<{
+    month: number;
+    count: number;
+    headcount: number | null;
+    rate: number | null;
+  }>;
+  reasons: Array<{ label: string; value: number }>;
 };

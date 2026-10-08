@@ -19,6 +19,7 @@ describe('Employee360Service', () => {
   let getIdpStatus: jest.Mock;
   let getTalentPortfolio: jest.Mock;
   let getDevelopmentPortfolio: jest.Mock;
+  let getSuccessionPortfolio: jest.Mock;
   let updateStepAvailability: jest.Mock;
   let updateIdpStatus: jest.Mock;
   let listCareerJourney: jest.Mock;
@@ -37,6 +38,7 @@ describe('Employee360Service', () => {
       nomination: null,
     });
     getDevelopmentPortfolio = jest.fn().mockResolvedValue(null);
+    getSuccessionPortfolio = jest.fn().mockResolvedValue({ successor1: null, successor2: null });
     updateStepAvailability = jest.fn();
     updateIdpStatus = jest.fn();
     listCareerJourney = jest.fn().mockResolvedValue([]);
@@ -47,6 +49,7 @@ describe('Employee360Service', () => {
       getIdpStatus,
       getTalentPortfolio,
       getDevelopmentPortfolio,
+      getSuccessionPortfolio,
       updateStepAvailability,
       updateIdpStatus,
     } as unknown as jest.Mocked<Employee360Repository>;
@@ -115,6 +118,10 @@ describe('Employee360Service', () => {
       poolStartDate: '2026-01-01',
       poolEndDate: '2027-12-31',
     };
+    const successionPortfolio = {
+      successor1: { jdId: 'JD-100', jdName: 'Plant Director' },
+      successor2: null,
+    };
     getEmployees.mockResolvedValue({ employees: [employee], filterOptions: {} as never });
     getPppHistory.mockResolvedValue(pppHistory);
     getStepOverview.mockResolvedValue(stepOverview);
@@ -122,6 +129,7 @@ describe('Employee360Service', () => {
     getIdpStatus.mockResolvedValue(idpStatus);
     getTalentPortfolio.mockResolvedValue(talentPortfolio);
     getDevelopmentPortfolio.mockResolvedValue(developmentPortfolio);
+    getSuccessionPortfolio.mockResolvedValue(successionPortfolio);
 
     await expect(service.getProfile('67890', user)).resolves.toEqual({
       employee,
@@ -131,12 +139,14 @@ describe('Employee360Service', () => {
       idpStatus,
       talentPortfolio,
       developmentPortfolio,
+      successionPortfolio,
     });
     expect(getPppHistory).toHaveBeenCalledWith('67890');
     expect(getStepOverview).toHaveBeenCalledWith('67890');
     expect(getIdpStatus).toHaveBeenCalledWith('67890');
     expect(getTalentPortfolio).toHaveBeenCalledWith('67890');
     expect(getDevelopmentPortfolio).toHaveBeenCalledWith('67890');
+    expect(getSuccessionPortfolio).toHaveBeenCalledWith('67890');
     expect(listCareerJourney).toHaveBeenCalledWith('67890');
   });
 
@@ -149,6 +159,7 @@ describe('Employee360Service', () => {
     expect(getIdpStatus).not.toHaveBeenCalled();
     expect(getTalentPortfolio).not.toHaveBeenCalled();
     expect(getDevelopmentPortfolio).not.toHaveBeenCalled();
+    expect(getSuccessionPortfolio).not.toHaveBeenCalled();
     expect(listCareerJourney).not.toHaveBeenCalled();
   });
 

@@ -4,11 +4,18 @@ import { AttritionFilterDto } from './dto/attrition-filter.dto';
 export declare class AttritionController {
     private readonly service;
     constructor(service: AttritionService);
-    getFilterOptions(filters: AttritionFilterDto, user: AuthenticatedUser): Promise<Record<"range" | "orgUnit" | "gender", string[]>>;
-    getRegister(filters: AttritionFilterDto, user: AuthenticatedUser): Promise<{
+    getFilterOptions(filters: AttritionFilterDto, user: AuthenticatedUser): Promise<{
+        year: string[];
+        separationType: ("Resignation" | "Transfer" | "Retirement" | "Other")[];
+        range: string[];
+        orgUnit: string[];
+    }>;
+    getDashboard(filters: AttritionFilterDto, user: AuthenticatedUser): Promise<{
         revision: string;
         fileName: string | null;
         importedAt: string | null;
+        selectedYear: number;
+        organizationScope: string;
         rows: {
             id: string;
             pers_no: string;
@@ -25,6 +32,30 @@ export declare class AttritionController {
             e_separation_request_no: string;
             to_org_unit: string;
         }[];
-        filterOptions: Record<"range" | "orgUnit" | "gender", string[]>;
+        filterOptions: {
+            year: string[];
+            separationType: ("Resignation" | "Transfer" | "Retirement" | "Other")[];
+            range: string[];
+            orgUnit: string[];
+        };
+        kpis: {
+            total: number;
+            resignations: number;
+            transfers: number;
+            retirements: number;
+            female: number;
+            averageHeadcount: number | null;
+            attritionRate: number | null;
+        };
+        trend: {
+            month: number;
+            count: number;
+            headcount: number | null;
+            rate: number | null;
+        }[];
+        reasons: {
+            label: string;
+            value: number;
+        }[];
     }>;
 }

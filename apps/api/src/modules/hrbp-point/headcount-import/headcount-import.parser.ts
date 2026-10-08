@@ -5,7 +5,9 @@ import { SaxesParser, type SaxesTagPlain } from 'saxes';
 import type {
   HeadcountImportIssue,
   HeadcountMonthCalculation,
+  HeadcountOrgUnitCount,
   HeadcountRangeCount,
+  HeadcountRangeOrgUnitCount,
   ParsedHeadcountWorkbook,
   UploadedHeadcountFile,
 } from './headcount-import.types';
@@ -170,6 +172,14 @@ function rangeKey(value: string): string {
   return cleanRangeName(value).toUpperCase();
 }
 
+function cleanOrgUnitName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+function orgUnitKey(value: string): string {
+  return cleanOrgUnitName(value).toUpperCase();
+}
+
 async function calculateMonth(
   entry: JSZip.JSZipObject,
   sheetName: string,
@@ -177,10 +187,17 @@ async function calculateMonth(
   issues: HeadcountImportIssue[],
   sharedStrings: readonly string[],
 ): Promise<HeadcountMonthCalculation | null> {
-  let header: { rowNumber: number; persNoColumn: number; rangeColumn: number } | null = null;
+  let header: {
+    rowNumber: number;
+    persNoColumn: number;
+    rangeColumn: number;
+    orgUnitColumn: number;
+  } | null = null;
   let invalidHeader = false;
   const employees = new Map<string, number>();
   const rangeCounts = new Map<string, HeadcountRangeCount>();
+  const orgUnitCounts = new Map<string, HeadcountOrgUnitCount>();
+  const rangeOrgUnitCounts = new Map<string, HeadcountRangeOrgUnitCount>();
   let rowNumber = 0;
   let nextRowNumber = 1;
   let rowValues = new Map<number, string>();
@@ -190,25 +207,30 @@ async function calculateMonth(
       if (rowNumber > 20 || invalidHeader) return;
       const matches = new Map<string, number[]>();
       for (const [column, value] of rowValues) {
-        const normalized = normalizeHeader(value);
-        if (normalized !== 'pers_no' && normalized !== 'range') continue;
+        const headerName = normalizeHeader(value);
+        const normalized = headerName === 'organizational_unit' || headerName === 'organisational_unit'
+          ? 'org_unit'
+          : headerName;
+        if (normalized !== 'pers_no' && normalized !== 'range' && normalized !== 'org_unit') continue;
         matches.set(normalized, [...(matches.get(normalized) ?? []), column]);
       }
       const persNoColumns = matches.get('pers_no') ?? [];
       const rangeColumns = matches.get('range') ?? [];
-      if (persNoColumns.length === 1 && rangeColumns.length === 1) {
+      const orgUnitColumns = matches.get('org_unit') ?? [];
+      if (persNoColumns.length === 1 && rangeColumns.length === 1 && orgUnitColumns.length === 1) {
         header = {
           rowNumber,
           persNoColumn: persNoColumns[0],
           rangeColumn: rangeColumns[0],
+          orgUnitColumn: orgUnitColumns[0],
         };
         return;
       }
-      if (persNoColumns.length > 1 || rangeColumns.length > 1) {
+      if (persNoColumns.length > 1 || rangeColumns.length > 1 || orgUnitColumns.length > 1) {
         issues.push({
           sheetName,
           rowNumber,
-          message: 'The header row contains duplicate Pers.No or Range columns.',
+          message: 'The header row contains duplicate Pers.No, Range, or Org Unit columns.',
         });
         invalidHeader = true;
       }
@@ -217,13 +239,14 @@ async function calculateMonth(
 
     const rawPersNo = (rowValues.get(header.persNoColumn) ?? '').trim();
     const employeeRange = cleanRangeName(rowValues.get(header.rangeColumn) ?? '');
-    if (!rawPersNo && !employeeRange) return;
+    const employeeOrgUnit = cleanOrgUnitName(rowValues.get(header.orgUnitColumn) ?? '');
+    if (!rawPersNo && !employeeRange && !employeeOrgUnit) return;
     if (!rawPersNo) {
       issues.push({
         sheetName,
         rowNumber,
         column: 'pers_no',
-        message: 'Pers.No is required when the row contains a Range.',
+        message: 'Pers.No is required when the row contains a Range or Org Unit.',
       });
       return;
     }
@@ -254,6 +277,30 @@ async function calculateMonth(
       const count = rangeCounts.get(key);
       if (count) count.headcount += 1;
       else rangeCounts.set(key, { rangeKey: key, rangeName: employeeRange, headcount: 1 });
+    }
+    if (employeeOrgUnit) {
+      const key = orgUnitKey(employeeOrgUnit);
+      const count = orgUnitCounts.get(key);
+      if (count) count.headcount += 1;
+      else orgUnitCounts.set(key, {
+        orgUnitKey: key,
+        orgUnitName: employeeOrgUnit,
+        headcount: 1,
+      });
+    }
+    if (employeeRange && employeeOrgUnit) {
+      const normalizedRange = rangeKey(employeeRange);
+      const normalizedOrgUnit = orgUnitKey(employeeOrgUnit);
+      const key = `${normalizedRange}\u0000${normalizedOrgUnit}`;
+      const count = rangeOrgUnitCounts.get(key);
+      if (count) count.headcount += 1;
+      else rangeOrgUnitCounts.set(key, {
+        rangeKey: normalizedRange,
+        rangeName: employeeRange,
+        orgUnitKey: normalizedOrgUnit,
+        orgUnitName: employeeOrgUnit,
+        headcount: 1,
+      });
     }
   };
 
@@ -309,7 +356,7 @@ async function calculateMonth(
   if (!header && !invalidHeader) {
     issues.push({
       sheetName,
-      message: 'Could not find one Pers.No column and one Range column within the first 20 rows.',
+      message: 'Could not find one Pers.No, one Range, and one Org Unit column within the first 20 rows.',
     });
     return null;
   }
@@ -324,6 +371,10 @@ async function calculateMonth(
     reportingMonth: month,
     totalHeadcount: employees.size,
     ranges: [...rangeCounts.values()].sort((left, right) => left.rangeName.localeCompare(right.rangeName)),
+    orgUnits: [...orgUnitCounts.values()].sort((left, right) => left.orgUnitName.localeCompare(right.orgUnitName)),
+    rangeOrgUnits: [...rangeOrgUnitCounts.values()].sort((left, right) =>
+      left.rangeName.localeCompare(right.rangeName)
+      || left.orgUnitName.localeCompare(right.orgUnitName)),
   };
 }
 

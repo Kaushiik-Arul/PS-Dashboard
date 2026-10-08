@@ -17,6 +17,7 @@ export declare class Employee360Service {
         idpStatus: import("./dto/employee-360.dto").EmployeeIdpStatusDto;
         talentPortfolio: import("./dto/employee-360.dto").EmployeeTalentPortfolioDto;
         developmentPortfolio: import("./dto/employee-360.dto").EmployeeDevelopmentPortfolioDto | null;
+        successionPortfolio: import("./dto/employee-360.dto").EmployeeSuccessionPortfolioDto;
     }>;
     createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
     updateCareerEvent(persNoInput: string, idInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;

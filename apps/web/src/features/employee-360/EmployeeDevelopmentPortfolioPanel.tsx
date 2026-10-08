@@ -1,16 +1,5 @@
 import type { EmployeeDevelopmentPortfolio } from "./employee-360.types";
-
-function formatDate(value: string): string {
-  const date = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
-}
+import { formatEmployeeDate } from "./employee-date";
 
 export function EmployeeDevelopmentPortfolioPanel({
   portfolio,
@@ -35,10 +24,10 @@ export function EmployeeDevelopmentPortfolioPanel({
         </thead>
         <tbody>
           <tr>
-            <td>Active</td>
-            <td>{portfolio?.developmentPool ?? "Not available"}</td>
-            <td>{portfolio ? formatDate(portfolio.poolStartDate) : "Not available"}</td>
-            <td>{portfolio ? formatDate(portfolio.poolEndDate) : "Not available"}</td>
+            <th scope="row">Active</th>
+            <td>{portfolio?.developmentPool ?? ""}</td>
+            <td>{formatEmployeeDate(portfolio?.poolStartDate)}</td>
+            <td>{formatEmployeeDate(portfolio?.poolEndDate)}</td>
           </tr>
         </tbody>
       </table>

@@ -119,6 +119,19 @@ export class EmployeeDevelopmentPortfolioDto {
   @ApiProperty() poolEndDate!: string;
 }
 
+export class EmployeeSuccessionPortfolioEntryDto {
+  @ApiProperty() jdId!: string;
+  @ApiProperty() jdName!: string;
+}
+
+export class EmployeeSuccessionPortfolioDto {
+  @ApiPropertyOptional({ type: EmployeeSuccessionPortfolioEntryDto, nullable: true })
+  successor1!: EmployeeSuccessionPortfolioEntryDto | null;
+
+  @ApiPropertyOptional({ type: EmployeeSuccessionPortfolioEntryDto, nullable: true })
+  successor2!: EmployeeSuccessionPortfolioEntryDto | null;
+}
+
 export class Employee360ProfileResponseDto {
   @ApiProperty({ type: Employee360RowDto }) employee!: Employee360RowDto;
   @ApiProperty({ type: [Object] }) careerJourney!: unknown[];
@@ -128,4 +141,6 @@ export class Employee360ProfileResponseDto {
   @ApiProperty({ type: EmployeeTalentPortfolioDto }) talentPortfolio!: EmployeeTalentPortfolioDto;
   @ApiPropertyOptional({ type: EmployeeDevelopmentPortfolioDto, nullable: true })
   developmentPortfolio!: EmployeeDevelopmentPortfolioDto | null;
+  @ApiProperty({ type: EmployeeSuccessionPortfolioDto })
+  successionPortfolio!: EmployeeSuccessionPortfolioDto;
 }

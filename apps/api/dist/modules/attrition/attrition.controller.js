@@ -27,8 +27,8 @@ let AttritionController = class AttritionController {
     getFilterOptions(filters, user) {
         return this.service.getFilterOptions(user.accountId, filters);
     }
-    getRegister(filters, user) {
-        return this.service.getRegister(user.accountId, filters);
+    getDashboard(filters, user) {
+        return this.service.getDashboard(user.accountId, filters);
     }
 };
 exports.AttritionController = AttritionController;
@@ -49,7 +49,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [attrition_filter_dto_1.AttritionFilterDto, Object]),
     __metadata("design:returntype", void 0)
-], AttritionController.prototype, "getRegister", null);
+], AttritionController.prototype, "getDashboard", null);
 exports.AttritionController = AttritionController = __decorate([
     (0, swagger_1.ApiTags)('Attrition'),
     (0, common_1.Controller)('attrition'),

@@ -260,6 +260,19 @@ Run the focused parser checks from `apps/api`:
 npm test -- attrition-import.parser.spec.ts --runInBand
 ```
 
+The Attrition dashboard defaults to the current calendar year and applies LWD
+year, canonical separation type, Range, and Org Unit filters to its KPIs,
+12-month trend, reason distribution, and register. Separation classification
+uses Retirement, Transfer, then Resignation/Separation/Exit precedence, with
+remaining rows classified as Other. Monthly rates divide each month's exits by
+the matching monthly headcount aggregate. HRBP/Admin filters can use overall,
+Range, Org Unit, or exact Range/Org Unit aggregates; scoped Head roles sum only
+their authorized Range or exact Range/Org Unit assignments.
+
+Apply `employee_headcount_org_unit_migration.sql` after the original monthly
+headcount migration, then reimport all historical PS Namelist workbooks before
+relying on organization-filtered percentages.
+
 ## Employee PPP history
 
 Apply `employee_ppp_history_migration.sql` after the authentication and

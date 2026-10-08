@@ -17,7 +17,7 @@ async function workbookFile(
 }
 
 describe('headcount workbook parser', () => {
-  it('calculates unique monthly and range headcounts from differing layouts', async () => {
+  it('calculates monthly, range, org unit, and combined headcounts from differing layouts', async () => {
     const file = await workbookFile([
       { name: 'Instructions', rows: [['Not a namelist']] },
       {
@@ -25,10 +25,10 @@ describe('headcount workbook parser', () => {
         rows: [
           ['PS Namelist'],
           [],
-          ['Pers.No', 'Employee', 'Range'],
-          [1001, 'A', ' BidP '],
-          [1002, 'B', 'bidp'],
-          [1003, 'C', ''],
+          ['Pers.No', 'Employee', 'Range', 'Org Unit'],
+          [1001, 'A', ' BidP ', 'Engineering'],
+          [1002, 'B', 'bidp', ' engineering '],
+          [1003, 'C', '', 'Human   Resources'],
         ],
       },
       {
@@ -38,8 +38,8 @@ describe('headcount workbook parser', () => {
           ['Generated'],
           [],
           [],
-          ['Range', 'Pers.No'],
-          ['GanP', 2001],
+          ['Organizational Unit', 'Range', 'Pers.No'],
+          ['Sales', 'GanP', 2001],
         ],
       },
     ]);
@@ -55,22 +55,41 @@ describe('headcount workbook parser', () => {
         reportingMonth: '2023-01-01',
         totalHeadcount: 3,
         ranges: [{ rangeKey: 'BIDP', rangeName: 'BidP', headcount: 2 }],
+        orgUnits: [
+          { orgUnitKey: 'ENGINEERING', orgUnitName: 'Engineering', headcount: 2 },
+          { orgUnitKey: 'HUMAN RESOURCES', orgUnitName: 'Human Resources', headcount: 1 },
+        ],
+        rangeOrgUnits: [{
+          rangeKey: 'BIDP',
+          rangeName: 'BidP',
+          orgUnitKey: 'ENGINEERING',
+          orgUnitName: 'Engineering',
+          headcount: 2,
+        }],
       },
       {
         sheetName: 'Feb 2023',
         reportingMonth: '2023-02-01',
         totalHeadcount: 1,
         ranges: [{ rangeKey: 'GANP', rangeName: 'GanP', headcount: 1 }],
+        orgUnits: [{ orgUnitKey: 'SALES', orgUnitName: 'Sales', headcount: 1 }],
+        rangeOrgUnits: [{
+          rangeKey: 'GANP',
+          rangeName: 'GanP',
+          orgUnitKey: 'SALES',
+          orgUnitName: 'Sales',
+          headcount: 1,
+        }],
       },
     ]);
   });
 
   it('accepts two-digit years, mixed case, and omitted spaces in sheet names', async () => {
     const file = await workbookFile([
-      { name: 'Feb 23', rows: [['Pers.No', 'Range'], [1001, 'G1']] },
-      { name: 'march 23', rows: [['Pers.No', 'Range'], [1002, 'G1']] },
-      { name: 'July23', rows: [['Pers.No', 'Range'], [1003, 'G2']] },
-      { name: 'Aug 26', rows: [['Pers.No', 'Range'], [1004, 'G3']] },
+      { name: 'Feb 23', rows: [['Pers.No', 'Range', 'Organisational Unit'], [1001, 'G1', 'OU1']] },
+      { name: 'march 23', rows: [['Pers.No', 'Range', 'Org Unit'], [1002, 'G1', 'OU1']] },
+      { name: 'July23', rows: [['Pers.No', 'Range', 'Org Unit'], [1003, 'G2', 'OU2']] },
+      { name: 'Aug 26', rows: [['Pers.No', 'Range', 'Org Unit'], [1004, 'G3', 'OU3']] },
     ]);
 
     const parsed = await parseHeadcountWorkbook(file);
@@ -98,7 +117,7 @@ describe('headcount workbook parser', () => {
     ];
     const file = await workbookFile(sheetNames.map((name, index) => ({
       name,
-      rows: [['Pers.No', 'Range'], [index + 1, 'G1']],
+      rows: [['Pers.No', 'Range', 'Org Unit'], [index + 1, 'G1', 'OU1']],
     })));
 
     const parsed = await parseHeadcountWorkbook(file);
@@ -114,16 +133,16 @@ describe('headcount workbook parser', () => {
       {
         name: 'August 2026',
         rows: [
-          ['Pers.No', 'Range'],
-          [1001, 'G1'],
-          [1001, 'G2'],
+          ['Pers.No', 'Range', 'Org Unit'],
+          [1001, 'G1', 'OU1'],
+          [1001, 'G2', 'OU2'],
         ],
       },
       {
         name: 'Aug 2026',
         rows: [
-          ['Pers.No', 'Range'],
-          [2001, 'G1'],
+          ['Pers.No', 'Range', 'Org Unit'],
+          [2001, 'G1', 'OU1'],
         ],
       },
     ]);

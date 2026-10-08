@@ -23,10 +23,10 @@ export class AttritionController {
 
   @Get()
   @Header('Cache-Control', 'no-store')
-  getRegister(
+  getDashboard(
     @Query() filters: AttritionFilterDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.getRegister(user.accountId, filters);
+    return this.service.getDashboard(user.accountId, filters);
   }
 }

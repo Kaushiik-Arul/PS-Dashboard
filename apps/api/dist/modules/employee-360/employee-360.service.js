@@ -31,15 +31,16 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
         const employee = result.employees.find((item) => item.persNo === persNo);
         if (!employee)
             throw new common_1.NotFoundException('Employee was not found within your workforce scope.');
-        const [careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio] = await Promise.all([
+        const [careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio] = await Promise.all([
             this.careerJourneyRepository.list(persNo),
             this.repository.getPppHistory(persNo),
             this.repository.getStepOverview(persNo),
             this.repository.getIdpStatus(persNo),
             this.repository.getTalentPortfolio(persNo),
             this.repository.getDevelopmentPortfolio(persNo),
+            this.repository.getSuccessionPortfolio(persNo),
         ]);
-        return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio };
+        return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio };
     }
     async createCareerEvent(persNoInput, body, user) {
         const persNo = await this.assertScopedEmployee(persNoInput, user);

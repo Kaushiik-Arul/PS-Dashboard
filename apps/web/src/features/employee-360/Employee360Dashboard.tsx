@@ -10,6 +10,7 @@ import {
 } from "@/components/filters/OverviewFilters";
 import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
+import { formatEmployeeDate } from "./employee-date";
 import type {
   Employee360Query,
   Employee360Response,
@@ -45,14 +46,14 @@ const employeeColumns: DataTableColumn<Employee360TableRow>[] = [
   { key: "ntId", label: "NT_ID", group: "Identity" },
   { key: "globalId", label: "Global ID", group: "Identity" },
   { key: "costCenter", label: "Cost Ctr", group: "Organization" },
-  { key: "birthDate", label: "Birth date", group: "Dates" },
-  { key: "joiningDate", label: "Date of Joining", group: "Dates" },
-  { key: "entryForRetirement", label: "Entry for Retirement", group: "Dates" },
+  { key: "birthDate", label: "Birth date", group: "Dates", format: (value) => formatEmployeeDate(value, "") },
+  { key: "joiningDate", label: "Date of Joining", group: "Dates", format: (value) => formatEmployeeDate(value, "") },
+  { key: "entryForRetirement", label: "Entry for Retirement", group: "Dates", format: (value) => formatEmployeeDate(value, "") },
   { key: "designationText", label: "Designation Text", group: "Employment" },
   { key: "hrbpGlobalId", label: "Global-Id of HRBP", group: "HRBP" },
   { key: "hrbp2GlobalId", label: "Global-Id Of HRBP2", group: "HRBP" },
   { key: "officialEmail", label: "Email Official", group: "Contact" },
-  { key: "technicalEntryDate", label: "Technical Entry Date", group: "Dates" },
+  { key: "technicalEntryDate", label: "Technical Entry Date", group: "Dates", format: (value) => formatEmployeeDate(value, "") },
   { key: "directOrIndirect", label: "Direct or Indirect", group: "Employment", format: formatDirectOrIndirect },
 ];
 

@@ -2,18 +2,7 @@ import type {
   EmployeeTalentPortfolio,
   EmployeeTalentPortfolioEntry,
 } from "./employee-360.types";
-
-function formatDate(value: string): string {
-  const date = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
-}
+import { formatEmployeeDate } from "./employee-date";
 
 function PortfolioValue({
   entry,
@@ -25,9 +14,9 @@ function PortfolioValue({
   if (!entry) {
     return (
       <>
-        <td className="employee-talent-portfolio__empty">Not available</td>
-        <td className="employee-talent-portfolio__empty">Not available</td>
-        <td className="employee-talent-portfolio__empty">Not available</td>
+        <td />
+        <td />
+        <td />
       </>
     );
   }
@@ -35,8 +24,10 @@ function PortfolioValue({
   return (
     <>
       <td>{entry.type}</td>
-      <td>{entry.startDate ? formatDate(entry.startDate) : "Not available"}</td>
-      <td>{formatDates ? formatDate(entry.endDateOrAdmission) : entry.endDateOrAdmission}</td>
+      <td>{formatEmployeeDate(entry.startDate)}</td>
+      <td>{formatDates
+        ? formatEmployeeDate(entry.endDateOrAdmission)
+        : formatEmployeeDate(entry.endDateOrAdmission, entry.endDateOrAdmission)}</td>
     </>
   );
 }

@@ -12,11 +12,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AttritionFilterDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class AttritionFilterDto {
+    year;
+    separationType;
     orgUnit;
     range;
-    gender;
 }
 exports.AttritionFilterDto = AttritionFilterDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], AttritionFilterDto.prototype, "year", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)(),
+    __metadata("design:type", String)
+], AttritionFilterDto.prototype, "separationType", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     __metadata("design:type", String)
@@ -25,8 +34,4 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     __metadata("design:type", String)
 ], AttritionFilterDto.prototype, "range", void 0);
-__decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
-], AttritionFilterDto.prototype, "gender", void 0);
 //# sourceMappingURL=attrition-filter.dto.js.map

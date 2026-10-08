@@ -109,6 +109,16 @@ export type EmployeeDevelopmentPortfolio = {
   poolEndDate: string;
 };
 
+export type EmployeeSuccessionPortfolioEntry = {
+  jdId: string;
+  jdName: string;
+};
+
+export type EmployeeSuccessionPortfolio = {
+  successor1: EmployeeSuccessionPortfolioEntry | null;
+  successor2: EmployeeSuccessionPortfolioEntry | null;
+};
+
 export type Employee360Profile = {
   employee: Employee360Row;
   careerJourney: CareerJourneyEvent[];
@@ -117,4 +127,5 @@ export type Employee360Profile = {
   idpStatus: EmployeeIdpStatus;
   talentPortfolio: EmployeeTalentPortfolio;
   developmentPortfolio: EmployeeDevelopmentPortfolio | null;
+  successionPortfolio: EmployeeSuccessionPortfolio;
 };

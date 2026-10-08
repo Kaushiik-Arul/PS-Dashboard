@@ -33,15 +33,16 @@ export class Employee360Service {
     const result = await this.repository.getEmployees(this.normalize({ search: persNo }), user.accountId, user.persNo);
     const employee = result.employees.find((item) => item.persNo === persNo);
     if (!employee) throw new NotFoundException('Employee was not found within your workforce scope.');
-    const [careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio] = await Promise.all([
+    const [careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio] = await Promise.all([
       this.careerJourneyRepository.list(persNo),
       this.repository.getPppHistory(persNo),
       this.repository.getStepOverview(persNo),
       this.repository.getIdpStatus(persNo),
       this.repository.getTalentPortfolio(persNo),
       this.repository.getDevelopmentPortfolio(persNo),
+      this.repository.getSuccessionPortfolio(persNo),
     ]);
-    return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio };
+    return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio };
   }
 
   async createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent> {

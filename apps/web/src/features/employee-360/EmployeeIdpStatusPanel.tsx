@@ -102,7 +102,7 @@ export function EmployeeIdpStatusPanel({
           </div>
           <div className="employee-idp-status__comments">
             <strong>Comments</strong>
-            <span>{status.comments?.trim() || "Not available"}</span>
+            <span>{status.comments?.trim() || ""}</span>
           </div>
         </div>
       )}

@@ -4,20 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
-import type { CareerJourneyEvent, Employee360Row, EmployeeDevelopmentPortfolio, EmployeeIdpStatus, EmployeePppHistory, EmployeeStepOverview, EmployeeTalentPortfolio } from "./employee-360.types";
+import type { CareerJourneyEvent, Employee360Row, EmployeeDevelopmentPortfolio, EmployeeIdpStatus, EmployeePppHistory, EmployeeStepOverview, EmployeeSuccessionPortfolio, EmployeeTalentPortfolio } from "./employee-360.types";
 import { CareerJourneyPanel } from "./CareerJourneyPanel";
 import { EmployeeIdpStatusPanel } from "./EmployeeIdpStatusPanel";
 import { EmployeePppHistoryPanel } from "./EmployeePppHistoryPanel";
 import { EmployeeStepOverviewPanel } from "./EmployeeStepOverviewPanel";
 import { EmployeeTalentPortfolioPanel } from "./EmployeeTalentPortfolioPanel";
 import { EmployeeDevelopmentPortfolioPanel } from "./EmployeeDevelopmentPortfolioPanel";
+import { EmployeeSuccessionPortfolioPanel } from "./EmployeeSuccessionPortfolioPanel";
 import { jobDescriptionsClient } from "@/features/hrbp-point/jd-management.http";
 import type { JobDescription } from "@/features/hrbp-point/jd-management.types";
 import { updateEmployeeJobDescription } from "./job-description.http";
+import { formatEmployeeDate } from "./employee-date";
 import "./employee-profile.css";
 
 function display(value: string | null): string {
-  return value?.trim() || "Not available";
+  return value?.trim() || "";
 }
 
 function initials(name: string | null, fallback: string): string {
@@ -30,15 +32,6 @@ function Detail({ label, value }: { label: string; value: string | null }) {
   return <div className="employee-profile__detail"><dt>{label}</dt><dd>{display(value)}</dd></div>;
 }
 
-function EmptyPanel({ title, icon }: { title: string; icon: string }) {
-  return (
-    <section className="employee-profile__panel employee-profile__panel--empty">
-      <header><i className={`a-icon ${icon}`} aria-hidden="true" /><h2>{title}</h2></header>
-      <p>No records available.</p>
-    </section>
-  );
-}
-
 export function EmployeeProfileView({
   employee,
   returnTo,
@@ -48,6 +41,7 @@ export function EmployeeProfileView({
   idpStatus,
   talentPortfolio,
   developmentPortfolio,
+  successionPortfolio,
   canEditCareerJourney,
 }: {
   employee: Employee360Row;
@@ -58,6 +52,7 @@ export function EmployeeProfileView({
   idpStatus: EmployeeIdpStatus;
   talentPortfolio: EmployeeTalentPortfolio;
   developmentPortfolio: EmployeeDevelopmentPortfolio | null;
+  successionPortfolio: EmployeeSuccessionPortfolio;
   canEditCareerJourney: boolean;
 }) {
   const router = useRouter();
@@ -185,10 +180,10 @@ export function EmployeeProfileView({
         <section className="employee-profile__overview-section">
           <header><i className="a-icon boschicon-bosch-ic-calendar" aria-hidden="true" /><h2>Career information</h2></header>
           <dl>
-            <Detail label="Date of joining" value={employee.joiningDate} />
-            <Detail label="Technical entry date" value={employee.technicalEntryDate} />
-            <Detail label="Entry for retirement" value={employee.entryForRetirement} />
-            <Detail label="Birth date" value={employee.birthDate} />
+            <Detail label="Date of joining" value={formatEmployeeDate(employee.joiningDate)} />
+            <Detail label="Technical entry date" value={formatEmployeeDate(employee.technicalEntryDate)} />
+            <Detail label="Entry for retirement" value={formatEmployeeDate(employee.entryForRetirement)} />
+            <Detail label="Birth date" value={formatEmployeeDate(employee.birthDate)} />
             <Detail label="Designation" value={employee.designationText} />
             <Detail label="Gender key" value={employee.gender} />
           </dl>
@@ -202,7 +197,7 @@ export function EmployeeProfileView({
         <EmployeeDevelopmentPortfolioPanel portfolio={developmentPortfolio} />
         <EmployeeStepOverviewPanel persNo={employee.persNo} overview={stepOverview} canEdit={canEditCareerJourney} />
         <EmployeePppHistoryPanel history={pppHistory} />
-        <EmptyPanel title="Succession portfolio" icon="boschicon-bosch-ic-people" />
+        <EmployeeSuccessionPortfolioPanel portfolio={successionPortfolio} />
         <EmployeeIdpStatusPanel persNo={employee.persNo} initialStatus={idpStatus} canEdit={canEditCareerJourney} />
       </div>
 

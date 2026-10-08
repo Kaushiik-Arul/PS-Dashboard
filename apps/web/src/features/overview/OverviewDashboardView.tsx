@@ -369,13 +369,13 @@ export function OverviewDashboard({
           <p>Age, tenure, retirement exposure, and current-period workforce movement</p>
         </div>
         <div className="chart-grid chart-grid--profiles">
-          <ChartCard title="Age profile" description="Headcount by age range">
+          <ChartCard title="Age Profile" description="Headcount by age range">
             {ageData.length > 0 ? <VerticalBarChart data={ageData} /> : <ChartUnavailable />}
           </ChartCard>
-          <ChartCard title="Tenure profile" description="Headcount by completed service">
+          <ChartCard title="Tenure Profile" description="Headcount by completed service">
             {tenureData.length > 0 ? <VerticalBarChart data={tenureData} tone="turquoise" /> : <ChartUnavailable />}
           </ChartCard>
-          <ChartCard title="Workforce movement" description="Current workforce by employee group">
+          <ChartCard title="Workforce Status" description="Current workforce by employee group">
             {movementData.length > 0 ? <MovementChart data={movementData} period={asOfLabel} /> : <ChartUnavailable />}
           </ChartCard>
           <ChartCard title="Retirement Analysis" description="Employees reaching retirement eligibility">

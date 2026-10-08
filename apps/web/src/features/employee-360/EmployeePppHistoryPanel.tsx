@@ -1,7 +1,7 @@
 import type { EmployeePppHistory } from './employee-360.types';
 
-function valueOrFallback(value: string | null): string {
-  return value?.trim() || 'Not available';
+function valueOrBlank(value: string | null): string {
+  return value?.trim() || '';
 }
 
 export function EmployeePppHistoryPanel({ history }: { history: EmployeePppHistory[] }) {
@@ -27,10 +27,10 @@ export function EmployeePppHistoryPanel({ history }: { history: EmployeePppHisto
               {history.map((row) => (
                 <tr key={row.year}>
                   <th scope="row">{row.year}</th>
-                  <td>{valueOrFallback(row.performance)}</td>
-                  <td>{valueOrFallback(row.position)}</td>
-                  <td>{valueOrFallback(row.person)}</td>
-                  <td>{valueOrFallback(row.tcl)}</td>
+                  <td>{valueOrBlank(row.performance)}</td>
+                  <td>{valueOrBlank(row.position)}</td>
+                  <td>{valueOrBlank(row.person)}</td>
+                  <td>{valueOrBlank(row.tcl)}</td>
                 </tr>
               ))}
             </tbody>

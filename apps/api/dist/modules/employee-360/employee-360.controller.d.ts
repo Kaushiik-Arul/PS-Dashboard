@@ -13,6 +13,7 @@ export declare class Employee360Controller {
         idpStatus: import("./dto/employee-360.dto").EmployeeIdpStatusDto;
         talentPortfolio: import("./dto/employee-360.dto").EmployeeTalentPortfolioDto;
         developmentPortfolio: import("./dto/employee-360.dto").EmployeeDevelopmentPortfolioDto | null;
+        successionPortfolio: import("./dto/employee-360.dto").EmployeeSuccessionPortfolioDto;
     }>;
     createCareerEvent(persNo: string, body: unknown, user: AuthenticatedUser): Promise<import("./career-journey.types").CareerJourneyEvent>;
     updateJobDescription(persNo: string, body: unknown, user: AuthenticatedUser): Promise<{

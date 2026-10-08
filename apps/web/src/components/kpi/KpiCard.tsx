@@ -4,7 +4,11 @@ export interface KpiMetric {
   id: string;
   title: string;
   value: string;
-  comparisonLabel: string;
+  comparisonLabel?: string;
+  comparisonItems?: Array<{
+    label: string;
+    value: string;
+  }>;
   breakdown?: Array<{
     label: string;
     value: string;
@@ -44,7 +48,16 @@ export function KpiCard({ metric }: KpiCardProps) {
         </div>
       </div>
 
-      {(metric.comparisonLabel || metric.trendValue) && (
+      {metric.comparisonItems && metric.comparisonItems.length > 0 ? (
+        <div className="kpi-card__comparisons">
+          {metric.comparisonItems.map((item) => (
+            <div className="kpi-card__comparison-item" key={item.label}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      ) : (metric.comparisonLabel || metric.trendValue) && (
         <div className="kpi-card__trend">
           <span className="kpi-card__comparison">{metric.comparisonLabel}</span>
           {metric.trendValue && metric.trendDirection && metric.trendTone && (

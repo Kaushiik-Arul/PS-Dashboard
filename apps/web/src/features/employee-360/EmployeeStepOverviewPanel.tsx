@@ -2,23 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import type { EmployeeStepOverview } from "./employee-360.types";
+import { formatEmployeeDate } from "./employee-date";
 import { updateStepAvailability } from "./step-availability.http";
 
-function valueOrFallback(value: string | null): string {
-  return value?.trim() || "Not available";
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "Not available";
-  const date = new Date(`${value}T00:00:00Z`);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
+function valueOrBlank(value: string | null): string {
+  return value?.trim() || "";
 }
 
 function AvailabilityChoice({
@@ -107,11 +95,11 @@ export function EmployeeStepOverviewPanel({
               {active ? (
                 <dl className="employee-step-overview__details">
                   <div><dt>Year</dt><dd>{active.year}</dd></div>
-                  <div><dt>Exchanged with</dt><dd>{valueOrFallback(active.exchangedWith)}</dd></div>
-                  <div><dt>From department</dt><dd>{valueOrFallback(active.departmentFrom)}</dd></div>
-                  <div><dt>To department</dt><dd>{valueOrFallback(active.departmentTo)}</dd></div>
-                  <div><dt>STEP period from</dt><dd>{formatDate(active.stepPeriodFrom)}</dd></div>
-                  <div><dt>STEP period to</dt><dd>{formatDate(active.stepPeriodTo)}</dd></div>
+                  <div><dt>Exchanged with</dt><dd>{valueOrBlank(active.exchangedWith)}</dd></div>
+                  <div><dt>From department</dt><dd>{valueOrBlank(active.departmentFrom)}</dd></div>
+                  <div><dt>To department</dt><dd>{valueOrBlank(active.departmentTo)}</dd></div>
+                  <div><dt>STEP period from</dt><dd>{formatEmployeeDate(active.stepPeriodFrom)}</dd></div>
+                  <div><dt>STEP period to</dt><dd>{formatEmployeeDate(active.stepPeriodTo)}</dd></div>
                 </dl>
               ) : (
                 <p className="employee-step-overview__empty">No Active STEP record.</p>
@@ -168,11 +156,11 @@ export function EmployeeStepOverviewPanel({
                   <div className="employee-step-overview__availability-details">
                     <div className="employee-step-overview__preference">
                       <strong>Preferences</strong>
-                      <span>{valueOrFallback(availability.preferences)}</span>
+                      <span>{valueOrBlank(availability.preferences)}</span>
                     </div>
                     <div className="employee-step-overview__preference">
                       <strong>Comments</strong>
-                      <span>{valueOrFallback(availability.comments)}</span>
+                      <span>{valueOrBlank(availability.comments)}</span>
                     </div>
                   </div>
                 </div>

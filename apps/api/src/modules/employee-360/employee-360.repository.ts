@@ -5,6 +5,7 @@ import type {
   EmployeeIdpStatusDto,
   EmployeeStepAvailabilityDto,
   EmployeeStepOverviewDto,
+  EmployeeSuccessionPortfolioDto,
   EmployeeTalentPortfolioDto,
   Employee360FilterOptionsDto,
   EmployeePppHistoryDto,
@@ -89,14 +90,14 @@ const scopedEmployees = `
     e.nt_id,
     e.global_id,
     e.cost_center,
-    e.birth_date,
-    e.joining_date,
-    e.entry_for_retirement,
+    e.birth_date::TEXT AS birth_date,
+    e.joining_date::TEXT AS joining_date,
+    e.entry_for_retirement::TEXT AS entry_for_retirement,
     e.designation_text,
     e.hrbp_global_id,
     e.hrbp2_global_id,
     e.official_email,
-    e.technical_entry_date,
+    e.technical_entry_date::TEXT AS technical_entry_date,
     e.direct_or_indirect,
     assignment.jd_id,
     job.role_title AS jd_name
@@ -238,8 +239,8 @@ export class Employee360Repository {
     }>(
       `SELECT
          NULLIF(BTRIM(development_pool), '') AS development_pool,
-         pool_start_date,
-         pool_end_date
+        pool_start_date::TEXT AS pool_start_date,
+        pool_end_date::TEXT AS pool_end_date
        FROM public.development_pool_register
        WHERE employee_no = $1::BIGINT
        LIMIT 1`,
@@ -254,6 +255,37 @@ export class Employee360Repository {
     };
   }
 
+  async getSuccessionPortfolio(
+    persNo: string,
+  ): Promise<EmployeeSuccessionPortfolioDto> {
+    const result = await this.database.query<{
+      successor: 1 | 2;
+      jd_id: string;
+      jd_name: string;
+    }>(
+      `SELECT DISTINCT ON (successor)
+         successor,
+         position_jd_id AS jd_id,
+         jd_name
+       FROM (
+         SELECT 1 AS successor, position_jd_id, jd_name, updated_at, id
+         FROM public.succession_planning_rows
+         WHERE BTRIM(successor1_pers_no) = $1
+         UNION ALL
+         SELECT 2 AS successor, position_jd_id, jd_name, updated_at, id
+         FROM public.succession_planning_rows
+         WHERE BTRIM(successor2_pers_no) = $1
+       ) assignments
+       ORDER BY successor, updated_at DESC, id DESC`,
+      [persNo],
+    );
+    const entry = (successor: 1 | 2) => {
+      const row = result.rows.find((item) => item.successor === successor);
+      return row ? { jdId: row.jd_id, jdName: row.jd_name } : null;
+    };
+    return { successor1: entry(1), successor2: entry(2) };
+  }
+
   async getTalentPortfolio(persNo: string): Promise<EmployeeTalentPortfolioDto> {
     const result = await this.database.query<{
       talent_status: string | null;
@@ -266,8 +298,8 @@ export class Employee360Repository {
       `SELECT
          LOWER(NULLIF(BTRIM(talent.active_passive), '')) AS talent_status,
          NULLIF(BTRIM(talent.talent_pool), '') AS talent_type,
-         talent.from_date AS talent_from_date,
-         talent.to_date AS talent_to_date,
+         talent.from_date::TEXT AS talent_from_date,
+         talent.to_date::TEXT AS talent_to_date,
          NULLIF(BTRIM(nomination.talent_pool), '') AS nomination_type,
          NULLIF(BTRIM(nomination.admission), '') AS nomination_admission
        FROM (SELECT 1) seed
@@ -321,8 +353,8 @@ export class Employee360Repository {
          NULLIF(BTRIM(active.dept_from), '') AS department_from,
          NULLIF(BTRIM(active.dept_to), '') AS department_to,
          NULLIF(BTRIM(active.exchanged_with), '') AS exchanged_with,
-         active.step_from AS step_period_from,
-         active.step_to AS step_period_to,
+         active.step_from::TEXT AS step_period_from,
+         active.step_to::TEXT AS step_period_to,
          available.pers_no IS NOT NULL AS available,
          NULLIF(BTRIM(available.preferences), '') AS preferences,
          NULLIF(BTRIM(available.comments), '') AS comments

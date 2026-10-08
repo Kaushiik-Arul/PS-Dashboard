@@ -6,7 +6,7 @@ import type { AttritionQueryFilters } from "@/features/attrition/attrition.types
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const filterKeys = ["orgUnit", "range", "gender"] as const;
+const filterKeys = ["year", "separationType", "orgUnit", "range"] as const;
 
 export default async function AttritionPage({ searchParams }: Props) {
   await connection();

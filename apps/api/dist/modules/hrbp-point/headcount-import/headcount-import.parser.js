@@ -160,11 +160,19 @@ function cleanRangeName(value) {
 function rangeKey(value) {
     return cleanRangeName(value).toUpperCase();
 }
+function cleanOrgUnitName(value) {
+    return value.trim().replace(/\s+/g, ' ');
+}
+function orgUnitKey(value) {
+    return cleanOrgUnitName(value).toUpperCase();
+}
 async function calculateMonth(entry, sheetName, month, issues, sharedStrings) {
     let header = null;
     let invalidHeader = false;
     const employees = new Map();
     const rangeCounts = new Map();
+    const orgUnitCounts = new Map();
+    const rangeOrgUnitCounts = new Map();
     let rowNumber = 0;
     let nextRowNumber = 1;
     let rowValues = new Map();
@@ -174,26 +182,31 @@ async function calculateMonth(entry, sheetName, month, issues, sharedStrings) {
                 return;
             const matches = new Map();
             for (const [column, value] of rowValues) {
-                const normalized = normalizeHeader(value);
-                if (normalized !== 'pers_no' && normalized !== 'range')
+                const headerName = normalizeHeader(value);
+                const normalized = headerName === 'organizational_unit' || headerName === 'organisational_unit'
+                    ? 'org_unit'
+                    : headerName;
+                if (normalized !== 'pers_no' && normalized !== 'range' && normalized !== 'org_unit')
                     continue;
                 matches.set(normalized, [...(matches.get(normalized) ?? []), column]);
             }
             const persNoColumns = matches.get('pers_no') ?? [];
             const rangeColumns = matches.get('range') ?? [];
-            if (persNoColumns.length === 1 && rangeColumns.length === 1) {
+            const orgUnitColumns = matches.get('org_unit') ?? [];
+            if (persNoColumns.length === 1 && rangeColumns.length === 1 && orgUnitColumns.length === 1) {
                 header = {
                     rowNumber,
                     persNoColumn: persNoColumns[0],
                     rangeColumn: rangeColumns[0],
+                    orgUnitColumn: orgUnitColumns[0],
                 };
                 return;
             }
-            if (persNoColumns.length > 1 || rangeColumns.length > 1) {
+            if (persNoColumns.length > 1 || rangeColumns.length > 1 || orgUnitColumns.length > 1) {
                 issues.push({
                     sheetName,
                     rowNumber,
-                    message: 'The header row contains duplicate Pers.No or Range columns.',
+                    message: 'The header row contains duplicate Pers.No, Range, or Org Unit columns.',
                 });
                 invalidHeader = true;
             }
@@ -201,14 +214,15 @@ async function calculateMonth(entry, sheetName, month, issues, sharedStrings) {
         }
         const rawPersNo = (rowValues.get(header.persNoColumn) ?? '').trim();
         const employeeRange = cleanRangeName(rowValues.get(header.rangeColumn) ?? '');
-        if (!rawPersNo && !employeeRange)
+        const employeeOrgUnit = cleanOrgUnitName(rowValues.get(header.orgUnitColumn) ?? '');
+        if (!rawPersNo && !employeeRange && !employeeOrgUnit)
             return;
         if (!rawPersNo) {
             issues.push({
                 sheetName,
                 rowNumber,
                 column: 'pers_no',
-                message: 'Pers.No is required when the row contains a Range.',
+                message: 'Pers.No is required when the row contains a Range or Org Unit.',
             });
             return;
         }
@@ -240,6 +254,34 @@ async function calculateMonth(entry, sheetName, month, issues, sharedStrings) {
                 count.headcount += 1;
             else
                 rangeCounts.set(key, { rangeKey: key, rangeName: employeeRange, headcount: 1 });
+        }
+        if (employeeOrgUnit) {
+            const key = orgUnitKey(employeeOrgUnit);
+            const count = orgUnitCounts.get(key);
+            if (count)
+                count.headcount += 1;
+            else
+                orgUnitCounts.set(key, {
+                    orgUnitKey: key,
+                    orgUnitName: employeeOrgUnit,
+                    headcount: 1,
+                });
+        }
+        if (employeeRange && employeeOrgUnit) {
+            const normalizedRange = rangeKey(employeeRange);
+            const normalizedOrgUnit = orgUnitKey(employeeOrgUnit);
+            const key = `${normalizedRange}\u0000${normalizedOrgUnit}`;
+            const count = rangeOrgUnitCounts.get(key);
+            if (count)
+                count.headcount += 1;
+            else
+                rangeOrgUnitCounts.set(key, {
+                    rangeKey: normalizedRange,
+                    rangeName: employeeRange,
+                    orgUnitKey: normalizedOrgUnit,
+                    orgUnitName: employeeOrgUnit,
+                    headcount: 1,
+                });
         }
     };
     let cellColumn = 0;
@@ -301,7 +343,7 @@ async function calculateMonth(entry, sheetName, month, issues, sharedStrings) {
     if (!header && !invalidHeader) {
         issues.push({
             sheetName,
-            message: 'Could not find one Pers.No column and one Range column within the first 20 rows.',
+            message: 'Could not find one Pers.No, one Range, and one Org Unit column within the first 20 rows.',
         });
         return null;
     }
@@ -315,6 +357,9 @@ async function calculateMonth(entry, sheetName, month, issues, sharedStrings) {
         reportingMonth: month,
         totalHeadcount: employees.size,
         ranges: [...rangeCounts.values()].sort((left, right) => left.rangeName.localeCompare(right.rangeName)),
+        orgUnits: [...orgUnitCounts.values()].sort((left, right) => left.orgUnitName.localeCompare(right.orgUnitName)),
+        rangeOrgUnits: [...rangeOrgUnitCounts.values()].sort((left, right) => left.rangeName.localeCompare(right.rangeName)
+            || left.orgUnitName.localeCompare(right.orgUnitName)),
     };
 }
 async function parseHeadcountWorkbook(file) {

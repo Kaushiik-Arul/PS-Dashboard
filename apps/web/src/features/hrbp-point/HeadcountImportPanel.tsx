@@ -109,7 +109,7 @@ export function HeadcountImportPanel() {
           <div>
             <p className="namelist-panel__eyebrow">Historical workforce data</p>
             <h2 id="headcount-import-title">Monthly headcount import</h2>
-            <p>Calculate month and Range totals from PS Namelist workbook sheets.</p>
+            <p>Calculate month, Range, and Org Unit totals from PS Namelist workbook sheets.</p>
           </div>
           <span className="namelist-panel__mode namelist-panel__mode--pending">Temporary tool</span>
         </div>
@@ -192,7 +192,7 @@ export function HeadcountImportPanel() {
 
             <div className="headcount-preview">
               <table>
-                <thead><tr><th>Reporting month</th><th>Sheet</th><th>New headcount</th><th>Previous</th><th>Ranges</th></tr></thead>
+                <thead><tr><th>Reporting month</th><th>Sheet</th><th>New headcount</th><th>Previous</th><th>Ranges</th><th>Org Units</th></tr></thead>
                 <tbody>
                   {preview.months.map((month) => (
                     <tr key={month.reportingMonth} className={month.existingTotalHeadcount !== null ? "is-replacement" : ""}>
@@ -206,6 +206,16 @@ export function HeadcountImportPanel() {
                           <dl>
                             {month.ranges.map((range) => (
                               <div key={range.rangeKey}><dt>{range.rangeName}</dt><dd>{range.headcount}</dd></div>
+                            ))}
+                          </dl>
+                        </details>
+                      </td>
+                      <td>
+                        <details className="headcount-ranges">
+                          <summary>{month.orgUnits.length} Org Units · {month.rangeOrgUnits.length} mapped pairs</summary>
+                          <dl>
+                            {month.orgUnits.map((orgUnit) => (
+                              <div key={orgUnit.orgUnitKey}><dt>{orgUnit.orgUnitName}</dt><dd>{orgUnit.headcount}</dd></div>
                             ))}
                           </dl>
                         </details>
