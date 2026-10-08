@@ -6,6 +6,7 @@ import { validateEnvironment } from './config/environment';
 import { AccessPointModule } from './modules/access-point/access-point.module';
 import { AttritionModule } from './modules/attrition/attrition.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DashboardPreferencesModule } from './modules/dashboard-preferences/dashboard-preferences.module';
 import { Employee360Module } from './modules/employee-360/employee-360.module';
 import { HrbpPointModule } from './modules/hrbp-point/hrbp-point.module';
 import { OverviewModule } from './modules/overview/overview.module';
@@ -20,6 +21,7 @@ import { TalentPipelineModule } from './modules/talent-pipeline/talent-pipeline.
       validate: validateEnvironment,
     }),
     AuthModule,
+    DashboardPreferencesModule,
     AttritionModule,
     AccessPointModule,
     Employee360Module,

@@ -149,8 +149,8 @@ export function SuccessionPlanningImportPanel() {
         <div className="namelist-panel__header">
           <div>
             <p className="namelist-panel__eyebrow">Succession planning</p>
-            <h2 id="succession-planning-import-title">Position register upload</h2>
-            <p>Review the complete workbook before replacing the current register.</p>
+            <h2 id="succession-planning-import-title">Succession Planning positions upload</h2>
+            <p>Review the complete workbook before replacing all current positions.</p>
           </div>
         </div>
         <div className="namelist-panel__body">
@@ -257,7 +257,7 @@ export function SuccessionPlanningImportPanel() {
 
           <footer className="namelist-dialog__footer">
             <label className="namelist-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>I understand this deletes and replaces every current Succession Planning row.</span></label>
-            <button className="a-button a-button--primary" type="button" disabled={busy || !!editing || !confirmed} onClick={() => void commit()}><span className="a-button__label">{busy ? "Processing..." : "Replace Succession Planning register"}</span></button>
+            <button className="a-button a-button--primary" type="button" disabled={busy || !!editing || !confirmed} onClick={() => void commit()}><span className="a-button__label">{busy ? "Processing..." : "Replace Succession Planning positions"}</span></button>
           </footer>
         </div>}
       </dialog>

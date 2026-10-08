@@ -1,4 +1,19 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export const overviewDetailMetrics = [
+  'total-hc',
+  'direct-hc',
+  'indirect-hc',
+  'female-pct',
+  'avg-age',
+  'avg-tenure',
+  'ret-3yrs',
+  'maternity',
+  'sabbatical',
+  'crl',
+] as const;
+
+export type OverviewDetailMetric = (typeof overviewDetailMetrics)[number];
 
 export class OverviewFilterDto {
   @ApiPropertyOptional({ example: '2026-09' })
@@ -21,6 +36,11 @@ export class OverviewFilterDto {
 
   @ApiPropertyOptional()
   directOrIndirect?: string;
+}
+
+export class OverviewDetailsFilterDto extends OverviewFilterDto {
+  @ApiProperty({ enum: overviewDetailMetrics })
+  metric!: string;
 }
 
 export type NormalizedOverviewFilters = {

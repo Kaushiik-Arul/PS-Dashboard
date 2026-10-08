@@ -83,6 +83,7 @@ interface ChartCardProps {
   className?: string;
   children: React.ReactNode;
   onDownload?: () => void;
+  sourceLabel?: string;
 }
 
 export function ChartCard({
@@ -91,6 +92,7 @@ export function ChartCard({
   className = "",
   children,
   onDownload,
+  sourceLabel,
 }: ChartCardProps) {
   const { role } = useAuth();
   const canDownload = hasPermission(role, "exportCharts");
@@ -99,11 +101,12 @@ export function ChartCard({
   const menuId = useId();
 
   return (
-    <article className={`chart-card ${className}`.trim()}>
+    <article className={`chart-card${sourceLabel ? " chart-card--with-source" : ""} ${className}`.trim()}>
       <header className="chart-card__header">
 
         {/* Title + description */}
         <div>
+          {sourceLabel && <span className="chart-card__source">{sourceLabel}</span>}
           <h2 className="chart-card__title">{title}</h2>
 
           {isDescriptionVisible && (

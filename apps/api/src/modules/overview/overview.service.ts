@@ -7,9 +7,13 @@ import {
 } from '@nestjs/common';
 import { OverviewResponseDto } from './dto/overview-response.dto';
 import {
+  overviewDetailMetrics,
   type NormalizedOverviewFilters,
+  type OverviewDetailMetric,
+  type OverviewDetailsFilterDto,
   type OverviewFilterDto,
 } from './dto/overview-filter.dto';
+import type { OverviewEmployeeDetailDto } from './dto/overview-response.dto';
 import { OverviewRepository } from './overview.repository';
 
 @Injectable()
@@ -71,6 +75,30 @@ export class OverviewService {
       throw new InternalServerErrorException(
         'Unable to load the workforce overview',
       );
+    }
+  }
+
+  async getOverviewDetails(
+    filters: OverviewDetailsFilterDto,
+    accountId: string,
+  ): Promise<OverviewEmployeeDetailDto[]> {
+    if (!overviewDetailMetrics.includes(filters.metric as OverviewDetailMetric)) {
+      throw new BadRequestException('Overview KPI metric is invalid');
+    }
+    const normalizedFilters = this.normalizeFilters(filters);
+
+    try {
+      return await this.repository.getOverviewDetails(
+        filters.metric as OverviewDetailMetric,
+        normalizedFilters,
+        accountId,
+      );
+    } catch (error) {
+      this.logger.error(
+        'Overview detail query failed',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException('Unable to load KPI details');
     }
   }
 

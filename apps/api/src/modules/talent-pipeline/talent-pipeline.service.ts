@@ -27,9 +27,9 @@ export class TalentPipelineService {
     try {
       return await this.repository.getTalentPipeline(normalized, accountId);
     } catch {
-      this.logger.error('Talent Pipeline database query failed');
+      this.logger.error('Talent Landscape database query failed');
       throw new InternalServerErrorException(
-        'Unable to load the Talent Pipeline dashboard',
+        'Unable to load the Talent Landscape dashboard',
       );
     }
   }
@@ -38,8 +38,8 @@ export class TalentPipelineService {
     try {
       return await this.repository.getHistoryState();
     } catch (error) {
-      this.logger.error('Talent Pipeline history state query failed', error instanceof Error ? error.stack : String(error));
-      throw new InternalServerErrorException('Unable to load Talent Pipeline history');
+      this.logger.error('Talent Landscape history state query failed', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Unable to load Talent Landscape history');
     }
   }
 
@@ -47,12 +47,12 @@ export class TalentPipelineService {
     const reportingMonth = this.normalizeReportingMonth(reportingMonthInput);
     try {
       const snapshot = await this.repository.getSnapshot(reportingMonth);
-      if (!snapshot) throw new NotFoundException('Talent Pipeline snapshot was not found');
+      if (!snapshot) throw new NotFoundException('Talent Landscape snapshot was not found');
       return snapshot;
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      this.logger.error('Talent Pipeline snapshot query failed', error instanceof Error ? error.stack : String(error));
-      throw new InternalServerErrorException('Unable to load Talent Pipeline snapshot');
+      this.logger.error('Talent Landscape snapshot query failed', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Unable to load Talent Landscape snapshot');
     }
   }
 
@@ -62,10 +62,10 @@ export class TalentPipelineService {
       return { reportingMonth: await this.repository.publishSnapshot(accountId, reportingMonth) };
     } catch (error) {
       if (error instanceof Error && error.message === 'SNAPSHOT_VERIFICATION_FAILED') {
-        throw new ConflictException('The Talent Pipeline snapshot could not be verified.');
+        throw new ConflictException('The Talent Landscape snapshot could not be verified.');
       }
-      this.logger.error('Talent Pipeline snapshot publication failed', error instanceof Error ? error.stack : String(error));
-      throw new InternalServerErrorException('Unable to save Talent Pipeline snapshot');
+      this.logger.error('Talent Landscape snapshot publication failed', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException('Unable to save Talent Landscape snapshot');
     }
   }
 

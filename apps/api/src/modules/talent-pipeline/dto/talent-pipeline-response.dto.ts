@@ -108,6 +108,9 @@ export class TalentPipelineResponseDto {
   @ApiProperty({ format: 'date' })
   asOfDate!: string;
 
+  @ApiProperty({ type: Number, nullable: true })
+  workforceHeadcount!: number | null;
+
   @ApiProperty({ type: TalentPipelineKpisDto })
   kpis!: TalentPipelineKpisDto;
 

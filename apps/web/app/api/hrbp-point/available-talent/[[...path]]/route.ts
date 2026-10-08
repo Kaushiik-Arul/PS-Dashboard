@@ -13,7 +13,7 @@ async function handle(request: Request, context: Context) {
     /^previews(?:\/[a-f0-9-]+(?:\/(?:commit|rows(?:\/\d+)?))?)?$/i.test(suffix);
   if (!allowed)
     return Response.json(
-      { message: "Unknown register endpoint." },
+      { message: "Unknown data endpoint." },
       { status: 404 },
     );
   try {

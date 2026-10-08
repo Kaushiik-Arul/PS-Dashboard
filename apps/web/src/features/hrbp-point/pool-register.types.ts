@@ -1,7 +1,7 @@
 export type PoolKind = "development" | "talent";
 export const poolTitles = {
-  development: "Development Pool Register",
-  talent: "Talent Pool Register",
+  development: "Development Pool",
+  talent: "Talent Pool",
 };
 export const developmentColumns = [
   ["pers_no", "E. No."],

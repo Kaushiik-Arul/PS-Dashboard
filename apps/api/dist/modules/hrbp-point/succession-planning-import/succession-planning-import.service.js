@@ -220,7 +220,7 @@ let SuccessionPlanningImportService = class SuccessionPlanningImportService {
             const revision = await this.lockState(client);
             const preview = await this.previewLock(client, actor, id);
             if (preview.base_revision !== revision)
-                throw new common_1.ConflictException('The register changed after this preview. Upload the workbook again.');
+                throw new common_1.ConflictException('The Succession Planning positions changed after this preview. Upload the workbook again.');
             const rows = await this.validatedRows(client, id);
             if (!rows.length)
                 throw new common_1.ConflictException('The preview does not contain any rows.');

@@ -12,6 +12,7 @@ var OverviewService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OverviewService = void 0;
 const common_1 = require("@nestjs/common");
+const overview_filter_dto_1 = require("./dto/overview-filter.dto");
 const overview_repository_1 = require("./overview.repository");
 let OverviewService = OverviewService_1 = class OverviewService {
     repository;
@@ -62,6 +63,19 @@ let OverviewService = OverviewService_1 = class OverviewService {
         catch (error) {
             this.logger.error('Overview database query failed', error instanceof Error ? error.stack : String(error));
             throw new common_1.InternalServerErrorException('Unable to load the workforce overview');
+        }
+    }
+    async getOverviewDetails(filters, accountId) {
+        if (!overview_filter_dto_1.overviewDetailMetrics.includes(filters.metric)) {
+            throw new common_1.BadRequestException('Overview KPI metric is invalid');
+        }
+        const normalizedFilters = this.normalizeFilters(filters);
+        try {
+            return await this.repository.getOverviewDetails(filters.metric, normalizedFilters, accountId);
+        }
+        catch (error) {
+            this.logger.error('Overview detail query failed', error instanceof Error ? error.stack : String(error));
+            throw new common_1.InternalServerErrorException('Unable to load KPI details');
         }
     }
     normalizeFilters(filters) {

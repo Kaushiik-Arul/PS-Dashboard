@@ -136,7 +136,7 @@ function validatePoolRows(rows, kind, employees) {
         if (row.values.pers_no && (counts.get(row.values.pers_no) ?? 0) > 1)
             issues.push({
                 column: 'pers_no',
-                message: 'Duplicate personnel number in this register. Edit or delete the duplicate row.',
+                message: 'Duplicate personnel number in this dataset. Edit or delete the duplicate row.',
                 severity: 'error',
             });
         const employee = employees.get(row.values.pers_no);

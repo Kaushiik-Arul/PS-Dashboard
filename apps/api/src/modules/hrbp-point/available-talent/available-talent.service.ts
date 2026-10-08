@@ -111,11 +111,11 @@ export class AvailableTalentService {
       );
       if (duplicate.rowCount)
         throw new ConflictException({
-          message: 'This personnel number already exists in this register.',
+          message: 'This personnel number already exists in this dataset.',
           issues: [
             {
               column: 'pers_no',
-              message: 'Duplicate personnel number in this register.',
+              message: 'Duplicate personnel number in this dataset.',
               severity: 'error',
             },
           ],
@@ -128,7 +128,7 @@ export class AvailableTalentService {
           [...parameters, actor, id, kind],
         );
         if (!result.rows.length)
-          throw new NotFoundException('Register row was not found.');
+          throw new NotFoundException('Row was not found.');
         saved = result.rows[0].id;
       } else {
         const result = await client.query<{ id: string }>(
@@ -150,7 +150,7 @@ export class AvailableTalentService {
         [id, kind],
       );
       if (!result.rowCount)
-        throw new NotFoundException('Register row was not found.');
+        throw new NotFoundException('Row was not found.');
       await this.bump(client, kind);
     });
   }
@@ -332,19 +332,19 @@ export class AvailableTalentService {
   ) {
     if (confirmed !== true)
       throw new BadRequestException(
-        'Confirm replacement of every current row in this register.',
+        'Confirm replacement of all current data.',
       );
     return this.database.transaction(async (client) => {
       const revision = await this.lockState(client, kind);
       const preview = await this.previewLock(client, kind, actor, id);
       if (preview.base_revision !== revision)
         throw new ConflictException(
-          'This register changed after preview. Upload the workbook again before replacing it.',
+          'This dataset changed after preview. Upload the workbook again before replacing it.',
         );
       const rows = await this.validatedRows(client, id);
       if (!rows.length || rows.some((row) => hasErrors(row.issues)))
         throw new ConflictException(
-          'Correct the invalid rows before replacing this register.',
+          'Correct the invalid rows before replacing the current data.',
         );
       const existing = await client.query<{ count: string }>(
         'SELECT COUNT(*)::TEXT AS count FROM public.available_talent_rows WHERE kind = $1',

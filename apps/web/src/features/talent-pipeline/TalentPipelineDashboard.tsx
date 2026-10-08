@@ -29,16 +29,18 @@ import {
 import "./talent-pipeline.css";
 import { AvailableTalentManagement } from "../hrbp-point/AvailableTalentManagement";
 import { PoolRegisterManagement } from "../hrbp-point/PoolRegisterManagement";
+import { TalentLandscapeTabs } from "./TalentLandscapeTabs";
 import type {
   TalentPipelineChartDatum,
   TalentPipelineFilterOptions,
   TalentPipelineHistoryState,
   TalentPipelineQueryFilters,
   TalentPipelineResponse,
+  TalentPipelineView,
 } from "./talent-pipeline.types";
 
 const talentFilterFields: readonly DashboardFilterKey[] = [
-  "functionName", "orgUnit", "range", "location", "gender", "employmentType",
+  "functionName", "range", "orgUnit", "location", "gender", "employmentType",
 ];
 
 const currentDate = new Date();
@@ -101,8 +103,9 @@ function mapDonut(
   }));
 }
 
-function percentageLabel(value: number | null, denominator: string) {
-  return value === null ? "N/A" : `${value.toFixed(1)}% of ${denominator}`;
+function percentage(value: number, denominator: number | null) {
+  if (denominator === null) return "N/A";
+  return `${(denominator > 0 ? (value / denominator) * 100 : 0).toFixed(1)}%`;
 }
 
 function ChartUnavailable() {
@@ -148,11 +151,13 @@ const activeStepColumns: DataTableColumn<ActiveStepRow>[] = [
 ========================================================= */
 
 export function TalentPipelineDashboard({
+  view,
   data,
   activeFilters,
   historyState,
   isSnapshot,
 }: {
+  view: TalentPipelineView;
   data: TalentPipelineResponse;
   activeFilters: TalentPipelineQueryFilters;
   historyState: TalentPipelineHistoryState | null;
@@ -171,8 +176,9 @@ export function TalentPipelineDashboard({
   const [snapshotMessage, setSnapshotMessage] = useState("");
   const [snapshotMonth, setSnapshotMonth] = useState(latestSnapshotMonth);
   const [isSnapshotPublisherOpen, setIsSnapshotPublisherOpen] = useState(false);
+  const routePath = `/talent-pipeline/${view}`;
   useEffect(() => {
-    if (isSnapshot) return;
+    if (isSnapshot || view !== "talent-pool") return;
     const controller = new AbortController();
     void fetch("/api/hrbp-point/active-step", { signal: controller.signal }).then(async (response) => {
       if (!response.ok) throw new Error("Active STEP could not be loaded.");
@@ -181,7 +187,7 @@ export function TalentPipelineDashboard({
       if (!controller.signal.aborted) setActiveStepError(error instanceof Error ? error.message : "Active STEP could not be loaded.");
     });
     return () => controller.abort();
-  }, [isSnapshot]);
+  }, [isSnapshot, view]);
 
   const preserveReportingMonth = (params: URLSearchParams) => {
     if (activeFilters.reportingMonth) params.set("reportingMonth", activeFilters.reportingMonth);
@@ -192,7 +198,7 @@ export function TalentPipelineDashboard({
     const params = preserveReportingMonth(toSearchParams(filters));
     setIsFiltering(true);
     startTransition(() => {
-      router.push(params.size ? `/talent-pipeline?${params}` : "/talent-pipeline");
+      router.push(params.size ? `${routePath}?${params}` : routePath);
     });
   };
 
@@ -229,7 +235,7 @@ export function TalentPipelineDashboard({
       });
       const body = await response.json().catch(() => null) as { message?: string; reportingMonth?: string } | null;
       if (!response.ok) throw new Error(body?.message ?? "The monthly snapshot could not be saved.");
-      setSnapshotMessage(`Saved Talent Pipeline snapshot for ${body?.reportingMonth ?? snapshotMonth}.`);
+      setSnapshotMessage(`Saved Talent Landscape snapshot for ${body?.reportingMonth ?? snapshotMonth}.`);
       router.refresh();
     } catch (error) {
       setSnapshotMessage(error instanceof Error ? error.message : "The monthly snapshot could not be saved.");
@@ -238,20 +244,29 @@ export function TalentPipelineDashboard({
     }
   };
 
-  const kpis: KpiMetric[] = [
-    { id: "total-talent-pool", title: "Total talent pool", value: data.kpis.totalTalentPool.value.toLocaleString("en-US"), comparisonLabel: "Current register", icon: "boschicon-bosch-ic-user", iconColor: "blue" },
-    { id: "active-talent-pool", title: "Active talent pool", value: data.kpis.activeTalentPool.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.activeTalentPool.percentage, "total"), icon: "boschicon-bosch-ic-user", iconColor: "green" },
-    { id: "passive-talent-pool", title: "Passive talent pool members", value: data.kpis.passiveTalentPool.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.passiveTalentPool.percentage, "total"), icon: "boschicon-bosch-ic-user", iconColor: "orange" },
-    { id: "development-pool", title: "Development pool", value: data.kpis.developmentPool.value.toLocaleString("en-US"), comparisonLabel: "Current register", icon: "boschicon-bosch-ic-chart-line", iconColor: "purple" },
-    { id: "female-talent", title: "Female talent", value: data.kpis.femaleTalent.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.femaleTalent.percentage, "development pool"), icon: "boschicon-bosch-ic-user", iconColor: "red" },
-    { id: "key-to-retain", title: "Key to retain", value: data.kpis.keyToRetain.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.keyToRetain.percentage, "development pool"), icon: "boschicon-bosch-ic-user", iconColor: "orange" },
-    { id: "future-talent", title: "Future talent", value: data.kpis.futureTalent.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.futureTalent.percentage, "development pool"), icon: "boschicon-bosch-ic-chart-line", iconColor: "green" },
-    { id: "change-wanted", title: "Change wanted", value: data.kpis.changeWanted.value.toLocaleString("en-US"), comparisonLabel: percentageLabel(data.kpis.changeWanted.percentage, "development pool"), icon: "boschicon-bosch-ic-refresh", iconColor: "blue" },
-    { id: "talent-pool-expiring", title: "Talent pool expiring soon", value: "", comparisonLabel: "", breakdown: [
-      { label: "≤ 6 months", value: data.kpis.talentPoolExpiring.within6Months.toLocaleString("en-US") },
-      { label: "≤ 12 months", value: data.kpis.talentPoolExpiring.within12Months.toLocaleString("en-US") },
-    ], icon: "boschicon-bosch-ic-calendar", iconColor: "blue" },
+  const workforceComparison = (value: number) => ({
+    label: "of headcount",
+    value: percentage(value, data.workforceHeadcount),
+  });
+  const poolComparisons = (value: number, poolTotal: number, poolLabel: string) => [
+    workforceComparison(value),
+    { label: `of ${poolLabel}`, value: percentage(value, poolTotal) },
   ];
+  const talentPoolKpis: KpiMetric[] = [
+    { id: "total-talent-pool", title: "Total talent pool", value: data.kpis.totalTalentPool.value.toLocaleString("en-US"), comparisonItems: [workforceComparison(data.kpis.totalTalentPool.value)], icon: "boschicon-bosch-ic-user", iconColor: "blue" },
+    { id: "active-talent-pool", title: "Active talent pool", value: data.kpis.activeTalentPool.value.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.activeTalentPool.value, data.kpis.totalTalentPool.value, "talent pool"), icon: "boschicon-bosch-ic-user", iconColor: "green" },
+    { id: "passive-talent-pool", title: "Passive talent pool", value: data.kpis.passiveTalentPool.value.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.passiveTalentPool.value, data.kpis.totalTalentPool.value, "talent pool"), icon: "boschicon-bosch-ic-user", iconColor: "orange" },
+    { id: "talent-pool-expiring-6", title: "Expiring ≤ 6 months", value: data.kpis.talentPoolExpiring.within6Months.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.talentPoolExpiring.within6Months, data.kpis.totalTalentPool.value, "talent pool"), icon: "boschicon-bosch-ic-calendar", iconColor: "blue" },
+    { id: "talent-pool-expiring-12", title: "Expiring ≤ 12 months", value: data.kpis.talentPoolExpiring.within12Months.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.talentPoolExpiring.within12Months, data.kpis.totalTalentPool.value, "talent pool"), icon: "boschicon-bosch-ic-calendar", iconColor: "purple" },
+  ];
+  const developmentPoolKpis: KpiMetric[] = [
+    { id: "development-pool", title: "Development pool", value: data.kpis.developmentPool.value.toLocaleString("en-US"), comparisonItems: [workforceComparison(data.kpis.developmentPool.value)], icon: "boschicon-bosch-ic-chart-line", iconColor: "purple" },
+    { id: "female-talent", title: "Female talent", value: data.kpis.femaleTalent.value.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.femaleTalent.value, data.kpis.developmentPool.value, "DP"), icon: "boschicon-bosch-ic-user", iconColor: "red" },
+    { id: "key-to-retain", title: "Key to retain", value: data.kpis.keyToRetain.value.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.keyToRetain.value, data.kpis.developmentPool.value, "DP"), icon: "boschicon-bosch-ic-user", iconColor: "orange" },
+    { id: "future-talent", title: "Future talent", value: data.kpis.futureTalent.value.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.futureTalent.value, data.kpis.developmentPool.value, "DP"), icon: "boschicon-bosch-ic-chart-line", iconColor: "green" },
+    { id: "change-wanted", title: "Change wanted", value: data.kpis.changeWanted.value.toLocaleString("en-US"), comparisonItems: poolComparisons(data.kpis.changeWanted.value, data.kpis.developmentPool.value, "DP"), icon: "boschicon-bosch-ic-refresh", iconColor: "blue" },
+  ];
+  const kpis = view === "talent-pool" ? talentPoolKpis : developmentPoolKpis;
   const talentPoolDistribution = mapChart(data.charts.talentPoolDistribution.data);
   const activePassiveDistribution = mapDonut(data.charts.activePassiveDistribution.data, { Active: "var(--data-visualization-3)", Passive: "var(--data-visualization-5)" });
   const nominationStatusDistribution = mapDonut(data.charts.nominationStatusDistribution.data, { Green: "var(--signal-success-pure__enabled__default__front)", Amber: "var(--signal-warning-pure__enabled__default__front)", Red: "var(--signal-error-pure__enabled__default__front)" });
@@ -278,9 +293,9 @@ export function TalentPipelineDashboard({
         return { value: month, label: `${monthNumber}/${year}` };
       }),
   ] : undefined;
-
   return (
-    <main className="overview-page">
+    <main className={`overview-page talent-pipeline-page talent-pipeline-page--${view}`}>
+      <TalentLandscapeTabs view={view} query={activeFilters} />
       <OverviewFilters
         value={draftFilters}
         activeValue={appliedFilters}
@@ -293,7 +308,7 @@ export function TalentPipelineDashboard({
         onPeriodChange={historyState ? (reportingMonth) => {
           const params = new URLSearchParams();
           if (reportingMonth) params.set("reportingMonth", reportingMonth);
-          startTransition(() => router.push(params.size ? `/talent-pipeline?${params}` : "/talent-pipeline"));
+          startTransition(() => router.push(params.size ? `${routePath}?${params}` : routePath));
         } : undefined}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => { setDraftFilters(emptyDashboardFilters); applyFilters(emptyDashboardFilters); }}
@@ -345,12 +360,13 @@ export function TalentPipelineDashboard({
               id="talent-pipeline-summary-title"
               className="kpi-section__title"
             >
-              Talent pipeline summary
+              {view === "talent-pool" ? "Talent pool summary" : "Development pool summary"}
             </h1>
 
             <p className="kpi-section__description">
-              Talent pool composition, nomination status, and upcoming
-              expirations
+              {view === "talent-pool"
+                ? "Talent pool composition, nomination status, and upcoming expirations"
+                : "Development pool representation and category composition"}
             </p>
           </div>
         </div>
@@ -370,45 +386,46 @@ export function TalentPipelineDashboard({
       >
         <div className="dashboard-section__heading">
           <h2 id="talent-distribution-title">
-            Talent pool distribution
+            {view === "talent-pool" ? "Talent pool distribution" : "Development pool distribution"}
           </h2>
 
           <p>
-            Talent pool level, activity, nomination, gender, and range
-            composition
+            {view === "talent-pool"
+              ? "Talent pool level, activity, nomination, gender, and range composition"
+              : "Members across development pool categories"}
           </p>
         </div>
 
         <div className="chart-grid chart-grid--composition">
-          <ChartCard
+          {view === "talent-pool" && <ChartCard
             title="Talent pool distribution"
             description="Members by talent pool level"
           >
             {talentPoolDistribution.length ? <VerticalBarChart data={talentPoolDistribution} /> : <ChartUnavailable />}
-          </ChartCard>
+          </ChartCard>}
 
-          <ChartCard
+          {view === "talent-pool" && <ChartCard
             title="Active vs passive"
             description="Current status of talent pool members"
           >
             {activePassiveDistribution.length ? <DonutChart data={activePassiveDistribution} total={talentTotal} /> : <ChartUnavailable />}
-          </ChartCard>
+          </ChartCard>}
 
-          <ChartCard
-            title="Nomination status (RAG)"
+          {view === "talent-pool" && <ChartCard
+            title="TAR Status"
             description="Nomination health across the talent pool"
           >
             {nominationStatusDistribution.length ? <DonutChart data={nominationStatusDistribution} total={nominationTotal} /> : <ChartUnavailable />}
-          </ChartCard>
+          </ChartCard>}
 
-          <ChartCard
+          {view === "development-pool" && <ChartCard
             title="Development pool distribution"
             description="Members across development pool categories"
           >
             {developmentPoolDistribution.length ? <DonutChart data={developmentPoolDistribution} total={developmentTotal} /> : <ChartUnavailable />}
-          </ChartCard>
+          </ChartCard>}
 
-          <ChartCard
+          {view === "talent-pool" && <ChartCard
             title="Gender and range distribution"
             description="Talent pool composition by gender and range"
             className="talent-demographics-card"
@@ -436,7 +453,7 @@ export function TalentPipelineDashboard({
                 ) : <ChartUnavailable />}
               </div>
             </div>
-          </ChartCard>
+          </ChartCard>}
         </div>
       </section>
 
@@ -444,13 +461,13 @@ export function TalentPipelineDashboard({
           TALENT / STEP TABLES
       ===================================================== */}
 
-      {!isSnapshot && <section
+      {!isSnapshot && view === "talent-pool" && <section
         className="dashboard-section talent-register-section"
         aria-labelledby="talent-register-title"
       >
         <div className="dashboard-section__heading">
           <h2 id="talent-register-title">
-            Talent and STEP registers
+            Talent and STEP
           </h2>
 
           <p>
@@ -479,8 +496,19 @@ export function TalentPipelineDashboard({
           </div>
         </div>
 
-        <PoolRegisterManagement kind="development" />
         <PoolRegisterManagement kind="talent" />
+      </section>}
+
+      {!isSnapshot && view === "development-pool" && <section
+        className="dashboard-section talent-register-section"
+        aria-labelledby="development-pool-data-title"
+      >
+        <div className="dashboard-section__heading">
+          <h2 id="development-pool-data-title">Development pool</h2>
+          <p>Development pool employee information</p>
+        </div>
+
+        <PoolRegisterManagement kind="development" />
       </section>}
     </main>
   );

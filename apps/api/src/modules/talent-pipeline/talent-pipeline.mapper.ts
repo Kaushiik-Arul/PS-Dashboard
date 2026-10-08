@@ -8,30 +8,34 @@ type JsonRecord = Record<string, unknown>;
 
 function record(value: unknown, field: string): JsonRecord {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+    throw new Error(`Talent Landscape result contains an invalid ${field}`);
   return value as JsonRecord;
 }
 
 function array(value: unknown, field: string): unknown[] {
   if (!Array.isArray(value))
-    throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+    throw new Error(`Talent Landscape result contains an invalid ${field}`);
   return value;
 }
 
 function string(value: unknown, field: string): string {
   if (typeof value !== 'string' || !value)
-    throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+    throw new Error(`Talent Landscape result contains an invalid ${field}`);
   return value;
 }
 
 function number(value: unknown, field: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value))
-    throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+    throw new Error(`Talent Landscape result contains an invalid ${field}`);
   return value;
 }
 
 function nullableNumber(value: unknown, field: string): number | null {
   return value === null ? null : number(value, field);
+}
+
+function optionalNullableNumber(value: unknown, field: string): number | null {
+  return value === undefined ? null : nullableNumber(value, field);
 }
 
 function kpi(
@@ -88,6 +92,10 @@ export function mapTalentPipelineResponse(
 
   return {
     asOfDate: string(kpis.as_of_date, 'kpis.as_of_date'),
+    workforceHeadcount: optionalNullableNumber(
+      dashboard.workforceHeadcount,
+      'workforceHeadcount',
+    ),
     kpis: {
       totalTalentPool: kpi(kpis.total_talent_pool, 'kpis.total_talent_pool'),
       activeTalentPool: kpi(

@@ -31,7 +31,7 @@ export async function forwardTalentPipelineRequest(path: string, init: RequestIn
   });
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { message?: string } | null;
-    throw new TalentPipelineApiError(body?.message ?? 'Talent Pipeline request failed', response.status);
+    throw new TalentPipelineApiError(body?.message ?? 'Talent Landscape request failed', response.status);
   }
   return response;
 }
@@ -40,13 +40,13 @@ type JsonRecord = Record<string, unknown>;
 
 function record(value: unknown, field: string): JsonRecord {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error(`Talent Pipeline API returned an invalid ${field}`);
+    throw new Error(`Talent Landscape API returned an invalid ${field}`);
   return value as JsonRecord;
 }
 
 function number(value: unknown, field: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value))
-    throw new Error(`Talent Pipeline API returned an invalid ${field}`);
+    throw new Error(`Talent Landscape API returned an invalid ${field}`);
   return value;
 }
 
@@ -56,13 +56,13 @@ function nullableNumber(value: unknown, field: string): number | null {
 
 function string(value: unknown, field: string): string {
   if (typeof value !== 'string' || !value)
-    throw new Error(`Talent Pipeline API returned an invalid ${field}`);
+    throw new Error(`Talent Landscape API returned an invalid ${field}`);
   return value;
 }
 
 function stringArray(value: unknown, field: string): string[] {
   if (!Array.isArray(value))
-    throw new Error(`Talent Pipeline API returned an invalid ${field}`);
+    throw new Error(`Talent Landscape API returned an invalid ${field}`);
   return value.map((item, index) => string(item, `${field}[${index}]`));
 }
 
@@ -80,7 +80,7 @@ function distribution(
 ): TalentPipelineDistribution {
   const source = record(value, field);
   if (!Array.isArray(source.data))
-    throw new Error(`Talent Pipeline API returned an invalid ${field}.data`);
+    throw new Error(`Talent Landscape API returned an invalid ${field}.data`);
   return {
     data: source.data.map((item, index) => {
       const row = record(item, `${field}.data[${index}]`);
@@ -104,6 +104,9 @@ function parseResponse(value: unknown): TalentPipelineResponse {
   const options = record(response.filterOptions, 'filterOptions');
   return {
     asOfDate: string(response.asOfDate, 'asOfDate'),
+    workforceHeadcount: response.workforceHeadcount === undefined
+      ? null
+      : nullableNumber(response.workforceHeadcount, 'workforceHeadcount'),
     kpis: {
       totalTalentPool: kpi(kpis.totalTalentPool, 'kpis.totalTalentPool'),
       activeTalentPool: kpi(kpis.activeTalentPool, 'kpis.activeTalentPool'),
@@ -183,7 +186,7 @@ export async function getTalentPipelineHistoryState(): Promise<TalentPipelineHis
   const snapshotMonths = value.snapshotMonths;
   if (!Array.isArray(snapshotMonths)
     || snapshotMonths.some((month) => typeof month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))) {
-    throw new Error('Talent Pipeline API returned invalid history state');
+    throw new Error('Talent Landscape API returned invalid history state');
   }
   return { snapshotMonths: snapshotMonths as string[] };
 }

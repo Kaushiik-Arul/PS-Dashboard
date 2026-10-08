@@ -229,9 +229,9 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
         <section className="talent-development-management" aria-labelledby="talent-development-title">
           <header className="hrbp-page__heading">
             <div>
-              <p className="hrbp-section__eyebrow">Talent pipeline</p>
+              <p className="hrbp-section__eyebrow">Talent Landscape</p>
               <h2 id="talent-development-title">Talent &amp; Development</h2>
-              <p>Maintain talent, development, nomination, and STEP registers.</p>
+              <p>Maintain talent, development, nomination, and STEP data.</p>
             </div>
           </header>
           <div className="hrbp-pool-registers">
@@ -245,31 +245,30 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
       )}
 
       {canManageNamelist && (
-        <section className="talent-development-management" aria-labelledby="succession-planning-management-title">
-          <header className="hrbp-page__heading">
-            <div>
-              <p className="hrbp-section__eyebrow">Succession planning</p>
-              <h2 id="succession-planning-management-title">Succession Planning</h2>
-              <p>Import and validate the position-level incumbent and successor register.</p>
+        <section className="talent-development-management hrbp-register-management" aria-label="Succession Planning and Attrition imports">
+          <div className="hrbp-register-management__item">
+            <header className="hrbp-page__heading">
+              <div>
+                <p className="hrbp-section__eyebrow">Succession planning</p>
+                <h2 id="succession-planning-management-title">Succession Planning</h2>
+                <p>Import and validate position-level incumbents and successors.</p>
+              </div>
+            </header>
+            <div className="hrbp-pool-registers">
+              <SuccessionPlanningImportPanel />
             </div>
-          </header>
-          <div className="hrbp-pool-registers">
-            <SuccessionPlanningImportPanel />
           </div>
-        </section>
-      )}
-
-      {canManageNamelist && (
-        <section className="talent-development-management" aria-labelledby="attrition-management-title">
-          <header className="hrbp-page__heading">
-            <div>
-              <p className="hrbp-section__eyebrow">Attrition</p>
-              <h2 id="attrition-management-title">Attrition Register</h2>
-              <p>Import, validate, and replace the employee separation register.</p>
+          <div className="hrbp-register-management__item">
+            <header className="hrbp-page__heading">
+              <div>
+                <p className="hrbp-section__eyebrow">Attrition</p>
+                <h2 id="attrition-management-title">Attrition records</h2>
+                <p>Import, validate, and replace employee separation data.</p>
+              </div>
+            </header>
+            <div className="hrbp-pool-registers">
+              <AttritionImportPanel />
             </div>
-          </header>
-          <div className="hrbp-pool-registers">
-            <AttritionImportPanel />
           </div>
         </section>
       )}

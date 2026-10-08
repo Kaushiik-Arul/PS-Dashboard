@@ -34,6 +34,9 @@ let OverviewController = class OverviewController {
     getArchivedOverview(reportingMonth) {
         return this.service.getArchivedOverview(reportingMonth);
     }
+    getOverviewDetails(filters, user) {
+        return this.service.getOverviewDetails(filters, user.accountId);
+    }
     getOverview(filters, user) {
         return this.service.getOverview(filters, user.accountId);
     }
@@ -66,6 +69,17 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], OverviewController.prototype, "getArchivedOverview", null);
+__decorate([
+    (0, common_1.Get)('details'),
+    (0, common_1.Header)('Cache-Control', 'no-store'),
+    (0, swagger_1.ApiOperation)({ summary: 'Fetch employees represented by an Overview KPI' }),
+    (0, swagger_1.ApiOkResponse)({ type: [overview_response_dto_1.OverviewEmployeeDetailDto] }),
+    __param(0, (0, common_1.Query)()),
+    __param(1, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [overview_filter_dto_1.OverviewDetailsFilterDto, Object]),
+    __metadata("design:returntype", Promise)
+], OverviewController.prototype, "getOverviewDetails", null);
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.Header)('Cache-Control', 'no-store'),

@@ -4,6 +4,8 @@ import type {
   KpiValue,
   OverviewDistributionChart,
   OverviewAvailableMonths,
+  OverviewDetailMetric,
+  OverviewEmployeeDetail,
   OverviewQueryFilters,
   OverviewResponse,
   RetirementRiskRow,
@@ -118,6 +120,32 @@ function parseStringArray(value: unknown, field: string): string[] {
   );
 }
 
+function nullableString(value: unknown, field: string): string | null {
+  if (value === null) return null;
+  return requireString(value, field);
+}
+
+function parseOverviewEmployeeDetails(value: unknown): OverviewEmployeeDetail[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Overview API returned invalid employee details");
+  }
+  return value.map((item, index) => {
+    const row = requireRecord(item, `details[${index}]`);
+    return {
+      personnelNumber: requireString(row.personnelNumber, `details[${index}].personnelNumber`),
+      functionName: nullableString(row.functionName, `details[${index}].functionName`),
+      orgUnit: nullableString(row.orgUnit, `details[${index}].orgUnit`),
+      range: nullableString(row.range, `details[${index}].range`),
+      location: nullableString(row.location, `details[${index}].location`),
+      gender: nullableString(row.gender, `details[${index}].gender`),
+      directOrIndirect: nullableString(row.directOrIndirect, `details[${index}].directOrIndirect`),
+      ageYears: nullableNumber(row.ageYears, `details[${index}].ageYears`),
+      tenureYears: nullableNumber(row.tenureYears, `details[${index}].tenureYears`),
+      retirementDate: nullableString(row.retirementDate, `details[${index}].retirementDate`),
+    };
+  });
+}
+
 function parseOverviewResponse(value: unknown): OverviewResponse {
   const response = requireRecord(value, "response");
   const kpis = requireRecord(response.kpis, "kpis");
@@ -229,6 +257,25 @@ export async function getOverview(
   }
 
   return parseOverviewResponse(await response.json());
+}
+
+export async function getOverviewDetails(
+  metric: OverviewDetailMetric,
+  filters: OverviewQueryFilters = {},
+): Promise<OverviewEmployeeDetail[]> {
+  const searchParams = new URLSearchParams({ metric });
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) searchParams.set(key, value);
+  });
+  const response = await fetch(`${getApiBaseUrl()}/overview/details?${searchParams}`, {
+    cache: "no-store",
+    headers: { Accept: "application/json", ...(await getSessionHeaders()) },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Overview details request failed with status ${response.status}`);
+  }
+  return parseOverviewEmployeeDetails(await response.json());
 }
 
 export async function getOverviewAvailableMonths(): Promise<OverviewAvailableMonths> {

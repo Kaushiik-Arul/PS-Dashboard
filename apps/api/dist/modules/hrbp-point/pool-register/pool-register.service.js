@@ -55,7 +55,7 @@ let PoolRegisterService = class PoolRegisterService {
     }
     kind(value) {
         if (value !== 'development' && value !== 'talent')
-            throw new common_1.BadRequestException('Unknown pool register.');
+            throw new common_1.BadRequestException('Unknown pool type.');
         return value;
     }
     uuid(id) {
@@ -128,11 +128,11 @@ let PoolRegisterService = class PoolRegisterService {
           AND ($2::UUID IS NULL OR id <> $2::UUID)`, [values.pers_no, id ?? null]);
             if (duplicate.rowCount)
                 throw new common_1.ConflictException({
-                    message: 'This personnel number already exists in this register.',
+                    message: 'This personnel number already exists in this dataset.',
                     issues: [
                         {
                             column: 'pers_no',
-                            message: 'Duplicate personnel number in this register.',
+                            message: 'Duplicate personnel number in this dataset.',
                             severity: 'error',
                         },
                     ],
@@ -146,7 +146,7 @@ let PoolRegisterService = class PoolRegisterService {
           updated_by = $${actorParameter}, updated_at = CURRENT_TIMESTAMP
           WHERE id = $${idParameter} RETURNING id`, [...parameters, actor, id]);
                 if (!result.rows.length)
-                    throw new common_1.NotFoundException('Register row was not found.');
+                    throw new common_1.NotFoundException('Row was not found.');
                 saved = result.rows[0].id;
             }
             else {
@@ -166,7 +166,7 @@ let PoolRegisterService = class PoolRegisterService {
             await this.lockState(client, kind);
             const result = await client.query(`DELETE FROM ${storage.table} WHERE id = $1`, [id]);
             if (!result.rowCount)
-                throw new common_1.NotFoundException('Register row was not found.');
+                throw new common_1.NotFoundException('Row was not found.');
             await this.bump(client, kind);
         });
     }
@@ -266,16 +266,16 @@ let PoolRegisterService = class PoolRegisterService {
     }
     async commit(kind, actor, id, confirmed) {
         if (confirmed !== true)
-            throw new common_1.BadRequestException('Confirm replacement of every current row in this register.');
+            throw new common_1.BadRequestException('Confirm replacement of all current pool data.');
         return this.database.transaction(async (client) => {
             const storage = registerStorage[kind];
             const revision = await this.lockState(client, kind);
             const preview = await this.previewLock(client, kind, actor, id);
             if (preview.base_revision !== revision)
-                throw new common_1.ConflictException('This register changed after preview. Upload the workbook again before replacing it.');
+                throw new common_1.ConflictException('This pool data changed after preview. Upload the workbook again before replacing it.');
             const rows = await this.validatedRows(client, kind, id);
             if (!rows.length || rows.some((row) => (0, pool_register_types_1.hasErrors)(row.issues)))
-                throw new common_1.ConflictException('Correct the invalid rows before replacing this register.');
+                throw new common_1.ConflictException('Correct the invalid rows before replacing the current pool data.');
             const existing = await client.query(`SELECT COUNT(*)::TEXT AS count FROM ${storage.table}`);
             const replacedRows = +existing.rows[0].count;
             const imported = await client.query(`INSERT INTO public.pool_register_imports (kind,file_name,file_hash,row_count,replaced_rows,imported_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`, [

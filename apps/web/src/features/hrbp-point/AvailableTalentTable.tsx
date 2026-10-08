@@ -42,7 +42,7 @@ export function AvailableTalentTable({
           setError(
             reason instanceof Error
               ? reason.message
-              : "Could not load register.",
+              : "Could not load data.",
           );
           setLoaded(true);
         }

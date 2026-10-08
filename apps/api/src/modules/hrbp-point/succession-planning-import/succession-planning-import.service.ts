@@ -327,7 +327,7 @@ export class SuccessionPlanningImportService {
       const preview = await this.previewLock(client, actor, id);
       if (preview.base_revision !== revision)
         throw new ConflictException(
-          'The register changed after this preview. Upload the workbook again.',
+          'The Succession Planning positions changed after this preview. Upload the workbook again.',
         );
       const rows = await this.validatedRows(client, id);
       if (!rows.length)

@@ -78,11 +78,11 @@ let AvailableTalentService = class AvailableTalentService {
             const duplicate = await client.query('SELECT 1 FROM public.available_talent_rows WHERE kind = $1 AND pers_no = $2::BIGINT AND ($3::UUID IS NULL OR id <> $3::UUID)', [kind, values.pers_no, id ?? null]);
             if (duplicate.rowCount)
                 throw new common_1.ConflictException({
-                    message: 'This personnel number already exists in this register.',
+                    message: 'This personnel number already exists in this dataset.',
                     issues: [
                         {
                             column: 'pers_no',
-                            message: 'Duplicate personnel number in this register.',
+                            message: 'Duplicate personnel number in this dataset.',
                             severity: 'error',
                         },
                     ],
@@ -92,7 +92,7 @@ let AvailableTalentService = class AvailableTalentService {
             if (id) {
                 const result = await client.query(`UPDATE public.available_talent_rows SET ${available_talent_types_1.availableColumns.map((key, i) => `${key} = $${i + 1}`).join(', ')}, updated_by = $10, updated_at = CURRENT_TIMESTAMP WHERE id = $11 AND kind = $12 RETURNING id`, [...parameters, actor, id, kind]);
                 if (!result.rows.length)
-                    throw new common_1.NotFoundException('Register row was not found.');
+                    throw new common_1.NotFoundException('Row was not found.');
                 saved = result.rows[0].id;
             }
             else {
@@ -109,7 +109,7 @@ let AvailableTalentService = class AvailableTalentService {
             await this.lockState(client, kind);
             const result = await client.query('DELETE FROM public.available_talent_rows WHERE id = $1 AND kind = $2', [id, kind]);
             if (!result.rowCount)
-                throw new common_1.NotFoundException('Register row was not found.');
+                throw new common_1.NotFoundException('Row was not found.');
             await this.bump(client, kind);
         });
     }
@@ -209,15 +209,15 @@ let AvailableTalentService = class AvailableTalentService {
     }
     async commit(kind, actor, id, confirmed) {
         if (confirmed !== true)
-            throw new common_1.BadRequestException('Confirm replacement of every current row in this register.');
+            throw new common_1.BadRequestException('Confirm replacement of all current data.');
         return this.database.transaction(async (client) => {
             const revision = await this.lockState(client, kind);
             const preview = await this.previewLock(client, kind, actor, id);
             if (preview.base_revision !== revision)
-                throw new common_1.ConflictException('This register changed after preview. Upload the workbook again before replacing it.');
+                throw new common_1.ConflictException('This dataset changed after preview. Upload the workbook again before replacing it.');
             const rows = await this.validatedRows(client, id);
             if (!rows.length || rows.some((row) => (0, available_talent_types_1.hasErrors)(row.issues)))
-                throw new common_1.ConflictException('Correct the invalid rows before replacing this register.');
+                throw new common_1.ConflictException('Correct the invalid rows before replacing the current data.');
             const existing = await client.query('SELECT COUNT(*)::TEXT AS count FROM public.available_talent_rows WHERE kind = $1', [kind]);
             const replacedRows = +existing.rows[0].count;
             const imported = await client.query(`INSERT INTO public.available_talent_imports (kind,file_name,file_hash,row_count,replaced_rows,imported_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`, [

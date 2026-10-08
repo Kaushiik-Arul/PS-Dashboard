@@ -7,11 +7,14 @@ describe('OverviewService', () => {
   let repository: jest.Mocked<OverviewRepository>;
   let service: OverviewService;
   let getOverview: jest.Mock;
+  let getOverviewDetails: jest.Mock;
 
   beforeEach(() => {
     getOverview = jest.fn();
+    getOverviewDetails = jest.fn();
     repository = {
       getOverview,
+      getOverviewDetails,
     } as unknown as jest.Mocked<OverviewRepository>;
     service = new OverviewService(repository);
   });
@@ -31,6 +34,7 @@ describe('OverviewService', () => {
         location: null,
         gender: null,
         directOrIndirect: null,
+        reportingMonth: null,
       },
       'account-id',
     );
@@ -41,5 +45,37 @@ describe('OverviewService', () => {
       .rejects.toBeInstanceOf(BadRequestException);
 
     expect(getOverview).not.toHaveBeenCalled();
+  });
+
+  it('forwards KPI detail metric, filters, and authenticated account scope', async () => {
+    getOverviewDetails.mockResolvedValue([]);
+
+    await expect(service.getOverviewDetails(
+      { metric: 'direct-hc', location: '  Bangalore  ' },
+      'account-id',
+    )).resolves.toEqual([]);
+
+    expect(getOverviewDetails).toHaveBeenCalledWith(
+      'direct-hc',
+      {
+        functionName: null,
+        orgUnit: null,
+        range: null,
+        location: 'Bangalore',
+        gender: null,
+        directOrIndirect: null,
+        reportingMonth: null,
+      },
+      'account-id',
+    );
+  });
+
+  it('rejects an unsupported KPI detail metric', async () => {
+    await expect(service.getOverviewDetails(
+      { metric: 'unknown' },
+      'account-id',
+    )).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(getOverviewDetails).not.toHaveBeenCalled();
   });
 });

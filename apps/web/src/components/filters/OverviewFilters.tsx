@@ -40,8 +40,8 @@ const filterFields: Array<{
 }> = [
   { key: "businessUnit", label: "BU", options: ["All", "Mobility Solutions", "Industrial Technology", "Consumer Goods"] },
   { key: "functionName", label: "Function", options: ["All", "Research & development", "Manufacturing", "Logistics", "Quality", "Sales & marketing", "HR", "Others"] },
-  { key: "orgUnit", label: "Org unit", options: ["All", "Engineering", "Operations", "Commercial", "Corporate"] },
   { key: "range", label: "Range", options: ["All", "SL2", "SL1", "Group 1", "Group 2", "Group 3", "Group 4", "Group 5", "Group 6"] },
+  { key: "orgUnit", label: "Org unit", options: ["All", "Engineering", "Operations", "Commercial", "Corporate"] },
   { key: "location", label: "Location", options: ["All", "Bangalore", "Bidadi", "Nashik", "Jaipur", "Pune"] },
   { key: "gender", label: "Gender", options: ["All", "Female", "Male"] },
   { key: "employmentType", label: "Direct / indirect", options: ["All", "Direct", "Indirect"] },

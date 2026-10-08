@@ -134,8 +134,31 @@ export class TalentPipelineRepository {
                 AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
             )
         )
+      ),
+      scoped_workforce AS (
+        SELECT COUNT(*)::INTEGER AS headcount
+        FROM public.employee_namelist e
+        WHERE EXISTS (
+          SELECT 1 FROM public.master_access access
+          WHERE access.account_id = $7::UUID
+            AND (
+              access.role IN ('hrbp', 'admin')
+              OR (access.role = 'range_head'
+                AND BTRIM(e.range) = BTRIM(access.assigned_range))
+              OR (access.role IN ('department_head', 'sub_department_head')
+                AND BTRIM(e.range) = BTRIM(access.assigned_range)
+                AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
+            )
+        )
+          AND ($1::TEXT IS NULL OR BTRIM(e.function) = $1)
+          AND ($2::TEXT IS NULL OR BTRIM(e.organizational_unit) = $2)
+          AND ($3::TEXT IS NULL OR BTRIM(e.range) = $3)
+          AND ($4::TEXT IS NULL OR BTRIM(e.location) = $4)
+          AND ($5::TEXT IS NULL OR BTRIM(e.gender_key) = $5)
+          AND ($6::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $6)
       )
       SELECT JSONB_BUILD_OBJECT(
+        'workforceHeadcount', (SELECT headcount FROM scoped_workforce),
         'kpis', public.get_talent_pipeline_kpis(
           settings.as_of_date, $1, $2, $3, $4, $5, $6, $7::UUID
         ),

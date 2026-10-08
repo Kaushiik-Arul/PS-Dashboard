@@ -16,13 +16,14 @@ export const permissions = [
   'access-point:manage',
   'workforce:edit',
   'workforce:export',
+  'dashboard-customization:manage',
 ] as const;
 
 export type Permission = (typeof permissions)[number];
 
 const rolePermissions: Record<UserRole, ReadonlySet<Permission>> = {
   hrbp: new Set(permissions),
-  admin: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
+  admin: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'dashboard-customization:manage']),
   range_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
   department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
   sub_department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),

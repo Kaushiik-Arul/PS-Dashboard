@@ -20,7 +20,7 @@ import type { AuthenticatedUser } from '../../auth/auth.types';
 import { PoolRegisterService } from './pool-register.service';
 import type { PoolFile } from './pool-register.types';
 
-@ApiTags('Pool registers')
+@ApiTags('Pool data')
 @Controller('hrbp-point/pool-registers/:kind')
 export class PoolRegisterController {
   constructor(private readonly service: PoolRegisterService) {}

@@ -72,3 +72,28 @@ export type OverviewAvailableMonths = {
   currentMonth: string | null;
   detailedMonths: string[];
 };
+
+export type OverviewDetailMetric =
+  | "total-hc"
+  | "direct-hc"
+  | "indirect-hc"
+  | "female-pct"
+  | "avg-age"
+  | "avg-tenure"
+  | "ret-3yrs"
+  | "maternity"
+  | "sabbatical"
+  | "crl";
+
+export type OverviewEmployeeDetail = {
+  personnelNumber: string;
+  functionName: string | null;
+  orgUnit: string | null;
+  range: string | null;
+  location: string | null;
+  gender: string | null;
+  directOrIndirect: string | null;
+  ageYears: number | null;
+  tenureYears: number | null;
+  retirementDate: string | null;
+};

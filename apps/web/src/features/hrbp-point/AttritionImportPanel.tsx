@@ -131,7 +131,7 @@ export function AttritionImportPanel() {
     try {
       const result = await client.commit(preview.id);
       reset();
-      setMessage(`Attrition register updated: ${result.importedRows} rows imported, ${result.replacedRows} previous rows replaced.`);
+      setMessage(`Attrition data updated: ${result.importedRows} rows imported, ${result.replacedRows} previous rows replaced.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Import failed.");
     } finally {
@@ -147,8 +147,8 @@ export function AttritionImportPanel() {
         <div className="namelist-panel__header">
           <div>
             <p className="namelist-panel__eyebrow">Attrition</p>
-            <h2 id="attrition-import-title">Attrition register upload</h2>
-            <p>Review and correct the complete workbook before replacing the current register.</p>
+            <h2 id="attrition-import-title">Attrition data upload</h2>
+            <p>Review and correct the complete workbook before replacing all current Attrition data.</p>
           </div>
         </div>
         <div className="namelist-panel__body">
@@ -229,7 +229,7 @@ export function AttritionImportPanel() {
 
           <footer className="namelist-dialog__footer">
             <label className="namelist-confirm"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} /><span>I understand this deletes and replaces every current Attrition row.</span></label>
-            <button className="a-button a-button--primary" type="button" disabled={busy || !!editing || !confirmed || preview.errorRows > 0} onClick={() => void commit()}><span className="a-button__label">{busy ? "Processing..." : "Replace Attrition register"}</span></button>
+            <button className="a-button a-button--primary" type="button" disabled={busy || !!editing || !confirmed || preview.errorRows > 0} onClick={() => void commit()}><span className="a-button__label">{busy ? "Processing..." : "Replace Attrition data"}</span></button>
           </footer>
         </div>}
       </dialog>

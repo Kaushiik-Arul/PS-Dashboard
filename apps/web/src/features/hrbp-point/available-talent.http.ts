@@ -28,7 +28,7 @@ async function request(_kind: AvailableKind, path: string, init?: RequestInit) {
       issues?: AvailableIssue[];
     } | null;
     throw new AvailableRequestError(
-      body?.message ?? "Pool register request failed.",
+      body?.message ?? "Pool data request failed.",
       body?.issues,
     );
   }

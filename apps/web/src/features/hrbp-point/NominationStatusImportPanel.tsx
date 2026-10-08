@@ -177,7 +177,7 @@ export function NominationStatusImportPanel() {
       <section className="namelist-panel" aria-labelledby="nomination-status-import-title">
         <div className="namelist-panel__header">
           <div>
-            <p className="namelist-panel__eyebrow">Talent pipeline</p>
+            <p className="namelist-panel__eyebrow">Talent Landscape</p>
             <h2 id="nomination-status-import-title">Nomination status upload</h2>
             <p>Preview CSV or XLSX data before replacing the current nomination status rows.</p>
           </div>

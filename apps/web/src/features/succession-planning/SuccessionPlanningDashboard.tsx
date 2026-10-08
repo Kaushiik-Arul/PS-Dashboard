@@ -7,7 +7,6 @@ import {
   ChartCard,
   DonutChart,
   VerticalBarChart,
-  type ChartDatum,
 } from "@/components/charts/OverviewCharts";
 import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
@@ -19,6 +18,13 @@ import {
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 import {
+  percentage,
+  readinessCategory,
+  summarizeSuccessionPlanning,
+  type Readiness,
+  type SuccessorNumber,
+} from "./succession-planning.analytics";
+import {
   successionPlanningColumns,
   type SuccessionPlanningFilterOptions,
   type SuccessionPlanningHistoryState,
@@ -29,7 +35,7 @@ import {
 import "./succession-planning.css";
 
 const successionFilterFields: readonly DashboardFilterKey[] = [
-  "functionName", "orgUnit", "range", "location", "gender", "employmentType",
+  "functionName", "range", "orgUnit", "location", "gender", "employmentType",
 ];
 
 const currentDate = new Date();
@@ -79,89 +85,76 @@ const columns: DataTableColumn<SuccessionPlanningRecord>[] = successionPlanningC
   }),
 );
 
-const readinessOrder = [
-  "Ready now",
-  "Ready in 1-2 years",
-  "Ready in 2-3 years",
-  "Ready in 3-4 years",
-  "Ready later / TBD",
-] as const;
+type ReadinessKpi = { category: Readiness; metric: KpiMetric };
+type ReadinessSelection = { category: Readiness; successor: SuccessorNumber };
 
-type Readiness = (typeof readinessOrder)[number];
+type ReadinessAssignment = {
+  key: string;
+  personnelNumber: string;
+  name: string;
+  department: string;
+  currentJdId: string;
+  targetJdId: string;
+  targetJdName: string;
+  rating: string;
+  idpStatus: string;
+};
 
-function readinessCategory(value: string): Readiness | null {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return null;
-  if (normalized.includes("now")) return "Ready now";
-  if (/1\s*-\s*2/.test(normalized)) return "Ready in 1-2 years";
-  if (/2\s*-\s*3/.test(normalized)) return "Ready in 2-3 years";
-  if (/3\s*-\s*4/.test(normalized)) return "Ready in 3-4 years";
-  return "Ready later / TBD";
+function readinessAssignments(
+  rows: SuccessionPlanningRecord[],
+  selection: ReadinessSelection | null,
+): ReadinessAssignment[] {
+  if (!selection) return [];
+  return rows.flatMap((row) => {
+    const first = selection.successor === 1;
+    const personnelNumber = first ? row.successor1_pers_no : row.successor2_pers_no;
+    const readiness = first ? row.successor1_readiness : row.successor2_readiness;
+    if (!personnelNumber.trim() || readinessCategory(readiness) !== selection.category) return [];
+    return [{
+      key: `${row.id}-${selection.successor}`,
+      personnelNumber,
+      name: first ? row.successor1_name : row.successor2_name,
+      department: first ? row.successor1_dept_code : row.successor2_dept_code,
+      currentJdId: first ? row.successor1_current_jd_id : row.successor2_current_jd_id,
+      targetJdId: row.position_jd_id,
+      targetJdName: row.jd_name,
+      rating: first ? row.successor1_9_box_rating : row.successor2_9_box_rating,
+      idpStatus: first ? row.successor1_idp_status : row.successor2_idp_status,
+    }];
+  });
 }
 
-function employeeCount(value: string) {
-  return value.match(/\d+/g)?.length ?? 0;
-}
-
-function percentage(value: number, total: number) {
-  return total ? `${((value / total) * 100).toFixed(1)}% of positions` : "No positions";
-}
-
-function chartValue(label: string, value: number, total: number): ChartDatum {
-  return {
-    label,
-    value,
-    displayValue: `${value.toLocaleString("en-US")} (${total ? ((value / total) * 100).toFixed(1) : "0.0"}%)`,
-  };
-}
-
-function summarize(rows: SuccessionPlanningRecord[]) {
-  const successor1Readiness = new Map<Readiness, number>(readinessOrder.map((label) => [label, 0]));
-  const successor2Readiness = new Map<Readiness, number>(readinessOrder.map((label) => [label, 0]));
-  const criticalities = new Map<string, number>();
-
-  for (const row of rows) {
-    const criticality = row.priority.trim() || "Not specified";
-    criticalities.set(criticality, (criticalities.get(criticality) ?? 0) + 1);
-
-    const successors = [
-      [row.successor1_pers_no, row.successor1_readiness, successor1Readiness],
-      [row.successor2_pers_no, row.successor2_readiness, successor2Readiness],
-    ] as const;
-    for (const [employeeNumbers, readinessValue, readiness] of successors) {
-      const count = employeeCount(employeeNumbers);
-      const category = readinessCategory(readinessValue);
-      if (!count || !category) continue;
-      readiness.set(category, (readiness.get(category) ?? 0) + count);
-    }
-  }
-
-  const totalPositions = rows.length;
-  const years = new Map<string, number>();
-  for (const row of rows) {
-    const value = row.incumbent_change_year.trim();
-    if (!value) continue;
-    years.set(value, (years.get(value) ?? 0) + 1);
-  }
-
-  return {
-    totalPositions,
-    successor1Readiness,
-    successor2Readiness,
-    criticalityChart: [...criticalities.entries()]
-      .filter(([, value]) => value > 0)
-      .map(([label, value], index) => ({
-        ...chartValue(label, value, totalPositions),
-        color: `var(--data-visualization-${(index % 6) + 1})`,
-      })),
-    yearChart: [...years.entries()]
-      .sort(([left], [right]) => left.localeCompare(right, undefined, { numeric: true }))
-      .map(([label, value]) => ({ label, value })),
-  };
+function ReadinessKpiCard({
+  item,
+  successor,
+  onOpen,
+}: {
+  item: ReadinessKpi;
+  successor: SuccessorNumber;
+  onOpen: (successor: SuccessorNumber, category: Readiness) => void;
+}) {
+  const open = () => onOpen(successor, item.category);
+  return (
+    <div
+      className="succession-readiness-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`Show Successor ${successor} people who are ${item.metric.title}`}
+      onClick={open}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      }}
+    >
+      <KpiCard metric={item.metric} />
+    </div>
+  );
 }
 
 function importDescription(data: SuccessionPlanningResponse) {
-  if (!data.importedAt) return "Current position, incumbent, and successor register";
+  if (!data.importedAt) return "Current positions, incumbents, and successors";
   const imported = new Date(data.importedAt);
   const date = Number.isNaN(imported.getTime())
     ? data.importedAt
@@ -194,6 +187,10 @@ export function SuccessionPlanningDashboard({
   const [snapshotMessage, setSnapshotMessage] = useState("");
   const [snapshotMonth, setSnapshotMonth] = useState(latestSnapshotMonth);
   const [isSnapshotPublisherOpen, setIsSnapshotPublisherOpen] = useState(false);
+  const readinessDialogRef = useRef<HTMLDialogElement>(null);
+  const [readinessSelection, setReadinessSelection] = useState<ReadinessSelection | null>(null);
+  const [readinessSearch, setReadinessSearch] = useState("");
+  const [isReadinessFilterOpen, setIsReadinessFilterOpen] = useState(false);
 
   const applyFilters = (filters: DashboardFilters) => {
     const params = toSearchParams(filters);
@@ -244,18 +241,38 @@ export function SuccessionPlanningDashboard({
     }
   };
 
-  const summary = summarize(data.rows);
+  const summary = summarizeSuccessionPlanning(data.rows);
   const readinessKpis = (
     successor: "successor-1" | "successor-2",
     readiness: Map<Readiness, number>,
-  ): KpiMetric[] => [
-    { id: `${successor}-ready-now`, title: "Ready now", value: (readiness.get("Ready now") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready now") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-checkmark", iconColor: "green" },
-    { id: `${successor}-ready-one-two`, title: "Ready in 1-2 years", value: (readiness.get("Ready in 1-2 years") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready in 1-2 years") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-people", iconColor: "orange" },
-    { id: `${successor}-ready-three-four`, title: "Ready in 3-4 years", value: (readiness.get("Ready in 3-4 years") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready in 3-4 years") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-people", iconColor: "purple" },
-    { id: `${successor}-ready-later`, title: "Ready later", value: (readiness.get("Ready later / TBD") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready later / TBD") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-calendar", iconColor: "blue" },
+  ): ReadinessKpi[] => [
+    { category: "Ready now", metric: { id: `${successor}-ready-now`, title: "Ready now", value: (readiness.get("Ready now") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready now") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-checkmark", iconColor: "green" } },
+    { category: "Ready in 1-2 years", metric: { id: `${successor}-ready-one-two`, title: "Ready in 1-2 years", value: (readiness.get("Ready in 1-2 years") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready in 1-2 years") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-people", iconColor: "orange" } },
+    { category: "Ready in 3-4 years", metric: { id: `${successor}-ready-three-four`, title: "Ready in 3-4 years", value: (readiness.get("Ready in 3-4 years") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready in 3-4 years") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-people", iconColor: "purple" } },
+    { category: "Ready later / TBD", metric: { id: `${successor}-ready-later`, title: "Ready later", value: (readiness.get("Ready later / TBD") ?? 0).toLocaleString("en-US"), comparisonLabel: percentage(readiness.get("Ready later / TBD") ?? 0, summary.totalPositions), icon: "boschicon-bosch-ic-calendar", iconColor: "blue" } },
   ];
   const successor1Kpis = readinessKpis("successor-1", summary.successor1Readiness);
   const successor2Kpis = readinessKpis("successor-2", summary.successor2Readiness);
+  const selectedAssignments = readinessAssignments(data.rows, readinessSelection);
+  const normalizedReadinessSearch = readinessSearch.trim().toLowerCase();
+  const visibleAssignments = normalizedReadinessSearch
+    ? selectedAssignments.filter((assignment) => [
+        assignment.personnelNumber,
+        assignment.name,
+        assignment.department,
+        assignment.currentJdId,
+        assignment.targetJdId,
+        assignment.targetJdName,
+        assignment.rating,
+        assignment.idpStatus,
+      ].some((value) => value.toLowerCase().includes(normalizedReadinessSearch)))
+    : selectedAssignments;
+  const openReadinessDetails = (successor: SuccessorNumber, category: Readiness) => {
+    setReadinessSearch("");
+    setIsReadinessFilterOpen(false);
+    setReadinessSelection({ successor, category });
+    window.requestAnimationFrame(() => readinessDialogRef.current?.showModal());
+  };
   const periodOptions = historyState ? [
     { value: "", label: "Current" },
     ...historyState.snapshotMonths.map((month) => {
@@ -314,7 +331,7 @@ export function SuccessionPlanningDashboard({
         <div className="kpi-section__header">
           <div>
             <h2 className="kpi-section__title" id="succession-summary-title">Successor readiness</h2>
-            <p className="kpi-section__description">Primary and secondary successor coverage across the current register</p>
+            <p className="kpi-section__description">Primary and secondary successor coverage across current positions</p>
           </div>
           <div className="succession-readiness__total" aria-label={`${summary.totalPositions} total positions`}>
             <i className="a-icon boschicon-bosch-ic-briefcase" aria-hidden="true" />
@@ -328,14 +345,14 @@ export function SuccessionPlanningDashboard({
               <h3 id="successor-1-readiness-title">Successor 1</h3>
               <p>Primary successor readiness outlook</p>
             </div>
-            <KpiGrid>{successor1Kpis.map((kpi) => <KpiCard key={kpi.id} metric={kpi} />)}</KpiGrid>
+            <KpiGrid>{successor1Kpis.map((item) => <ReadinessKpiCard key={item.metric.id} item={item} successor={1} onOpen={openReadinessDetails} />)}</KpiGrid>
           </section>
           <section className="succession-successor-group" aria-labelledby="successor-2-readiness-title">
             <div className="succession-successor-group__heading">
               <h3 id="successor-2-readiness-title">Successor 2</h3>
               <p>Secondary successor readiness outlook</p>
             </div>
-            <KpiGrid>{successor2Kpis.map((kpi) => <KpiCard key={kpi.id} metric={kpi} />)}</KpiGrid>
+            <KpiGrid>{successor2Kpis.map((item) => <ReadinessKpiCard key={item.metric.id} item={item} successor={2} onOpen={openReadinessDetails} />)}</KpiGrid>
           </section>
         </div>
       </section>
@@ -355,9 +372,9 @@ export function SuccessionPlanningDashboard({
         </div>
       </section>
 
-      <section className="dashboard-section" aria-label="Succession Planning position register">
+      <section className="dashboard-section" aria-label="Succession Planning positions">
         <DataTable
-          title="Succession Planning position register"
+          title="Succession Planning positions"
           description={importDescription(data)}
           columns={columns}
           rows={data.rows}
@@ -370,6 +387,78 @@ export function SuccessionPlanningDashboard({
           neutralAppearance
         />
       </section>
+
+      <dialog className="succession-readiness-dialog" ref={readinessDialogRef} onClose={() => { setReadinessSelection(null); setReadinessSearch(""); setIsReadinessFilterOpen(false); }}>
+        <div className="succession-readiness-dialog__content">
+          <header>
+            <div>
+              <span>Successor {readinessSelection?.successor}</span>
+              <h2>{readinessSelection?.category ?? "Readiness details"}</h2>
+              <p>{visibleAssignments.length.toLocaleString("en-US")} of {selectedAssignments.length.toLocaleString("en-US")} assignment{selectedAssignments.length === 1 ? "" : "s"}</p>
+            </div>
+            <div className="succession-readiness-dialog__actions">
+              <button
+                className="a-button a-button--integrated"
+                type="button"
+                aria-label={`${isReadinessFilterOpen ? "Hide" : "Show"} assignment filter${readinessSearch ? " (active)" : ""}`}
+                aria-controls="succession-readiness-filter"
+                aria-expanded={isReadinessFilterOpen}
+                title="Filter assignments"
+                onClick={() => setIsReadinessFilterOpen((open) => !open)}
+              >
+                <i className={`a-icon a-button__icon boschicon-bosch-ic-filter${readinessSearch ? "-success" : ""}`} aria-hidden="true" />
+              </button>
+              <button className="a-button a-button--integrated" type="button" aria-label="Close readiness details" onClick={() => readinessDialogRef.current?.close()}>
+                <i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" />
+              </button>
+            </div>
+          </header>
+          {isReadinessFilterOpen && (
+            <div className="succession-readiness-dialog__filter" id="succession-readiness-filter">
+              <label htmlFor="succession-readiness-search">Filter assignments</label>
+              <input
+                id="succession-readiness-search"
+                type="search"
+                value={readinessSearch}
+                placeholder="Search employee, department or JD"
+                onChange={(event) => setReadinessSearch(event.target.value)}
+              />
+            </div>
+          )}
+          {visibleAssignments.length ? (
+            <div className="succession-readiness-dialog__table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Employee No.</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Department</th>
+                    <th scope="col">Current JDID</th>
+                    <th scope="col">Target JDID</th>
+                    <th scope="col">Target JD Name</th>
+                    <th scope="col">9 Box Rating</th>
+                    <th scope="col">IDP Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleAssignments.map((assignment) => (
+                    <tr key={assignment.key}>
+                      <td>{assignment.personnelNumber}</td>
+                      <td>{assignment.name}</td>
+                      <td>{assignment.department}</td>
+                      <td>{assignment.currentJdId}</td>
+                      <td>{assignment.targetJdId}</td>
+                      <td>{assignment.targetJdName}</td>
+                      <td>{assignment.rating}</td>
+                      <td>{assignment.idpStatus}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="succession-readiness-dialog__empty">No matching successor assignments.</p>}
+        </div>
+      </dialog>
     </main>
   );
 }

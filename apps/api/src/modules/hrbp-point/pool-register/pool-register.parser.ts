@@ -149,7 +149,7 @@ export function validatePoolRows(
       issues.push({
         column: 'pers_no',
         message:
-          'Duplicate personnel number in this register. Edit or delete the duplicate row.',
+          'Duplicate personnel number in this dataset. Edit or delete the duplicate row.',
         severity: 'error',
       });
     const employee = employees.get(row.values.pers_no);

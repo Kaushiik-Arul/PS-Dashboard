@@ -36,7 +36,7 @@ export async function forwardPool(path: string, init: RequestInit = {}) {
     throw new PoolApiError(
       Array.isArray(body?.message)
         ? body.message.join(" ")
-        : body?.message || "Pool register request failed.",
+        : body?.message || "Pool data request failed.",
       response.status,
       body?.issues,
     );
@@ -50,7 +50,7 @@ export function poolError(error: unknown) {
       { status: error.status },
     );
   return Response.json(
-    { message: "Unable to load Pool register." },
+    { message: "Unable to load pool data." },
     { status: 500 },
   );
 }

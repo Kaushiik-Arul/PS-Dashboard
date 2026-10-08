@@ -9,7 +9,8 @@ import { UserProfile } from "./UserProfile";
 import { useEffect, useState, type ReactNode } from "react";
 
 const navigationItems = [
-  { href: "/", label: "Demographics", icon: "boschicon-bosch-ic-home" },
+  { href: "/overview", label: "Overview", icon: "boschicon-bosch-ic-home" },
+  { href: "/", label: "Demographics", icon: "boschicon-bosch-ic-chart-bar" },
   {
     href: "/employee-360",
     label: "Employee 360",
@@ -17,7 +18,7 @@ const navigationItems = [
   },
   {
     href: "/talent-pipeline",
-    label: "Talent Pipeline",
+    label: "Talent Landscape",
     icon: "boschicon-bosch-ic-people",
   },
   {
@@ -39,6 +40,16 @@ const navigationItems = [
     href: "/access-point",
     label: "Access Point",
     icon: "boschicon-bosch-ic-keys-user-access",
+  },
+  {
+    href: "/mrm",
+    label: "MRM",
+    icon: "boschicon-bosch-ic-calendar",
+  },
+  {
+    href: "/org-structure",
+    label: "Org Structure",
+    icon: "boschicon-bosch-ic-hierarchy",
   },
 ];
 
@@ -76,6 +87,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     return <main className="auth-loading">Password change required...</main>;
   }
   const visibleNavigationItems = navigationItems.filter((item) => {
+    if (item.href === "/overview") {
+      return hasPermission(role, "viewCustomOverview");
+    }
+
     if (item.href === "/employee-360") {
       return hasPermission(role, "viewEmployee360");
     }

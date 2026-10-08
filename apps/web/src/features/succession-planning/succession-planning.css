@@ -126,6 +126,119 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.succession-readiness-card {
+  cursor: pointer;
+  min-width: 0;
+  outline-offset: 0.1875rem;
+}
+
+.succession-readiness-card .kpi-card {
+  height: 100%;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.succession-readiness-card:hover .kpi-card,
+.succession-readiness-card:focus-visible .kpi-card {
+  border-color: var(--accent-major__enabled__default__fill);
+  box-shadow: 0 0.25rem 0.75rem rgb(0 0 0 / 14%);
+}
+
+.succession-readiness-dialog {
+  border: 0;
+  box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 25%);
+  max-height: calc(100dvh - 2rem);
+  max-width: 76rem;
+  padding: 0;
+  width: calc(100% - 2rem);
+}
+
+.succession-readiness-dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.succession-readiness-dialog__content > header {
+  align-items: flex-start;
+  border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+}
+
+.succession-readiness-dialog__content > header span,
+.succession-readiness-dialog__content > header p {
+  color: var(--base-major__enabled__default__fill);
+  font-size: 0.75rem;
+}
+
+.succession-readiness-dialog__content > header h2,
+.succession-readiness-dialog__content > header p {
+  margin: 0;
+}
+
+.succession-readiness-dialog__actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.succession-readiness-dialog__filter {
+  border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 1.25rem;
+}
+
+.succession-readiness-dialog__filter label {
+  color: var(--base-major__enabled__default__fill);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.succession-readiness-dialog__filter input {
+  background: var(--background);
+  border: var(--app-border-width) solid var(--base-major__enabled__default__fill);
+  font: inherit;
+  min-height: 2.5rem;
+  padding-inline: 0.75rem;
+  width: 100%;
+}
+
+.succession-readiness-dialog__table-wrap {
+  max-height: calc(100dvh - 14rem);
+  overflow: auto;
+}
+
+.succession-readiness-dialog table {
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  min-width: 64rem;
+  width: 100%;
+}
+
+.succession-readiness-dialog th,
+.succession-readiness-dialog td {
+  border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+  padding: 0.75rem;
+  text-align: start;
+  vertical-align: top;
+}
+
+.succession-readiness-dialog thead th {
+  background: var(--base-minor__enabled__default__fill);
+  color: var(--base-major__enabled__default__fill);
+  font-size: 0.6875rem;
+  position: sticky;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 1;
+}
+
+.succession-readiness-dialog__empty {
+  color: var(--base-major__enabled__default__fill);
+  margin: 0;
+  padding: 1.5rem 1.25rem;
+}
+
 .succession-planning-charts {
   align-items: start;
 }

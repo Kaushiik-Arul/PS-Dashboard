@@ -42,7 +42,7 @@ export function PoolRegisterTable({
           setError(
             reason instanceof Error
               ? reason.message
-              : "Could not load register.",
+              : "Could not load data.",
           );
           setLoaded(true);
         }
@@ -102,7 +102,7 @@ export function PoolRegisterTable({
       {error && <p role="alert">{error}</p>}
       <DataTable
         title={poolTitles[kind]}
-        description="Current register · dates shown as YYYY-MM-DD"
+        description="Current data · dates shown as YYYY-MM-DD"
         columns={columns}
         rows={rows}
         getRowKey={(row) => row.id}

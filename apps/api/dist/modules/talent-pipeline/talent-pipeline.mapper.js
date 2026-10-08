@@ -3,26 +3,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.mapTalentPipelineResponse = mapTalentPipelineResponse;
 function record(value, field) {
     if (!value || typeof value !== 'object' || Array.isArray(value))
-        throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+        throw new Error(`Talent Landscape result contains an invalid ${field}`);
     return value;
 }
 function array(value, field) {
     if (!Array.isArray(value))
-        throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+        throw new Error(`Talent Landscape result contains an invalid ${field}`);
     return value;
 }
 function string(value, field) {
     if (typeof value !== 'string' || !value)
-        throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+        throw new Error(`Talent Landscape result contains an invalid ${field}`);
     return value;
 }
 function number(value, field) {
     if (typeof value !== 'number' || !Number.isFinite(value))
-        throw new Error(`Talent Pipeline result contains an invalid ${field}`);
+        throw new Error(`Talent Landscape result contains an invalid ${field}`);
     return value;
 }
 function nullableNumber(value, field) {
     return value === null ? null : number(value, field);
+}
+function optionalNullableNumber(value, field) {
+    return value === undefined ? null : nullableNumber(value, field);
 }
 function kpi(value, field, hasPercentage = false) {
     const source = record(value, field);
@@ -57,6 +60,7 @@ function mapTalentPipelineResponse(value) {
     const expiring = record(kpis.talent_pool_expiring, 'kpis.talent_pool_expiring');
     return {
         asOfDate: string(kpis.as_of_date, 'kpis.as_of_date'),
+        workforceHeadcount: optionalNullableNumber(dashboard.workforceHeadcount, 'workforceHeadcount'),
         kpis: {
             totalTalentPool: kpi(kpis.total_talent_pool, 'kpis.total_talent_pool'),
             activeTalentPool: kpi(kpis.active_talent_pool, 'kpis.active_talent_pool', true),

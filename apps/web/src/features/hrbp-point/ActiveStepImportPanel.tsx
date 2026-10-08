@@ -80,7 +80,7 @@ export function ActiveStepImportPanel() {
   const visibleColumns = stepColumns.filter(([key]) => key !== 'sl_no');
   return <>
     <section className="namelist-panel" aria-labelledby="active-step-import-title">
-      <div className="namelist-panel__header"><div><p className="namelist-panel__eyebrow">Talent pipeline</p><h2 id="active-step-import-title">Active STEP upload</h2><p>Preview the STEP workbook before replacing all current Active STEP rows.</p></div></div>
+      <div className="namelist-panel__header"><div><p className="namelist-panel__eyebrow">Talent Landscape</p><h2 id="active-step-import-title">Active STEP upload</h2><p>Preview the STEP workbook before replacing all current Active STEP rows.</p></div></div>
       <div className="namelist-panel__body"><div className="namelist-upload"><i className="a-icon boschicon-bosch-ic-upload" aria-hidden="true" /><div><strong>Select STEP workbook</strong><p>XLSX · 50 MB maximum · 25,000 rows</p></div><input ref={fileRef} id="active-step-file" className="visually-hidden" type="file" accept=".xlsx" onChange={chooseFile} /><label className="a-button a-button--secondary" htmlFor="active-step-file"><span className="a-button__label">Choose file</span></label></div>
       {file && <div className="namelist-file"><span><strong>{file.name}</strong></span><button type="button" className="a-button a-button--primary" disabled={busy} onClick={() => void upload()}><span className="a-button__label">{busy ? 'Preparing...' : 'Upload and preview'}</span></button></div>}
       {message && <p className="namelist-panel__message" role="status">{message}</p>}</div>

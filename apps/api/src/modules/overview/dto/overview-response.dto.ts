@@ -129,3 +129,35 @@ export class OverviewResponseDto {
   @ApiProperty({ type: OverviewFilterOptionsDto })
   filterOptions!: OverviewFilterOptionsDto;
 }
+
+export class OverviewEmployeeDetailDto {
+  @ApiProperty()
+  personnelNumber!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  functionName!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  orgUnit!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  range!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  location!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  gender!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  directOrIndirect!: string | null;
+
+  @ApiProperty({ nullable: true, type: Number })
+  ageYears!: number | null;
+
+  @ApiProperty({ nullable: true, type: Number })
+  tenureYears!: number | null;
+
+  @ApiProperty({ nullable: true, type: String, format: 'date' })
+  retirementDate!: string | null;
+}

@@ -22,11 +22,15 @@ export interface KpiMetric {
 
 interface KpiCardProps {
   metric: KpiMetric;
+  sourceLabel?: string;
+  contextLabel?: string;
 }
 
-export function KpiCard({ metric }: KpiCardProps) {
+export function KpiCard({ metric, sourceLabel, contextLabel }: KpiCardProps) {
   return (
-    <article className={`kpi-card kpi-card--${metric.iconColor ?? "blue"}`}>
+    <article className={`kpi-card kpi-card--${metric.iconColor ?? "blue"}${sourceLabel ? " kpi-card--with-source" : ""}`}>
+      {sourceLabel && <span className="kpi-card__source">{sourceLabel}</span>}
+      {contextLabel && <span className="kpi-card__context">{contextLabel}</span>}
       <div className="kpi-card__body">
         <div className={`kpi-card__icon kpi-card__icon--${metric.iconColor ?? "blue"}`}>
           <i className={`a-icon ${metric.icon}`} aria-hidden="true" />

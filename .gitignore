@@ -57,6 +57,7 @@ next-env.d.ts
 !apps/sql/dashboard_json_snapshots_migration.sql
 !apps/sql/attrition_import_migration.sql
 !apps/sql/employee_headcount_org_unit_migration.sql
+!apps/sql/account_dashboard_preferences_migration.sql
 !apps/sql/rbin_namelist_creation.sql
 !apps/sql/rbin_cleaning_migration.sql
 !apps/sql/rbin_employee_exceptions_migration.sql

@@ -184,6 +184,7 @@ __decorate([
 ], TalentPipelineFilterOptionsDto.prototype, "directOrIndirect", void 0);
 class TalentPipelineResponseDto {
     asOfDate;
+    workforceHeadcount;
     kpis;
     charts;
     filterOptions;
@@ -193,6 +194,10 @@ __decorate([
     (0, swagger_1.ApiProperty)({ format: 'date' }),
     __metadata("design:type", String)
 ], TalentPipelineResponseDto.prototype, "asOfDate", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: Number, nullable: true }),
+    __metadata("design:type", Object)
+], TalentPipelineResponseDto.prototype, "workforceHeadcount", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ type: TalentPipelineKpisDto }),
     __metadata("design:type", TalentPipelineKpisDto)

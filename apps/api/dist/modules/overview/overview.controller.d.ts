@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '../auth/auth.types';
-import { OverviewResponseDto } from './dto/overview-response.dto';
-import { OverviewFilterDto } from './dto/overview-filter.dto';
+import { OverviewEmployeeDetailDto, OverviewResponseDto } from './dto/overview-response.dto';
+import { OverviewDetailsFilterDto, OverviewFilterDto } from './dto/overview-filter.dto';
 import { OverviewService } from './overview.service';
 export declare class OverviewController {
     private readonly service;
@@ -11,5 +11,6 @@ export declare class OverviewController {
     }>;
     getArchivedMonths(): Promise<string[]>;
     getArchivedOverview(reportingMonth: string): Promise<OverviewResponseDto>;
+    getOverviewDetails(filters: OverviewDetailsFilterDto, user: AuthenticatedUser): Promise<OverviewEmployeeDetailDto[]>;
     getOverview(filters: OverviewFilterDto, user: AuthenticatedUser): Promise<OverviewResponseDto>;
 }

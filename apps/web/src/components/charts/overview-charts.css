@@ -39,6 +39,10 @@
   padding: 1.5rem;
 }
 
+.chart-card--with-source {
+  padding-block-start: 2rem;
+}
+
 .chart-card--wide .chart-card__title {
   font: var(--sem__typography__bold__l);
 }
@@ -79,6 +83,20 @@
   font-size: 1rem;
   line-height: 1.5rem;
   margin: 0;
+}
+
+.chart-card__source {
+  color: var(--base-major__enabled__default__fill);
+  display: block;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  inset-block-start: 0.5rem;
+  inset-inline-end: 1rem;
+  letter-spacing: 0;
+  line-height: 0.75rem;
+  position: absolute;
+  text-align: end;
+  text-transform: uppercase;
 }
 
 .chart-card__description {

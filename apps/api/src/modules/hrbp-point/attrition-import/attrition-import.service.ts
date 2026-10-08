@@ -272,7 +272,7 @@ export class AttritionImportService {
       const preview = await this.previewLock(client, actor, id);
       if (preview.base_revision !== revision)
         throw new ConflictException(
-          'The register changed after this preview. Upload the workbook again.',
+          'The Attrition data changed after this preview. Upload the workbook again.',
         );
       const rows = await this.validatedRows(client, id);
       if (!rows.length)

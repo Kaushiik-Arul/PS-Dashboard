@@ -9,8 +9,20 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OverviewFilterDto = void 0;
+exports.OverviewDetailsFilterDto = exports.OverviewFilterDto = exports.overviewDetailMetrics = void 0;
 const swagger_1 = require("@nestjs/swagger");
+exports.overviewDetailMetrics = [
+    'total-hc',
+    'direct-hc',
+    'indirect-hc',
+    'female-pct',
+    'avg-age',
+    'avg-tenure',
+    'ret-3yrs',
+    'maternity',
+    'sabbatical',
+    'crl',
+];
 class OverviewFilterDto {
     reportingMonth;
     functionName;
@@ -49,4 +61,12 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)(),
     __metadata("design:type", String)
 ], OverviewFilterDto.prototype, "directOrIndirect", void 0);
+class OverviewDetailsFilterDto extends OverviewFilterDto {
+    metric;
+}
+exports.OverviewDetailsFilterDto = OverviewDetailsFilterDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: exports.overviewDetailMetrics }),
+    __metadata("design:type", String)
+], OverviewDetailsFilterDto.prototype, "metric", void 0);
 //# sourceMappingURL=overview-filter.dto.js.map

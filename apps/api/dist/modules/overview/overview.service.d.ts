@@ -1,5 +1,6 @@
 import { OverviewResponseDto } from './dto/overview-response.dto';
-import { type OverviewFilterDto } from './dto/overview-filter.dto';
+import { type OverviewDetailsFilterDto, type OverviewFilterDto } from './dto/overview-filter.dto';
+import type { OverviewEmployeeDetailDto } from './dto/overview-response.dto';
 import { OverviewRepository } from './overview.repository';
 export declare class OverviewService {
     private readonly repository;
@@ -12,6 +13,7 @@ export declare class OverviewService {
     getArchivedMonths(): Promise<string[]>;
     getArchivedOverview(reportingMonthInput: string): Promise<OverviewResponseDto>;
     getOverview(filters: OverviewFilterDto, accountId: string): Promise<OverviewResponseDto>;
+    getOverviewDetails(filters: OverviewDetailsFilterDto, accountId: string): Promise<OverviewEmployeeDetailDto[]>;
     private normalizeFilters;
     private normalizeReportingMonth;
 }

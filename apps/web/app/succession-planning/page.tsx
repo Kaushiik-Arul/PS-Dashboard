@@ -49,7 +49,7 @@ export default async function SuccessionPlanningPage({ searchParams }: Props) {
       <h1>Succession Planning data could not be loaded</h1>
       <p>Confirm the API service and database migration are available, then reload this page.</p>
       <Link className="a-button a-button--primary" href="/succession-planning">
-        <span className="a-button__label">Reload register</span>
+        <span className="a-button__label">Reload page</span>
       </Link>
     </main>;
   }

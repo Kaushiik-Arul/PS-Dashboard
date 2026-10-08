@@ -88,7 +88,7 @@ export function PoolRegisterManagement({ kind }: { kind: PoolKind }) {
       setMessage(
         result.issues.length
           ? `Saved with ${result.issues.length} namelist warning(s). Entered values were retained.`
-          : "Register row saved.",
+          : "Row saved.",
       );
     } catch (error) {
       setMessage(
@@ -108,7 +108,7 @@ export function PoolRegisterManagement({ kind }: { kind: PoolKind }) {
       deletion.current?.close();
       setPendingDelete(null);
       changed();
-      setMessage("Register row deleted.");
+      setMessage("Row deleted.");
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not delete row.",
@@ -256,7 +256,7 @@ export function PoolRegisterManagement({ kind }: { kind: PoolKind }) {
           if (busy) event.preventDefault();
         }}
       >
-        <h2>Delete register row?</h2>
+        <h2>Delete row?</h2>
         <p>
           Remove {pendingDelete?.employee_name} ({pendingDelete?.pers_no}) from{" "}
           {title}?

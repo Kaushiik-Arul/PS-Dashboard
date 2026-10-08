@@ -8,8 +8,8 @@ import {
 import { RequirePermission } from '../../common/authorization/require-permission.decorator';
 import { CurrentUser } from '../auth/auth.decorators';
 import type { AuthenticatedUser } from '../auth/auth.types';
-import { OverviewResponseDto } from './dto/overview-response.dto';
-import { OverviewFilterDto } from './dto/overview-filter.dto';
+import { OverviewEmployeeDetailDto, OverviewResponseDto } from './dto/overview-response.dto';
+import { OverviewDetailsFilterDto, OverviewFilterDto } from './dto/overview-filter.dto';
 import { OverviewService } from './overview.service';
 
 @ApiTags('Overview')
@@ -39,6 +39,17 @@ export class OverviewController {
   @ApiOperation({ summary: 'Fetch an HRBP-only archived Overview snapshot' })
   getArchivedOverview(@Param('reportingMonth') reportingMonth: string): Promise<OverviewResponseDto> {
     return this.service.getArchivedOverview(reportingMonth);
+  }
+
+  @Get('details')
+  @Header('Cache-Control', 'no-store')
+  @ApiOperation({ summary: 'Fetch employees represented by an Overview KPI' })
+  @ApiOkResponse({ type: [OverviewEmployeeDetailDto] })
+  getOverviewDetails(
+    @Query() filters: OverviewDetailsFilterDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<OverviewEmployeeDetailDto[]> {
+    return this.service.getOverviewDetails(filters, user.accountId);
   }
 
   @Get()

@@ -184,7 +184,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], PoolRegisterController.prototype, "commit", null);
 exports.PoolRegisterController = PoolRegisterController = __decorate([
-    (0, swagger_1.ApiTags)('Pool registers'),
+    (0, swagger_1.ApiTags)('Pool data'),
     (0, common_1.Controller)('hrbp-point/pool-registers/:kind'),
     __metadata("design:paramtypes", [pool_register_service_1.PoolRegisterService])
 ], PoolRegisterController);

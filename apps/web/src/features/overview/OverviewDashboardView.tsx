@@ -64,8 +64,8 @@ const chartColors = [
 
 const overviewFilterFields: readonly DashboardFilterKey[] = [
   "functionName",
-  "orgUnit",
   "range",
+  "orgUnit",
   "location",
   "gender",
   "employmentType",

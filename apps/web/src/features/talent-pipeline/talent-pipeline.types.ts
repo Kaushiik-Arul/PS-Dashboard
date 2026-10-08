@@ -34,6 +34,7 @@ export type TalentPipelineFilterOptions = {
 
 export type TalentPipelineResponse = {
   asOfDate: string;
+  workforceHeadcount: number | null;
   kpis: {
     totalTalentPool: TalentPipelineKpiValue;
     activeTalentPool: TalentPipelineKpiValue;
@@ -63,3 +64,5 @@ export type TalentPipelineResponse = {
 export type TalentPipelineHistoryState = {
   snapshotMonths: string[];
 };
+
+export type TalentPipelineView = "talent-pool" | "development-pool";

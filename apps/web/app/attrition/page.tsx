@@ -27,7 +27,7 @@ export default async function AttritionPage({ searchParams }: Props) {
       <strong className="error-page__code">500</strong>
       <h1>Attrition data could not be loaded</h1>
       <p>Confirm the API service and Attrition migration are available, then reload this page.</p>
-      <Link className="a-button a-button--primary" href="/attrition"><span className="a-button__label">Reload register</span></Link>
+      <Link className="a-button a-button--primary" href="/attrition"><span className="a-button__label">Reload page</span></Link>
     </main>;
   }
 }

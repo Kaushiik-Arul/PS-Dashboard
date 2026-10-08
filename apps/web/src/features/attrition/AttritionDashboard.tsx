@@ -182,7 +182,7 @@ export function AttritionDashboard({
     { label: "of total Attrition", value: percentage(value, data.kpis.total) },
   ];
   const kpis: KpiMetric[] = [
-    { id: "total-attrition", title: "Total Attrition", value: String(data.kpis.total), comparisonItems: comparisonItems(data.kpis.total), icon: "boschicon-bosch-ic-people", iconColor: "blue" },
+    { id: "total-attrition", title: "Total Attrition", value: String(data.kpis.total), comparisonItems: [{ label: "of average headcount", value: headcountPercentage(data.kpis.total) }], icon: "boschicon-bosch-ic-people", iconColor: "blue" },
     { id: "resignations", title: "Resignations", value: String(data.kpis.resignations), comparisonItems: comparisonItems(data.kpis.resignations), icon: "boschicon-bosch-ic-exit", iconColor: "orange" },
     { id: "transfers", title: "Transfers", value: String(data.kpis.transfers), comparisonItems: comparisonItems(data.kpis.transfers), icon: "boschicon-bosch-ic-replace", iconColor: "purple" },
     { id: "retirements", title: "Retirements", value: String(data.kpis.retirements), comparisonItems: comparisonItems(data.kpis.retirements), icon: "boschicon-bosch-ic-calendar", iconColor: "green" },
@@ -236,7 +236,7 @@ export function AttritionDashboard({
       {(isLoadingOptions || isFiltering) && <p className="overview-page__filtering" role="status">{isFiltering ? "Updating dashboard..." : "Updating filter choices..."}</p>}
 
       <section className="kpi-section attrition-summary" aria-labelledby="attrition-summary-title">
-        <div className="kpi-section__header"><div><h2 className="kpi-section__title" id="attrition-summary-title">Attrition in {data.selectedYear}</h2><p className="kpi-section__description">Filtered totals from the current Attrition register</p></div></div>
+        <div className="kpi-section__header"><div><h2 className="kpi-section__title" id="attrition-summary-title">Attrition in {data.selectedYear}</h2><p className="kpi-section__description">Filtered totals from the current Attrition data</p></div></div>
         <KpiGrid>{kpis.map((kpi) => <KpiCard key={kpi.id} metric={kpi} />)}</KpiGrid>
       </section>
 
@@ -248,8 +248,8 @@ export function AttritionDashboard({
         </div>
       </section>
 
-      <section className="dashboard-section" aria-label="Attrition register">
-        <DataTable title="Attrition Register" description={importDescription(data)} columns={columns} rows={data.rows} getRowKey={(row) => row.id} downloadFileName="attrition-register" pageSizeOptions={[10, 25, 50]} defaultPageSize={25} groupFilters groupedHeaders neutralAppearance />
+      <section className="dashboard-section" aria-label="Attrition records">
+        <DataTable title="Attrition records" description={importDescription(data)} columns={columns} rows={data.rows} getRowKey={(row) => row.id} downloadFileName="attrition-register" pageSizeOptions={[10, 25, 50]} defaultPageSize={25} groupFilters groupedHeaders neutralAppearance />
       </section>
     </main>
   );

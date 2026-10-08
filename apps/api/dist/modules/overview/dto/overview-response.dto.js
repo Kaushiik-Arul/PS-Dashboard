@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OverviewResponseDto = exports.OverviewFilterOptionsDto = exports.OverviewChartsDto = exports.RetirementRiskRowDto = exports.DistributionChartDto = exports.ChartDatumDto = exports.OverviewKpisDto = exports.KpiValueDto = void 0;
+exports.OverviewEmployeeDetailDto = exports.OverviewResponseDto = exports.OverviewFilterOptionsDto = exports.OverviewChartsDto = exports.RetirementRiskRowDto = exports.DistributionChartDto = exports.ChartDatumDto = exports.OverviewKpisDto = exports.KpiValueDto = void 0;
 const swagger_1 = require("@nestjs/swagger");
 class KpiValueDto {
     value;
@@ -225,4 +225,57 @@ __decorate([
     (0, swagger_1.ApiProperty)({ type: OverviewFilterOptionsDto }),
     __metadata("design:type", OverviewFilterOptionsDto)
 ], OverviewResponseDto.prototype, "filterOptions", void 0);
+class OverviewEmployeeDetailDto {
+    personnelNumber;
+    functionName;
+    orgUnit;
+    range;
+    location;
+    gender;
+    directOrIndirect;
+    ageYears;
+    tenureYears;
+    retirementDate;
+}
+exports.OverviewEmployeeDetailDto = OverviewEmployeeDetailDto;
+__decorate([
+    (0, swagger_1.ApiProperty)(),
+    __metadata("design:type", String)
+], OverviewEmployeeDetailDto.prototype, "personnelNumber", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: String }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "functionName", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: String }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "orgUnit", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: String }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "range", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: String }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "location", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: String }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "gender", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: String }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "directOrIndirect", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: Number }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "ageYears", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: Number }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "tenureYears", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ nullable: true, type: String, format: 'date' }),
+    __metadata("design:type", Object)
+], OverviewEmployeeDetailDto.prototype, "retirementDate", void 0);
 //# sourceMappingURL=overview-response.dto.js.map

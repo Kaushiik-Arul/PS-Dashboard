@@ -44,6 +44,7 @@ export declare class TalentPipelineFilterOptionsDto {
 }
 export declare class TalentPipelineResponseDto {
     asOfDate: string;
+    workforceHeadcount: number | null;
     kpis: TalentPipelineKpisDto;
     charts: TalentPipelineChartsDto;
     filterOptions: TalentPipelineFilterOptionsDto;

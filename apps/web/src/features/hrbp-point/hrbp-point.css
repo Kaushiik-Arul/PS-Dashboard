@@ -722,6 +722,27 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
   border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill);
 }
 
+.hrbp-register-management {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hrbp-register-management__item {
+  min-width: 0;
+}
+
+.hrbp-register-management__item + .hrbp-register-management__item {
+  border-inline-start: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+}
+
+.hrbp-register-management__item > .hrbp-page__heading {
+  border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+}
+
+.hrbp-register-management__item > .hrbp-pool-registers {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .hrbp-pool-registers,
 .pool-management {
   display: grid;
@@ -759,6 +780,15 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 @media (max-width: 900px) {
   .hrbp-pool-registers {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hrbp-register-management {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hrbp-register-management__item + .hrbp-register-management__item {
+    border-block-start: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+    border-inline-start: 0;
   }
 }
 

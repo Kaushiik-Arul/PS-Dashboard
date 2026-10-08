@@ -52,3 +52,15 @@ export declare class OverviewResponseDto {
     charts: OverviewChartsDto;
     filterOptions: OverviewFilterOptionsDto;
 }
+export declare class OverviewEmployeeDetailDto {
+    personnelNumber: string;
+    functionName: string | null;
+    orgUnit: string | null;
+    range: string | null;
+    location: string | null;
+    gender: string | null;
+    directOrIndirect: string | null;
+    ageYears: number | null;
+    tenureYears: number | null;
+    retirementDate: string | null;
+}

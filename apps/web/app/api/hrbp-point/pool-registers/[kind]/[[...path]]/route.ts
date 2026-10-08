@@ -6,7 +6,7 @@ type Context = { params: Promise<{ kind: string; path?: string[] }> };
 async function handle(request: Request, context: Context) {
   const { kind, path = [] } = await context.params;
   if (!["development", "talent"].includes(kind))
-    return Response.json({ message: "Unknown register." }, { status: 404 });
+    return Response.json({ message: "Unknown pool type." }, { status: 404 });
   const suffix = path.join("/");
   const allowed =
     suffix === "" ||
@@ -15,7 +15,7 @@ async function handle(request: Request, context: Context) {
     /^previews(?:\/[a-f0-9-]+(?:\/(?:commit|rows(?:\/\d+)?))?)?$/i.test(suffix);
   if (!allowed)
     return Response.json(
-      { message: "Unknown register endpoint." },
+      { message: "Unknown data endpoint." },
       { status: 404 },
     );
   try {

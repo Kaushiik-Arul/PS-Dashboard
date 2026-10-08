@@ -31,7 +31,7 @@ async function request(kind: PoolKind, path: string, init?: RequestInit) {
       issues?: PoolIssue[];
     } | null;
     throw new PoolRequestError(
-      body?.message ?? "Pool register request failed.",
+      body?.message ?? "Pool data request failed.",
       body?.issues,
     );
   }

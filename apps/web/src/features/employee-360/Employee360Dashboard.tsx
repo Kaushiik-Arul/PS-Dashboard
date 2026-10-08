@@ -21,7 +21,7 @@ import "./employee-360.css";
 type Employee360TableRow = Employee360Row & { viewProfile: string };
 
 const filterFields = [
-  "functionName", "orgUnit", "range", "location", "gender", "employmentType",
+  "functionName", "range", "orgUnit", "location", "gender", "employmentType",
 ] as const satisfies readonly DashboardFilterKey[];
 
 const filterLabels: Record<(typeof filterFields)[number], string> = {

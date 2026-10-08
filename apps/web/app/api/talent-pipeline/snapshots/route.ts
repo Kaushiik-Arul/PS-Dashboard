@@ -19,6 +19,6 @@ export async function POST(request: Request) {
     if (error instanceof TalentPipelineApiError) {
       return Response.json({ message: error.message }, { status: error.status });
     }
-    return Response.json({ message: "Unable to save Talent Pipeline snapshot" }, { status: 500 });
+    return Response.json({ message: "Unable to save Talent Landscape snapshot" }, { status: 500 });
   }
 }

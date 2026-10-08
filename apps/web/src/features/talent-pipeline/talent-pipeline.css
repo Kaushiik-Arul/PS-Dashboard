@@ -1,3 +1,79 @@
+.talent-pipeline-tabs {
+  border-bottom: var(--app-border-width) solid var(--base-major__disabled__default__fill);
+  display: flex;
+  gap: 1.5rem;
+  margin-block-end: var(--app-space-4);
+  overflow-x: auto;
+}
+
+.talent-pipeline-tabs__link {
+  align-items: center;
+  border-bottom: 0.1875rem solid transparent;
+  color: var(--base-major__enabled__default__fill);
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 700;
+  gap: 0.5rem;
+  line-height: 1.5rem;
+  padding: 0.75rem 0.25rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.talent-pipeline-tabs__link .a-icon {
+  color: inherit;
+  font-size: 1.25rem;
+}
+
+.talent-pipeline-tabs__link:hover {
+  color: var(--accent-major__enabled__default__fill);
+}
+
+.talent-pipeline-tabs__link[aria-current="page"] {
+  border-bottom-color: var(--accent-major__enabled__default__fill);
+  color: var(--accent-major__enabled__default__fill);
+}
+
+.talent-pipeline-tabs__link:focus-visible {
+  outline: 0.125rem solid var(--accent-major__enabled__default__fill);
+  outline-offset: -0.125rem;
+}
+
+.talent-pipeline-page .kpi-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.talent-pipeline-page .kpi-card__comparison-item {
+  padding-inline: 0.375rem;
+}
+
+.talent-pipeline-page .kpi-card__comparison-item span {
+  overflow-wrap: normal;
+}
+
+.talent-pipeline-page .kpi-card__comparison-item:only-child {
+  align-items: baseline;
+  display: flex;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.talent-pipeline-page .kpi-card__comparison-item:only-child span {
+  margin-block-start: 0;
+}
+
+@media (max-width: 1195px) {
+  .talent-pipeline-page .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .talent-pipeline-page .kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .talent-history-menu {
   position: relative;
 }
@@ -112,7 +188,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-/* Talent pipeline table layout */
+/* Talent Landscape table layout */
 
 .talent-register-section {
   margin-block-start: var(--app-space-4);

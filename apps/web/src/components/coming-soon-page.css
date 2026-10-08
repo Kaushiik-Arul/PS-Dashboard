@@ -1,0 +1,24 @@
+.coming-soon-page {
+  align-items: center;
+  display: grid;
+  min-height: calc(100vh - var(--app-header-height, 4rem));
+  padding: var(--app-space-4);
+  text-align: center;
+}
+
+.coming-soon-page__icon {
+  color: var(--accent-major__enabled__default__fill);
+  font-size: 3rem;
+}
+
+.coming-soon-page h1 {
+  color: var(--plain-pure__enabled__default__front);
+  font-size: 1.5rem;
+  line-height: 2rem;
+  margin: 1rem 0 0;
+}
+
+.coming-soon-page p {
+  color: var(--base-major__enabled__default__fill);
+  margin: 0.5rem 0 0;
+}

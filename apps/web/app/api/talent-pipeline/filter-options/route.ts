@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     return Response.json((await getTalentPipeline(filters)).filterOptions);
   } catch {
     return Response.json(
-      { message: 'Unable to load Talent Pipeline filter options' },
+      { message: 'Unable to load Talent Landscape filter options' },
       { status: 500 },
     );
   }

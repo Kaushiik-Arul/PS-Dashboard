@@ -172,11 +172,10 @@ export function PoolImportPanel({
       >
         <div className="namelist-panel__header">
           <div>
-            <p className="namelist-panel__eyebrow">Talent pipeline</p>
+            <p className="namelist-panel__eyebrow">Talent Landscape</p>
             <h2 id={`${kind}-import-title`}>{title} upload</h2>
             <p>
-              Preview the workbook before replacing every current row in this
-              register.
+              Preview the workbook before replacing all current pool data.
             </p>
           </div>
         </div>

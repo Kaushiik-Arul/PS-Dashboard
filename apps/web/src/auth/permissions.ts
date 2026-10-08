@@ -10,7 +10,8 @@ export type Permission =
   | "viewTalentPipeline"
   | "successionPlanningPoint"
   | "attritionPoint"
-  | "manageAccessPoint";
+  | "manageAccessPoint"
+  | "viewCustomOverview";
 
 export const permissions: Record<Permission, readonly UserRole[]> = {
   exportCharts: ["hrbp"],
@@ -23,6 +24,7 @@ export const permissions: Record<Permission, readonly UserRole[]> = {
   successionPlanningPoint: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   attritionPoint: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   manageAccessPoint: ["hrbp"],
+  viewCustomOverview: ["hrbp", "admin"],
 };
 
 export function hasPermission(

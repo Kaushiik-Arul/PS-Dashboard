@@ -66,7 +66,7 @@ export class PoolRegisterService {
   constructor(private readonly database: DatabaseService) {}
   kind(value: string): PoolKind {
     if (value !== 'development' && value !== 'talent')
-      throw new BadRequestException('Unknown pool register.');
+      throw new BadRequestException('Unknown pool type.');
     return value;
   }
   private uuid(id: string) {
@@ -167,11 +167,11 @@ export class PoolRegisterService {
       );
       if (duplicate.rowCount)
         throw new ConflictException({
-          message: 'This personnel number already exists in this register.',
+          message: 'This personnel number already exists in this dataset.',
           issues: [
             {
               column: 'pers_no',
-              message: 'Duplicate personnel number in this register.',
+              message: 'Duplicate personnel number in this dataset.',
               severity: 'error',
             },
           ],
@@ -190,7 +190,7 @@ export class PoolRegisterService {
           [...parameters, actor, id],
         );
         if (!result.rows.length)
-          throw new NotFoundException('Register row was not found.');
+          throw new NotFoundException('Row was not found.');
         saved = result.rows[0].id;
       } else {
         const result = await client.query<{ id: string }>(
@@ -215,7 +215,7 @@ export class PoolRegisterService {
         [id],
       );
       if (!result.rowCount)
-        throw new NotFoundException('Register row was not found.');
+        throw new NotFoundException('Row was not found.');
       await this.bump(client, kind);
     });
   }
@@ -385,7 +385,7 @@ export class PoolRegisterService {
   async commit(kind: PoolKind, actor: string, id: string, confirmed: unknown) {
     if (confirmed !== true)
       throw new BadRequestException(
-        'Confirm replacement of every current row in this register.',
+        'Confirm replacement of all current pool data.',
       );
     return this.database.transaction(async (client) => {
       const storage = registerStorage[kind];
@@ -393,12 +393,12 @@ export class PoolRegisterService {
       const preview = await this.previewLock(client, kind, actor, id);
       if (preview.base_revision !== revision)
         throw new ConflictException(
-          'This register changed after preview. Upload the workbook again before replacing it.',
+          'This pool data changed after preview. Upload the workbook again before replacing it.',
         );
       const rows = await this.validatedRows(client, kind, id);
       if (!rows.length || rows.some((row) => hasErrors(row.issues)))
         throw new ConflictException(
-          'Correct the invalid rows before replacing this register.',
+          'Correct the invalid rows before replacing the current pool data.',
         );
       const existing = await client.query<{ count: string }>(
         `SELECT COUNT(*)::TEXT AS count FROM ${storage.table}`,
