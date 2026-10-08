@@ -474,10 +474,9 @@ export function CustomOverviewDashboard({
       <header className="custom-overview__header">
         <div>
           <div className="custom-overview__title-row">
-            <h1>My Overview</h1>
             {message && <span className="custom-overview__message" role="status">{message}</span>}
           </div>
-          <p>{isEditing ? "Add, remove, and reorder widgets. Changes are saved when you select Done." : "Your personalized workforce and succession view."}</p>
+          {isEditing && <p>Add, remove, and reorder widgets. Changes are saved when you select Done.</p>}
         </div>
         {isEditing && <div className="custom-overview__edit-actions">
           <button className="a-button a-button--secondary -small" type="button" onClick={() => setIsLibraryOpen((open) => !open)}>
