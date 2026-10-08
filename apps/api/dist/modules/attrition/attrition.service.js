@@ -117,7 +117,7 @@ let AttritionService = class AttritionService {
             revision: state.rows[0]?.revision ?? '0',
             fileName: state.rows[0]?.file_name ?? null,
             importedAt: state.rows[0]?.imported_at ?? null,
-            selectedYear: filters.year,
+            selectedYears: filters.years,
             organizationScope: accessFlags?.unrestricted
                 ? 'unrestricted'
                 : accessFlags?.range_scoped
@@ -146,28 +146,28 @@ let AttritionService = class AttritionService {
         return (await this.getDashboard(accountId, input)).filterOptions;
     }
     buildFilterOptions(rows, filters) {
-        const matchesYearAndType = (row, omitType = false) => row.lwd_year === filters.year
-            && (omitType || !filters.separationType || row.separationType === filters.separationType);
+        const matchesYearAndType = (row, omitType = false) => row.lwd_year !== null && filters.years.includes(row.lwd_year)
+            && (omitType || !filters.separationTypes.length || filters.separationTypes.includes(row.separationType));
         return {
             year: [...new Set([
-                    String(filters.year),
+                    ...filters.years.map(String),
                     ...rows.flatMap((row) => row.lwd_year === null ? [] : [String(row.lwd_year)]),
                 ])].sort((left, right) => Number(right) - Number(left)),
-            separationType: separationTypes.filter((type) => rows.some((row) => row.lwd_year === filters.year
-                && (!filters.range || normalizedKey(row.range) === normalizedKey(filters.range))
-                && (!filters.orgUnit || normalizedKey(row.org_unit) === normalizedKey(filters.orgUnit))
+            separationType: separationTypes.filter((type) => rows.some((row) => row.lwd_year !== null && filters.years.includes(row.lwd_year)
+                && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)))
+                && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))
                 && row.separationType === type)),
             range: sortValues(rows.filter((row) => matchesYearAndType(row)
-                && (!filters.orgUnit || normalizedKey(row.org_unit) === normalizedKey(filters.orgUnit))).map((row) => row.range).filter(Boolean)),
+                && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))).map((row) => row.range).filter(Boolean)),
             orgUnit: sortValues(rows.filter((row) => matchesYearAndType(row)
-                && (!filters.range || normalizedKey(row.range) === normalizedKey(filters.range))).map((row) => row.org_unit).filter(Boolean)),
+                && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)))).map((row) => row.org_unit).filter(Boolean)),
         };
     }
     matches(row, filters) {
-        return row.lwd_year === filters.year
-            && (!filters.separationType || row.separationType === filters.separationType)
-            && (!filters.orgUnit || normalizedKey(row.org_unit) === normalizedKey(filters.orgUnit))
-            && (!filters.range || normalizedKey(row.range) === normalizedKey(filters.range));
+        return row.lwd_year !== null && filters.years.includes(row.lwd_year)
+            && (!filters.separationTypes.length || filters.separationTypes.includes(row.separationType))
+            && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))
+            && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)));
     }
     async getMonthlyHeadcount(accountId, filters) {
         const result = await this.database.query(`WITH access_rows AS (
@@ -189,40 +189,40 @@ let AttritionService = class AttritionService {
        ), selected AS (
          SELECT month.reporting_month, month.total_headcount::BIGINT AS headcount
          FROM public.employee_headcount_months month CROSS JOIN access_flags flags
-         WHERE flags.unrestricted AND $3::TEXT IS NULL AND $4::TEXT IS NULL
-           AND EXTRACT(YEAR FROM month.reporting_month) = $2
+         WHERE flags.unrestricted AND $3::TEXT[] IS NULL AND $4::TEXT[] IS NULL
+           AND EXTRACT(YEAR FROM month.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_range item CROSS JOIN access_flags flags
-         WHERE flags.unrestricted AND $3::TEXT IS NOT NULL AND $4::TEXT IS NULL
-           AND item.range_key = $3 AND EXTRACT(YEAR FROM item.reporting_month) = $2
+         WHERE flags.unrestricted AND $3::TEXT[] IS NOT NULL AND $4::TEXT[] IS NULL
+           AND item.range_key = ANY($3::TEXT[]) AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_org_unit item CROSS JOIN access_flags flags
-         WHERE flags.unrestricted AND $3::TEXT IS NULL AND $4::TEXT IS NOT NULL
-           AND item.org_unit_key = $4 AND EXTRACT(YEAR FROM item.reporting_month) = $2
+         WHERE flags.unrestricted AND $3::TEXT[] IS NULL AND $4::TEXT[] IS NOT NULL
+           AND item.org_unit_key = ANY($4::TEXT[]) AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_range_org_unit item CROSS JOIN access_flags flags
-         WHERE flags.unrestricted AND $3::TEXT IS NOT NULL AND $4::TEXT IS NOT NULL
-           AND item.range_key = $3 AND item.org_unit_key = $4
-           AND EXTRACT(YEAR FROM item.reporting_month) = $2
+         WHERE flags.unrestricted AND $3::TEXT[] IS NOT NULL AND $4::TEXT[] IS NOT NULL
+           AND item.range_key = ANY($3::TEXT[]) AND item.org_unit_key = ANY($4::TEXT[])
+           AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_range item
          JOIN allowed_ranges allowed ON allowed.range_key = item.range_key
          CROSS JOIN access_flags flags
-         WHERE NOT flags.unrestricted AND $4::TEXT IS NULL
-           AND ($3::TEXT IS NULL OR item.range_key = $3)
-           AND EXTRACT(YEAR FROM item.reporting_month) = $2
+         WHERE NOT flags.unrestricted AND $4::TEXT[] IS NULL
+           AND ($3::TEXT[] IS NULL OR item.range_key = ANY($3::TEXT[]))
+           AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_range_org_unit item
          JOIN allowed_ranges allowed ON allowed.range_key = item.range_key
          CROSS JOIN access_flags flags
-         WHERE NOT flags.unrestricted AND $4::TEXT IS NOT NULL
-           AND item.org_unit_key = $4 AND ($3::TEXT IS NULL OR item.range_key = $3)
-           AND EXTRACT(YEAR FROM item.reporting_month) = $2
+         WHERE NOT flags.unrestricted AND $4::TEXT[] IS NOT NULL
+           AND item.org_unit_key = ANY($4::TEXT[]) AND ($3::TEXT[] IS NULL OR item.range_key = ANY($3::TEXT[]))
+           AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_range_org_unit item
@@ -230,44 +230,47 @@ let AttritionService = class AttritionService {
            ON allowed.range_key = item.range_key AND allowed.org_unit_key = item.org_unit_key
          CROSS JOIN access_flags flags
          WHERE NOT flags.unrestricted
-           AND ($3::TEXT IS NULL OR item.range_key = $3)
-           AND ($4::TEXT IS NULL OR item.org_unit_key = $4)
-           AND EXTRACT(YEAR FROM item.reporting_month) = $2
+           AND ($3::TEXT[] IS NULL OR item.range_key = ANY($3::TEXT[]))
+           AND ($4::TEXT[] IS NULL OR item.org_unit_key = ANY($4::TEXT[]))
+             AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
        )
-       SELECT reporting_month::TEXT AS reporting_month, SUM(headcount)::TEXT AS headcount
-       FROM selected GROUP BY reporting_month ORDER BY reporting_month`, [
+           SELECT EXTRACT(MONTH FROM reporting_month)::INTEGER AS month,
+              SUM(headcount)::TEXT AS headcount
+           FROM selected GROUP BY EXTRACT(MONTH FROM reporting_month) ORDER BY month`, [
             accountId,
-            filters.year,
-            filters.range ? normalizedKey(filters.range) : null,
-            filters.orgUnit ? normalizedKey(filters.orgUnit) : null,
+            filters.years,
+            filters.ranges.length ? filters.ranges.map(normalizedKey) : null,
+            filters.orgUnits.length ? filters.orgUnits.map(normalizedKey) : null,
         ]);
         return new Map(result.rows.map((row) => [
-            Number(row.reporting_month.slice(5, 7)),
+            row.month,
             Number(row.headcount),
         ]));
     }
     normalizeFilters(filters) {
-        const normalize = (value, label) => {
+        const normalizeMany = (value, label) => {
             if (value === undefined || value === '')
-                return null;
-            if (typeof value !== 'string' || value.length > 200)
+                return [];
+            const values = Array.isArray(value) ? value : [value];
+            if (values.length > 100 || values.some((item) => typeof item !== 'string' || item.length > 200)) {
                 throw new common_1.BadRequestException(`${label} filter is invalid`);
-            return value.trim() || null;
+            }
+            return [...new Set(values.map((item) => item.trim()).filter(Boolean))];
         };
-        const yearValue = normalize(filters.year, 'Year');
-        const year = yearValue === null ? new Date().getUTCFullYear() : Number(yearValue);
-        if (!Number.isInteger(year) || year < 2000 || year > 9999) {
+        const yearValues = normalizeMany(filters.year, 'Year');
+        const years = (yearValues.length ? yearValues : [String(new Date().getUTCFullYear())]).map(Number);
+        if (years.some((year) => !Number.isInteger(year) || year < 2000 || year > 9999)) {
             throw new common_1.BadRequestException('Year filter is invalid');
         }
-        const selectedType = normalize(filters.separationType, 'Separation type');
-        if (selectedType && !separationTypes.includes(selectedType)) {
+        const selectedTypes = normalizeMany(filters.separationType, 'Separation type');
+        if (selectedTypes.some((type) => !separationTypes.includes(type))) {
             throw new common_1.BadRequestException('Separation type filter is invalid');
         }
         return {
-            year,
-            separationType: selectedType,
-            orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
-            range: normalize(filters.range, 'Range'),
+            years,
+            separationTypes: selectedTypes,
+            orgUnits: normalizeMany(filters.orgUnit, 'Organizational unit'),
+            ranges: normalizeMany(filters.range, 'Range'),
         };
     }
 };

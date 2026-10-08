@@ -6,20 +6,20 @@ import type { AttritionQueryFilters } from "@/features/attrition/attrition.types
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const filterKeys = ["year", "separationType", "orgUnit", "range"] as const;
+const multiFilterKeys = ["year", "separationType", "orgUnit", "range"] as const;
 
 export default async function AttritionPage({ searchParams }: Props) {
   await connection();
   const query = await searchParams;
   const filters: AttritionQueryFilters = {};
-  filterKeys.forEach((key) => {
+  multiFilterKeys.forEach((key) => {
     const value = query[key];
-    const first = Array.isArray(value) ? value[0] : value;
-    if (first) filters[key] = first;
+    const values = Array.isArray(value) ? value : value ? [value] : [];
+    if (values.length) filters[key] = values;
   });
   try {
     const data = await getAttritionRegister(filters);
-    const filterKey = filterKeys.map((key) => filters[key] ?? "").join("|");
+    const filterKey = multiFilterKeys.map((key) => filters[key]?.join(",") ?? "").join("|");
     return <AttritionDashboard key={filterKey} data={data} activeFilters={filters} />;
   } catch (error) {
     console.error("Unable to load Attrition", error);

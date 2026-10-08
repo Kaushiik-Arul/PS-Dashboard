@@ -1,12 +1,12 @@
 export declare class AttritionFilterDto {
-    year?: string;
-    separationType?: string;
-    orgUnit?: string;
-    range?: string;
+    year?: string | string[];
+    separationType?: string | string[];
+    orgUnit?: string | string[];
+    range?: string | string[];
 }
 export type NormalizedAttritionFilters = {
-    year: number;
-    separationType: string | null;
-    orgUnit: string | null;
-    range: string | null;
+    years: number[];
+    separationTypes: string[];
+    orgUnits: string[];
+    ranges: string[];
 };

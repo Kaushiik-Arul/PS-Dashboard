@@ -1,15 +1,15 @@
 import { getAttritionRegister } from "@/features/attrition/attrition.api";
 import type { AttritionQueryFilters } from "@/features/attrition/attrition.types";
 
-const filterKeys = ["year", "separationType", "orgUnit", "range"] as const;
+const multiFilterKeys = ["year", "separationType", "orgUnit", "range"] as const;
 
 export async function GET(request: Request) {
   try {
     const searchParams = new URL(request.url).searchParams;
     const filters: AttritionQueryFilters = {};
-    filterKeys.forEach((key) => {
-      const value = searchParams.get(key);
-      if (value) filters[key] = value;
+    multiFilterKeys.forEach((key) => {
+      const values = searchParams.getAll(key).filter(Boolean);
+      if (values.length) filters[key] = values;
     });
     return Response.json((await getAttritionRegister(filters)).filterOptions);
   } catch {

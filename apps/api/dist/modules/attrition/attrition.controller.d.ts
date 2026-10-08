@@ -14,7 +14,7 @@ export declare class AttritionController {
         revision: string;
         fileName: string | null;
         importedAt: string | null;
-        selectedYear: number;
+        selectedYears: number[];
         organizationScope: string;
         rows: {
             id: string;

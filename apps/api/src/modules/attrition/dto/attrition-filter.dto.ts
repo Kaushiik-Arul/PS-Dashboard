@@ -1,23 +1,23 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AttritionFilterDto {
-  @ApiPropertyOptional()
-  year?: string;
+  @ApiPropertyOptional({ type: [String] })
+  year?: string | string[];
 
-  @ApiPropertyOptional()
-  separationType?: string;
+  @ApiPropertyOptional({ type: [String] })
+  separationType?: string | string[];
 
-  @ApiPropertyOptional()
-  orgUnit?: string;
+  @ApiPropertyOptional({ type: [String] })
+  orgUnit?: string | string[];
 
-  @ApiPropertyOptional()
-  range?: string;
+  @ApiPropertyOptional({ type: [String] })
+  range?: string | string[];
 
 }
 
 export type NormalizedAttritionFilters = {
-  year: number;
-  separationType: string | null;
-  orgUnit: string | null;
-  range: string | null;
+  years: number[];
+  separationTypes: string[];
+  orgUnits: string[];
+  ranges: string[];
 };

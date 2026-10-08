@@ -45,13 +45,19 @@ describe('AttritionService', () => {
       ]))
       .mockResolvedValueOnce(result([{ unrestricted: true, range_scoped: false }]))
       .mockResolvedValueOnce(result([
-        { reporting_month: '2025-01-01', headcount: '100' },
-        { reporting_month: '2025-02-01', headcount: '200' },
+        { month: 1, headcount: '100' },
+        { month: 2, headcount: '200' },
       ]));
 
-    const response = await service.getDashboard('account-id', { year: '2025' });
+    const response = await service.getDashboard('account-id', {
+      year: ['2025', '2026'],
+      separationType: ['Resignation', 'Transfer', 'Retirement'],
+      range: ['R1', 'R2'],
+      orgUnit: ['Engineering', 'Sales'],
+    });
 
     expect(response.organizationScope).toBe('unrestricted');
+    expect(response.selectedYears).toEqual([2025, 2026]);
     expect(response.kpis).toMatchObject({
       total: 3,
       resignations: 1,
@@ -73,6 +79,12 @@ describe('AttritionService', () => {
       'Resignation', 'Transfer', 'Retirement',
     ]);
     expect(response.rows[0]).not.toHaveProperty('lwd_year');
+    expect(query.mock.calls[3][1]).toEqual([
+      'account-id',
+      [2025, 2026],
+      ['R1', 'R2'],
+      ['ENGINEERING', 'SALES'],
+    ]);
   });
 
   it('rejects an unknown separation type before querying data', async () => {

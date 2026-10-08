@@ -19,19 +19,19 @@ class AttritionFilterDto {
 }
 exports.AttritionFilterDto = AttritionFilterDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], AttritionFilterDto.prototype, "year", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], AttritionFilterDto.prototype, "separationType", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], AttritionFilterDto.prototype, "orgUnit", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], AttritionFilterDto.prototype, "range", void 0);
 //# sourceMappingURL=attrition-filter.dto.js.map

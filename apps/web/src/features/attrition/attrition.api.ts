@@ -31,7 +31,8 @@ export async function getAttritionRegister(
 ): Promise<AttritionResponse> {
   const searchParams = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (value) searchParams.set(key, value);
+    if (Array.isArray(value)) value.forEach((item) => searchParams.append(key, item));
+    else if (value) searchParams.set(key, value);
   });
   const response = await forwardAttritionRequest(searchParams.size ? `?${searchParams}` : "");
   return response.json() as Promise<AttritionResponse>;
