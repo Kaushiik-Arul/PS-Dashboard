@@ -38,7 +38,7 @@ describe('AttritionService', () => {
         },
         {
           id: '3', pers_no: '1003', employee_name: 'C', ps_group: '', gender_key: 'Female',
-          filter_value: 'Exit', reason_for_action: '', detailed_reason_approved: 'Career growth',
+          filter_value: 'Exit', reason_for_action: 'Resignation', detailed_reason_approved: 'Career growth',
           org_unit: 'Sales', range: 'R2', initiated_date: '', lwd: '05.02.2025',
           lwd_year: 2025, lwd_month: 2, e_separation_request_no: '', to_org_unit: '',
         },
@@ -54,6 +54,7 @@ describe('AttritionService', () => {
       separationType: ['Resignation', 'Transfer', 'Retirement'],
       range: ['R1', 'R2'],
       orgUnit: ['Engineering', 'Sales'],
+      reasonForAction: [' Retirement ', 'Resignation'],
     });
 
     expect(response.organizationScope).toBe('unrestricted');
@@ -78,6 +79,7 @@ describe('AttritionService', () => {
     expect(response.filterOptions.separationType).toEqual([
       'Resignation', 'Transfer', 'Retirement',
     ]);
+    expect(response.filterOptions.reasonForAction).toEqual(['Resignation', 'Retirement']);
     expect(response.rows[0]).not.toHaveProperty('lwd_year');
     expect(query.mock.calls[3][1]).toEqual([
       'account-id',

@@ -15,8 +15,12 @@ import {
   type ChartDatum,
 } from "@/components/charts/OverviewCharts";
 import {
+  appendFilterValues,
   emptyDashboardFilters,
+  mapWorkforceFilterOptions,
   OverviewFilters,
+  reconcileDashboardFilters,
+  toFilterSelection,
   type DashboardFilterKey,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
@@ -94,26 +98,26 @@ type SuccessionDetailRow = {
   criticality: string;
 };
 
-function toDashboardFilters(filters: OverviewQueryFilters): DashboardFilters {
+function toDashboardFilters(filters: OverviewQueryFilters, options: OverviewResponse["filterOptions"]): DashboardFilters {
   return {
     ...emptyDashboardFilters,
-    functionName: filters.functionName ?? "All",
-    orgUnit: filters.orgUnit ?? "All",
-    range: filters.range ?? "All",
-    location: filters.location ?? "All",
-    gender: filters.gender ?? "All",
-    employmentType: filters.directOrIndirect ?? "All",
+    functionName: toFilterSelection(filters.functionName, options.functionName),
+    orgUnit: toFilterSelection(filters.orgUnit, options.orgUnit),
+    range: toFilterSelection(filters.range, options.range),
+    location: toFilterSelection(filters.location, options.location),
+    gender: toFilterSelection(filters.gender, options.gender),
+    employmentType: toFilterSelection(filters.directOrIndirect, options.directOrIndirect),
   };
 }
 
-function toSearchParams(filters: DashboardFilters) {
+function toSearchParams(filters: DashboardFilters, options: OverviewResponse["filterOptions"]) {
   const params = new URLSearchParams();
   const values = [
-    ["functionName", filters.functionName], ["orgUnit", filters.orgUnit],
-    ["range", filters.range], ["location", filters.location],
-    ["gender", filters.gender], ["directOrIndirect", filters.employmentType],
+    ["functionName", filters.functionName, options.functionName], ["orgUnit", filters.orgUnit, options.orgUnit],
+    ["range", filters.range, options.range], ["location", filters.location, options.location],
+    ["gender", filters.gender, options.gender], ["directOrIndirect", filters.employmentType, options.directOrIndirect],
   ] as const;
-  values.forEach(([key, value]) => { if (value !== "All") params.set(key, value); });
+  values.forEach(([key, value, allOptions]) => appendFilterValues(params, key, value, allOptions));
   return params;
 }
 
@@ -192,7 +196,7 @@ export function CustomOverviewDashboard({
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [draftFilters, setDraftFilters] = useState(toDashboardFilters(activeFilters));
+  const [draftFilters, setDraftFilters] = useState(toDashboardFilters(activeFilters, demographics.filterOptions));
   const [filterOptions, setFilterOptions] = useState(demographics.filterOptions);
   const [isFiltering, setIsFiltering] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
@@ -213,20 +217,29 @@ export function CustomOverviewDashboard({
   const visibleSuccessionDetails = successionDetails.filter((row) => matchesDetailSearch(row, deferredDetailSearch));
 
   const applyFilters = (filters: DashboardFilters) => {
-    const params = toSearchParams(filters);
+    const params = toSearchParams(filters, filterOptions);
     setIsFiltering(true);
     startTransition(() => router.push(params.size ? `/overview?${params}` : "/overview"));
   };
 
-  const refreshFilterOptions = async (filters: DashboardFilters) => {
+  const refreshFilterOptions = async (filters: DashboardFilters, changedKey: DashboardFilterKey) => {
     const requestId = ++optionRequestId.current;
+    const previousOptions = mapWorkforceFilterOptions(filterOptions);
     setIsLoadingOptions(true);
     try {
-      const params = toSearchParams(filters);
+      const params = toSearchParams(filters, filterOptions);
       const response = await fetch(`/api/overview/filter-options${params.size ? `?${params}` : ""}`);
       if (!response.ok) return;
       const options = await response.json() as OverviewResponse["filterOptions"];
-      if (requestId === optionRequestId.current) setFilterOptions(options);
+      if (requestId === optionRequestId.current) {
+        setFilterOptions(options);
+        setDraftFilters(reconcileDashboardFilters(
+          filters,
+          previousOptions,
+          mapWorkforceFilterOptions(options),
+          changedKey,
+        ));
+      }
     } catch {
       // Keep the current choices; Apply still validates filters on the server.
     } finally {
@@ -287,7 +300,7 @@ export function CustomOverviewDashboard({
 
     setIsLoadingDetails(true);
     try {
-      const params = toSearchParams(toDashboardFilters(activeFilters));
+      const params = toSearchParams(toDashboardFilters(activeFilters, demographics.filterOptions), demographics.filterOptions);
       params.set("metric", id.replace("demographics.kpi.", "") as OverviewDetailMetric);
       const response = await fetch(`/api/overview/details?${params}`);
       const body = await response.json().catch(() => null) as OverviewEmployeeDetail[] | { message?: string } | null;
@@ -440,19 +453,16 @@ export function CustomOverviewDashboard({
     <main className={`overview-page custom-overview${isEditing ? " custom-overview--editing" : ""}`}>
       <OverviewFilters
         value={draftFilters}
-        activeValue={toDashboardFilters(activeFilters)}
+        activeValue={toDashboardFilters(activeFilters, demographics.filterOptions)}
         fields={filterFields}
-        options={{
-          functionName: filterOptions.functionName,
-          orgUnit: filterOptions.orgUnit,
-          range: filterOptions.range,
-          location: filterOptions.location,
-          gender: filterOptions.gender,
-          employmentType: filterOptions.directOrIndirect,
-        }}
-        onChange={(filters) => { setDraftFilters(filters); void refreshFilterOptions(filters); }}
+        options={mapWorkforceFilterOptions(filterOptions)}
+        onChange={(filters, changedKey) => { setDraftFilters(filters); void refreshFilterOptions(filters, changedKey); }}
         onApply={() => applyFilters(draftFilters)}
-        onClear={() => { setDraftFilters(emptyDashboardFilters); applyFilters(emptyDashboardFilters); }}
+        onClear={() => {
+          const resetFilters = toDashboardFilters({}, demographics.filterOptions);
+          setDraftFilters(resetFilters);
+          applyFilters(resetFilters);
+        }}
         headerActions={(
           <div className="custom-overview__actions">
             {isEditing ? <>

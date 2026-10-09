@@ -71,6 +71,7 @@ next-env.d.ts
 !apps/sql/split_pool_register_tables_migration.sql
 !apps/sql/nomination_status_migration.sql
 !apps/sql/talent_pipeline_functions_migration.sql
+!apps/sql/multi_select_dashboard_filters_migration.sql
 !apps/sql/reset_rbin_automation_data.sql
 !apps/sql/functions/
 !apps/sql/functions/overview/

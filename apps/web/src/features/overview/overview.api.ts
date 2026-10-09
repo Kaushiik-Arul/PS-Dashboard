@@ -242,7 +242,8 @@ export async function getOverview(
 ): Promise<OverviewResponse> {
   const searchParams = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (value) searchParams.set(key, value);
+    if (Array.isArray(value)) value.forEach((item) => searchParams.append(key, item));
+    else if (value) searchParams.set(key, value);
   });
   const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   const sessionHeaders = await getSessionHeaders();
@@ -265,7 +266,8 @@ export async function getOverviewDetails(
 ): Promise<OverviewEmployeeDetail[]> {
   const searchParams = new URLSearchParams({ metric });
   Object.entries(filters).forEach(([key, value]) => {
-    if (value) searchParams.set(key, value);
+    if (Array.isArray(value)) value.forEach((item) => searchParams.append(key, item));
+    else if (value) searchParams.set(key, value);
   });
   const response = await fetch(`${getApiBaseUrl()}/overview/details?${searchParams}`, {
     cache: "no-store",

@@ -54,6 +54,7 @@ export function AvailableTalentTable({
       key,
       label,
       filterable: true,
+      filterType: key === "pers_no" || key === "employee_name" ? "search" : "select",
       group: ["pers_no", "employee_name"].includes(key)
         ? "Employee"
         : ["entity", "department", "hrbp"].includes(key)

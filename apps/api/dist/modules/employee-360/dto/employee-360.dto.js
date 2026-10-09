@@ -26,28 +26,28 @@ __decorate([
     __metadata("design:type", String)
 ], Employee360QueryDto.prototype, "search", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], Employee360QueryDto.prototype, "functionName", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], Employee360QueryDto.prototype, "orgUnit", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], Employee360QueryDto.prototype, "range", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], Employee360QueryDto.prototype, "location", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], Employee360QueryDto.prototype, "gender", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], Employee360QueryDto.prototype, "directOrIndirect", void 0);
 class Employee360RowDto {
     persNo;

@@ -173,7 +173,9 @@ export async function getTalentPipeline(
 ): Promise<TalentPipelineResponse> {
   const searchParams = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (key !== 'reportingMonth' && value) searchParams.set(key, value);
+    if (key === 'reportingMonth') return;
+    if (Array.isArray(value)) value.forEach((item) => searchParams.append(key, item));
+    else if (value) searchParams.set(key, value);
   });
   const query = searchParams.size ? `?${searchParams}` : '';
   const response = await forwardTalentPipelineRequest(query);

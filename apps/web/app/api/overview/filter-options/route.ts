@@ -2,7 +2,6 @@ import { getOverview } from "@/features/overview/overview.api";
 import type { OverviewQueryFilters } from "@/features/overview/overview.types";
 
 const filterKeys = [
-  "reportingMonth",
   "functionName",
   "orgUnit",
   "range",
@@ -15,9 +14,11 @@ export async function GET(request: Request) {
   try {
     const searchParams = new URL(request.url).searchParams;
     const filters: OverviewQueryFilters = {};
+    const reportingMonth = searchParams.get("reportingMonth");
+    if (reportingMonth) filters.reportingMonth = reportingMonth;
     filterKeys.forEach((key) => {
-      const value = searchParams.get(key);
-      if (value) filters[key] = value;
+      const values = searchParams.getAll(key).filter(Boolean);
+      if (values.length) filters[key] = values;
     });
     const overview = await getOverview(filters);
     return Response.json(overview.filterOptions);

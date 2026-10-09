@@ -83,9 +83,14 @@ export class SuccessionPlanningService {
       await client.query(
         `SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('succession_planning_snapshot'))`,
       );
-      const emptyFilters = Object.fromEntries(
-        filterKeys.map((key) => [key, null]),
-      ) as NormalizedSuccessionPlanningFilters;
+      const emptyFilters: NormalizedSuccessionPlanningFilters = {
+        functionName: [],
+        orgUnit: [],
+        range: [],
+        location: [],
+        gender: [],
+        directOrIndirect: [],
+      };
       const dashboard = await this.queryRegister(
         client,
         accountId,
@@ -215,8 +220,8 @@ export class SuccessionPlanningService {
       filterKeys.every((key) => {
         const selected = filters[key];
         return (
-          !selected
-          || row.filter_employees.some((employee) => employee[key] === selected)
+          selected.length === 0
+          || row.filter_employees.some((employee) => selected.includes(employee[key]))
         );
       }),
     );
@@ -228,8 +233,8 @@ export class SuccessionPlanningService {
               filterKeys.every(
                 (filterKey) =>
                   filterKey === optionKey
-                  || !filters[filterKey]
-                  || employee[filterKey] === filters[filterKey],
+                  || filters[filterKey].length === 0
+                  || filters[filterKey].includes(employee[filterKey]),
               ),
             )
             .map((employee) => employee[optionKey])
@@ -256,19 +261,20 @@ export class SuccessionPlanningService {
   private normalizeFilters(
     filters: SuccessionPlanningFilterDto,
   ): NormalizedSuccessionPlanningFilters {
-    const normalize = (value: unknown, label: string) => {
-      if (value === undefined || value === '') return null;
-      if (typeof value !== 'string' || value.length > 200)
+    const normalizeMany = (value: unknown, label: string): string[] => {
+      if (value === undefined || value === '') return [];
+      const values = Array.isArray(value) ? value : [value];
+      if (values.some((item) => typeof item !== 'string' || item.length > 200))
         throw new BadRequestException(`${label} filter is invalid`);
-      return value.trim() || null;
+      return [...new Set(values.map((item) => (item as string).trim()).filter(Boolean))];
     };
     return {
-      functionName: normalize(filters.functionName, 'Function'),
-      orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
-      range: normalize(filters.range, 'Range'),
-      location: normalize(filters.location, 'Location'),
-      gender: normalize(filters.gender, 'Gender'),
-      directOrIndirect: normalize(
+      functionName: normalizeMany(filters.functionName, 'Function'),
+      orgUnit: normalizeMany(filters.orgUnit, 'Organizational unit'),
+      range: normalizeMany(filters.range, 'Range'),
+      location: normalizeMany(filters.location, 'Location'),
+      gender: normalizeMany(filters.gender, 'Gender'),
+      directOrIndirect: normalizeMany(
         filters.directOrIndirect,
         'Direct or indirect',
       ),

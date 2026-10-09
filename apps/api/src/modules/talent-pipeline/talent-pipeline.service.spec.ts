@@ -14,16 +14,16 @@ describe('TalentPipelineService', () => {
     const response = {} as TalentPipelineResponseDto;
     getTalentPipeline.mockResolvedValue(response);
     await expect(
-      service.getTalentPipeline({ range: '  PS/CA-IN  ' }, 'account-id'),
+      service.getTalentPipeline({ range: ['  PS/CA-IN  ', 'PS/ES-IN'] }, 'account-id'),
     ).resolves.toBe(response);
     expect(getTalentPipeline).toHaveBeenCalledWith(
       {
-        functionName: null,
-        orgUnit: null,
-        range: 'PS/CA-IN',
-        location: null,
-        gender: null,
-        directOrIndirect: null,
+        functionName: [],
+        orgUnit: [],
+        range: ['PS/CA-IN', 'PS/ES-IN'],
+        location: [],
+        gender: [],
+        directOrIndirect: [],
       },
       'account-id',
     );

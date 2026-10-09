@@ -2,22 +2,22 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class Employee360QueryDto {
   @ApiPropertyOptional() search?: string;
-  @ApiPropertyOptional() functionName?: string;
-  @ApiPropertyOptional() orgUnit?: string;
-  @ApiPropertyOptional() range?: string;
-  @ApiPropertyOptional() location?: string;
-  @ApiPropertyOptional() gender?: string;
-  @ApiPropertyOptional() directOrIndirect?: string;
+  @ApiPropertyOptional({ type: [String] }) functionName?: string | string[];
+  @ApiPropertyOptional({ type: [String] }) orgUnit?: string | string[];
+  @ApiPropertyOptional({ type: [String] }) range?: string | string[];
+  @ApiPropertyOptional({ type: [String] }) location?: string | string[];
+  @ApiPropertyOptional({ type: [String] }) gender?: string | string[];
+  @ApiPropertyOptional({ type: [String] }) directOrIndirect?: string | string[];
 }
 
 export type NormalizedEmployee360Query = {
   search: string | null;
-  functionName: string | null;
-  orgUnit: string | null;
-  range: string | null;
-  location: string | null;
-  gender: string | null;
-  directOrIndirect: string | null;
+  functionName: string[];
+  orgUnit: string[];
+  range: string[];
+  location: string[];
+  gender: string[];
+  directOrIndirect: string[];
 };
 
 export class Employee360RowDto {

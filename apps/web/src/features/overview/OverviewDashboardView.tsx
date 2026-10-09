@@ -14,8 +14,12 @@ import {
   type ChartDatum,
 } from "@/components/charts/OverviewCharts";
 import {
+  appendFilterValues,
   emptyDashboardFilters,
+  mapWorkforceFilterOptions,
   OverviewFilters,
+  reconcileDashboardFilters,
+  toFilterSelection,
   type DashboardFilterKey,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
@@ -71,31 +75,29 @@ const overviewFilterFields: readonly DashboardFilterKey[] = [
   "employmentType",
 ];
 
-function toDashboardFilters(filters: OverviewQueryFilters): DashboardFilters {
+function toDashboardFilters(filters: OverviewQueryFilters, options: OverviewFilterOptions): DashboardFilters {
   return {
     ...emptyDashboardFilters,
-    functionName: filters.functionName ?? "All",
-    orgUnit: filters.orgUnit ?? "All",
-    range: filters.range ?? "All",
-    location: filters.location ?? "All",
-    gender: filters.gender ?? "All",
-    employmentType: filters.directOrIndirect ?? "All",
+    functionName: toFilterSelection(filters.functionName, options.functionName),
+    orgUnit: toFilterSelection(filters.orgUnit, options.orgUnit),
+    range: toFilterSelection(filters.range, options.range),
+    location: toFilterSelection(filters.location, options.location),
+    gender: toFilterSelection(filters.gender, options.gender),
+    employmentType: toFilterSelection(filters.directOrIndirect, options.directOrIndirect),
   };
 }
 
-function toSearchParams(filters: DashboardFilters) {
+function toSearchParams(filters: DashboardFilters, options: OverviewFilterOptions) {
   const searchParams = new URLSearchParams();
   const mappings = [
-    ["functionName", filters.functionName],
-    ["orgUnit", filters.orgUnit],
-    ["range", filters.range],
-    ["location", filters.location],
-    ["gender", filters.gender],
-    ["directOrIndirect", filters.employmentType],
+    ["functionName", filters.functionName, options.functionName],
+    ["orgUnit", filters.orgUnit, options.orgUnit],
+    ["range", filters.range, options.range],
+    ["location", filters.location, options.location],
+    ["gender", filters.gender, options.gender],
+    ["directOrIndirect", filters.employmentType, options.directOrIndirect],
   ] as const;
-  mappings.forEach(([key, value]) => {
-    if (value !== "All") searchParams.set(key, value);
-  });
+  mappings.forEach(([key, value, allOptions]) => appendFilterValues(searchParams, key, value, allOptions));
   return searchParams;
 }
 
@@ -203,7 +205,7 @@ export function OverviewDashboard({
   isArchived: boolean;
 }) {
   const router = useRouter();
-  const appliedFilters = toDashboardFilters(activeFilters);
+  const appliedFilters = toDashboardFilters(activeFilters, data.filterOptions);
   const [draftFilters, setDraftFilters] = useState(appliedFilters);
   const [filterOptions, setFilterOptions] = useState(data.filterOptions);
   const [isFiltering, setIsFiltering] = useState(false);
@@ -264,23 +266,32 @@ export function OverviewDashboard({
   };
 
   const applyFilters = (filters: DashboardFilters) => {
-    const searchParams = preserveReportingMonth(toSearchParams(filters));
+    const searchParams = preserveReportingMonth(toSearchParams(filters, filterOptions));
     setIsFiltering(true);
     startTransition(() => {
       router.push(searchParams.size > 0 ? `/?${searchParams.toString()}` : "/");
     });
   };
 
-  const refreshFilterOptions = async (filters: DashboardFilters) => {
+  const refreshFilterOptions = async (filters: DashboardFilters, changedKey: DashboardFilterKey) => {
     const requestId = ++optionRequestId.current;
+    const previousOptions = mapWorkforceFilterOptions(filterOptions);
     setIsLoadingOptions(true);
     try {
-      const searchParams = preserveReportingMonth(toSearchParams(filters));
+      const searchParams = preserveReportingMonth(toSearchParams(filters, filterOptions));
       const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
       const response = await fetch(`/api/overview/filter-options${query}`);
       if (!response.ok) return;
       const nextOptions = (await response.json()) as OverviewFilterOptions;
-      if (requestId === optionRequestId.current) setFilterOptions(nextOptions);
+      if (requestId === optionRequestId.current) {
+        setFilterOptions(nextOptions);
+        setDraftFilters(reconcileDashboardFilters(
+          filters,
+          previousOptions,
+          mapWorkforceFilterOptions(nextOptions),
+          changedKey,
+        ));
+      }
     } catch {
       // Keep the current options; Apply still uses server-side validation.
     } finally {
@@ -297,22 +308,15 @@ export function OverviewDashboard({
         periodOptions={periodOptions}
         fields={overviewFilterFields}
         filtersDisabled={isArchived}
-        options={{
-          functionName: filterOptions.functionName,
-          orgUnit: filterOptions.orgUnit,
-          range: filterOptions.range,
-          location: filterOptions.location,
-          gender: filterOptions.gender,
-          employmentType: filterOptions.directOrIndirect,
-        }}
-        onChange={(filters) => {
+        options={mapWorkforceFilterOptions(filterOptions)}
+        onChange={(filters, changedKey) => {
           setDraftFilters(filters);
-          void refreshFilterOptions(filters);
+          void refreshFilterOptions(filters, changedKey);
         }}
         onPeriodChange={(reportingMonth) => {
           const searchParams = archivedMonths.includes(reportingMonth)
             ? new URLSearchParams()
-            : toSearchParams(appliedFilters);
+            : toSearchParams(appliedFilters, data.filterOptions);
           if (reportingMonth) searchParams.set("reportingMonth", reportingMonth);
           startTransition(() => {
             router.push(searchParams.size > 0 ? `/?${searchParams.toString()}` : "/");
@@ -320,8 +324,9 @@ export function OverviewDashboard({
         }}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => {
-          setDraftFilters(emptyDashboardFilters);
-          applyFilters(emptyDashboardFilters);
+          const resetFilters = toDashboardFilters({}, data.filterOptions);
+          setDraftFilters(resetFilters);
+          applyFilters(resetFilters);
         }}
       />
       {isLoadingOptions && <p className="overview-page__filtering" role="status">Updating filter choices...</p>}

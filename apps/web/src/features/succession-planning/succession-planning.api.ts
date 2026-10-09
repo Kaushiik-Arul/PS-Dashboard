@@ -35,7 +35,9 @@ export async function getSuccessionPlanningRegister(
 ): Promise<SuccessionPlanningResponse> {
   const searchParams = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
-    if (key !== "reportingMonth" && value) searchParams.set(key, value);
+    if (key === "reportingMonth") return;
+    if (Array.isArray(value)) value.forEach((item) => searchParams.append(key, item));
+    else if (value) searchParams.set(key, value);
   });
   const response = await forwardSuccessionPlanningRequest(searchParams.size ? `?${searchParams}` : "");
   return response.json() as Promise<SuccessionPlanningResponse>;

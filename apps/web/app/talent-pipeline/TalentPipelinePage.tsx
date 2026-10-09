@@ -17,7 +17,7 @@ export type TalentPipelinePageProps = {
 };
 
 const filterKeys = [
-  "reportingMonth", "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
+  "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
 ] as const;
 
 export async function renderTalentPipelinePage(
@@ -27,10 +27,13 @@ export async function renderTalentPipelinePage(
   await connection();
   const query = await searchParams;
   const filters: TalentPipelineQueryFilters = {};
+  const reportingMonth = query.reportingMonth;
+  const firstReportingMonth = Array.isArray(reportingMonth) ? reportingMonth[0] : reportingMonth;
+  if (firstReportingMonth) filters.reportingMonth = firstReportingMonth;
   filterKeys.forEach((key) => {
     const value = query[key];
-    const first = Array.isArray(value) ? value[0] : value;
-    if (first) filters[key] = first;
+    const values = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
+    if (values.length) filters[key] = values;
   });
   const historyState = await getTalentPipelineHistoryState().catch((): TalentPipelineHistoryState | null => null);
   const requestedMonth = filters.reportingMonth;
@@ -49,7 +52,7 @@ export async function renderTalentPipelinePage(
     const data = isSnapshot && selectedMonth
       ? await getTalentPipelineSnapshot(selectedMonth)
       : await getTalentPipeline(effectiveFilters);
-    const filterKey = filterKeys.map((key) => effectiveFilters[key] ?? "").join("|");
+    const filterKey = [effectiveFilters.reportingMonth ?? "", ...filterKeys.map((key) => effectiveFilters[key]?.join(",") ?? "")].join("|");
     return (
       <TalentPipelineDashboard
         key={`${view}|${filterKey}`}

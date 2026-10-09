@@ -15,12 +15,12 @@ export type TalentPipelineDistribution = {
 
 export type TalentPipelineQueryFilters = {
   reportingMonth?: string;
-  functionName?: string;
-  orgUnit?: string;
-  range?: string;
-  location?: string;
-  gender?: string;
-  directOrIndirect?: string;
+  functionName?: string[];
+  orgUnit?: string[];
+  range?: string[];
+  location?: string[];
+  gender?: string[];
+  directOrIndirect?: string[];
 };
 
 export type TalentPipelineFilterOptions = {

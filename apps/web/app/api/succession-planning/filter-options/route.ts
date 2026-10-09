@@ -15,8 +15,8 @@ export async function GET(request: Request) {
     const searchParams = new URL(request.url).searchParams;
     const filters: SuccessionPlanningQueryFilters = {};
     filterKeys.forEach((key) => {
-      const value = searchParams.get(key);
-      if (value) filters[key] = value;
+      const values = searchParams.getAll(key).filter(Boolean);
+      if (values.length) filters[key] = values;
     });
     return Response.json((await getSuccessionPlanningRegister(filters)).filterOptions);
   } catch {

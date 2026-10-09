@@ -12,8 +12,12 @@ import { DataTable, type DataTableColumn } from "@/components/data-table/DataTab
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
 import { KpiGrid } from "@/components/kpi/KpiGrid";
 import {
+  appendFilterValues,
   emptyDashboardFilters,
+  mapWorkforceFilterOptions,
   OverviewFilters,
+  reconcileDashboardFilters,
+  toFilterSelection,
   type DashboardFilterKey,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
@@ -43,37 +47,43 @@ const latestSnapshotMonth = new Date(
   Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() - 1, 1),
 ).toISOString().slice(0, 7);
 
-function toDashboardFilters(filters: SuccessionPlanningQueryFilters): DashboardFilters {
+function toDashboardFilters(filters: SuccessionPlanningQueryFilters, options: SuccessionPlanningFilterOptions): DashboardFilters {
   return {
     ...emptyDashboardFilters,
-    functionName: filters.functionName ?? "All",
-    orgUnit: filters.orgUnit ?? "All",
-    range: filters.range ?? "All",
-    location: filters.location ?? "All",
-    gender: filters.gender ?? "All",
-    employmentType: filters.directOrIndirect ?? "All",
+    functionName: toFilterSelection(filters.functionName, options.functionName),
+    orgUnit: toFilterSelection(filters.orgUnit, options.orgUnit),
+    range: toFilterSelection(filters.range, options.range),
+    location: toFilterSelection(filters.location, options.location),
+    gender: toFilterSelection(filters.gender, options.gender),
+    employmentType: toFilterSelection(filters.directOrIndirect, options.directOrIndirect),
   };
 }
 
-function toSearchParams(filters: DashboardFilters) {
+function toSearchParams(filters: DashboardFilters, options: SuccessionPlanningFilterOptions) {
   const params = new URLSearchParams();
   const values = [
-    ["functionName", filters.functionName],
-    ["orgUnit", filters.orgUnit],
-    ["range", filters.range],
-    ["location", filters.location],
-    ["gender", filters.gender],
-    ["directOrIndirect", filters.employmentType],
+    ["functionName", filters.functionName, options.functionName],
+    ["orgUnit", filters.orgUnit, options.orgUnit],
+    ["range", filters.range, options.range],
+    ["location", filters.location, options.location],
+    ["gender", filters.gender, options.gender],
+    ["directOrIndirect", filters.employmentType, options.directOrIndirect],
   ] as const;
-  values.forEach(([key, value]) => {
-    if (value !== "All") params.set(key, value);
-  });
+  values.forEach(([key, value, allOptions]) => appendFilterValues(params, key, value, allOptions));
   return params;
 }
 
 const nonFilterableColumns = new Set([
   "jd_name",
   "reason_for_change",
+]);
+const searchableColumns = new Set([
+  "incumbent_pers_no",
+  "incumbent_name",
+  "successor1_pers_no",
+  "successor1_name",
+  "successor2_pers_no",
+  "successor2_name",
 ]);
 
 const columns: DataTableColumn<SuccessionPlanningRecord>[] = successionPlanningColumns.map(
@@ -82,6 +92,7 @@ const columns: DataTableColumn<SuccessionPlanningRecord>[] = successionPlanningC
     label,
     group,
     filterable: !nonFilterableColumns.has(key),
+    filterType: searchableColumns.has(key) ? "search" : "select",
   }),
 );
 
@@ -177,7 +188,7 @@ export function SuccessionPlanningDashboard({
   isSnapshot: boolean;
 }) {
   const router = useRouter();
-  const appliedFilters = toDashboardFilters(activeFilters);
+  const appliedFilters = toDashboardFilters(activeFilters, data.filterOptions);
   const [draftFilters, setDraftFilters] = useState(appliedFilters);
   const [filterOptions, setFilterOptions] = useState(data.filterOptions);
   const [isFiltering, setIsFiltering] = useState(false);
@@ -193,23 +204,32 @@ export function SuccessionPlanningDashboard({
   const [isReadinessFilterOpen, setIsReadinessFilterOpen] = useState(false);
 
   const applyFilters = (filters: DashboardFilters) => {
-    const params = toSearchParams(filters);
+    const params = toSearchParams(filters, filterOptions);
     setIsFiltering(true);
     startTransition(() => {
       router.push(params.size ? `/succession-planning?${params}` : "/succession-planning");
     });
   };
 
-  const refreshFilterOptions = async (filters: DashboardFilters) => {
+  const refreshFilterOptions = async (filters: DashboardFilters, changedKey: DashboardFilterKey) => {
     if (isSnapshot) return;
     const requestId = ++optionRequestId.current;
+    const previousOptions = mapWorkforceFilterOptions(filterOptions);
     setIsLoadingOptions(true);
     try {
-      const params = toSearchParams(filters);
+      const params = toSearchParams(filters, filterOptions);
       const response = await fetch(`/api/succession-planning/filter-options${params.size ? `?${params}` : ""}`);
       if (!response.ok) return;
       const options = (await response.json()) as SuccessionPlanningFilterOptions;
-      if (requestId === optionRequestId.current) setFilterOptions(options);
+      if (requestId === optionRequestId.current) {
+        setFilterOptions(options);
+        setDraftFilters(reconcileDashboardFilters(
+          filters,
+          previousOptions,
+          mapWorkforceFilterOptions(options),
+          changedKey,
+        ));
+      }
     } catch {
       // Keep the current choices; Apply still validates filters on the server.
     } finally {
@@ -290,15 +310,19 @@ export function SuccessionPlanningDashboard({
         periodOptions={periodOptions}
         fields={successionFilterFields}
         filtersDisabled={isSnapshot}
-        options={{ functionName: filterOptions.functionName, orgUnit: filterOptions.orgUnit, range: filterOptions.range, location: filterOptions.location, gender: filterOptions.gender, employmentType: filterOptions.directOrIndirect }}
-        onChange={(filters) => { setDraftFilters(filters); void refreshFilterOptions(filters); }}
+        options={mapWorkforceFilterOptions(filterOptions)}
+        onChange={(filters, changedKey) => { setDraftFilters(filters); void refreshFilterOptions(filters, changedKey); }}
         onPeriodChange={historyState ? (reportingMonth) => {
           const params = new URLSearchParams();
           if (reportingMonth) params.set("reportingMonth", reportingMonth);
           startTransition(() => router.push(params.size ? `/succession-planning?${params}` : "/succession-planning"));
         } : undefined}
         onApply={() => applyFilters(draftFilters)}
-        onClear={() => { setDraftFilters(emptyDashboardFilters); applyFilters(emptyDashboardFilters); }}
+        onClear={() => {
+          const resetFilters = toDashboardFilters({}, data.filterOptions);
+          setDraftFilters(resetFilters);
+          applyFilters(resetFilters);
+        }}
         headerActions={historyState && !isSnapshot ? (
           <div className="succession-history-menu">
             <button className="a-button a-button--secondary -small succession-history-menu__trigger" type="button" aria-label="Save monthly snapshot" aria-expanded={isSnapshotPublisherOpen} aria-controls="succession-snapshot-publisher" title="Save monthly snapshot" onClick={() => setIsSnapshotPublisherOpen((isOpen) => !isOpen)}>

@@ -21,27 +21,27 @@ class SuccessionPlanningFilterDto {
 }
 exports.SuccessionPlanningFilterDto = SuccessionPlanningFilterDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], SuccessionPlanningFilterDto.prototype, "functionName", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], SuccessionPlanningFilterDto.prototype, "orgUnit", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], SuccessionPlanningFilterDto.prototype, "range", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], SuccessionPlanningFilterDto.prototype, "location", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], SuccessionPlanningFilterDto.prototype, "gender", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], SuccessionPlanningFilterDto.prototype, "directOrIndirect", void 0);
 //# sourceMappingURL=succession-planning-filter.dto.js.map

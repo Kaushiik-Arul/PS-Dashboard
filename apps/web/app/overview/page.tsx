@@ -27,26 +27,19 @@ export default async function OverviewPage({ searchParams }: Props) {
   const filters: OverviewQueryFilters = {};
   filterKeys.forEach((key) => {
     const value = query[key];
-    const first = Array.isArray(value) ? value[0] : value;
-    if (first) filters[key] = first;
+    const values = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
+    if (values.length) filters[key] = values;
   });
 
+  let demographics: Awaited<ReturnType<typeof getOverview>>;
+  let succession: Awaited<ReturnType<typeof getSuccessionPlanningRegister>>;
+  let preference: Awaited<ReturnType<typeof getCustomOverviewPreference>>;
   try {
-    const [demographics, succession, preference] = await Promise.all([
+    [demographics, succession, preference] = await Promise.all([
       getOverview(filters),
       getSuccessionPlanningRegister(filters),
       getCustomOverviewPreference(),
     ]);
-    const filterKey = filterKeys.map((key) => filters[key] ?? "").join("|");
-    return (
-      <CustomOverviewDashboard
-        key={filterKey}
-        demographics={demographics}
-        succession={succession}
-        preference={preference}
-        activeFilters={filters}
-      />
-    );
   } catch (error) {
     console.error("Unable to load custom Overview", error);
     return <main className="error-page" role="alert">
@@ -58,4 +51,14 @@ export default async function OverviewPage({ searchParams }: Props) {
       </Link>
     </main>;
   }
+  const filterKey = filterKeys.map((key) => filters[key]?.join(",") ?? "").join("|");
+  return (
+    <CustomOverviewDashboard
+      key={filterKey}
+      demographics={demographics}
+      succession={succession}
+      preference={preference}
+      activeFilters={filters}
+    />
+  );
 }

@@ -5,6 +5,7 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { ChartCard, HorizontalBarChart } from "@/components/charts/OverviewCharts";
 import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
 import "@/components/filters/overview-filters.css";
+import { areAllOptionsSelected, MultiSelectFilter, reconcileMultiSelectSelection } from "@/components/filters/MultiSelectFilter";
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
 import { KpiGrid } from "@/components/kpi/KpiGrid";
 import {
@@ -19,12 +20,23 @@ import "./attrition.css";
 type FilterState = {
   years: string[];
   separationTypes: string[];
+  reasonsForAction: string[];
   ranges: string[];
   orgUnits: string[];
 };
 
 const columns: DataTableColumn<AttritionRecord>[] = attritionColumns.map(
-  ([key, label, group]) => ({ key, label, group, filterable: true }),
+  ([key, label, group]) => ({
+    key,
+    label,
+    group,
+    filterable: true,
+    filterType: key === "pers_no" || key === "employee_name"
+      ? "search"
+      : key === "initiated_date" || key === "lwd"
+        ? "date-range"
+        : "select",
+  }),
 );
 const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -32,78 +44,30 @@ function toFilterState(filters: AttritionQueryFilters, data: AttritionResponse):
   return {
     years: filters.year ?? data.selectedYears.map(String),
     separationTypes: filters.separationType ?? data.filterOptions.separationType,
+    reasonsForAction: filters.reasonForAction ?? data.filterOptions.reasonForAction,
     ranges: filters.range ?? data.filterOptions.range,
     orgUnits: filters.orgUnit ?? data.filterOptions.orgUnit,
   };
 }
 
-function toSearchParams(filters: FilterState) {
+function toSearchParams(filters: FilterState, options: AttritionFilterOptions) {
   const params = new URLSearchParams();
-  filters.years.forEach((year) => params.append("year", year));
-  filters.separationTypes.forEach((type) => params.append("separationType", type));
-  filters.ranges.forEach((range) => params.append("range", range));
-  filters.orgUnits.forEach((orgUnit) => params.append("orgUnit", orgUnit));
+  if (!areAllOptionsSelected(filters.years, options.year)) filters.years.forEach((year) => params.append("year", year));
+  if (!areAllOptionsSelected(filters.separationTypes, options.separationType)) filters.separationTypes.forEach((type) => params.append("separationType", type));
+  if (!areAllOptionsSelected(filters.reasonsForAction, options.reasonForAction)) filters.reasonsForAction.forEach((reason) => params.append("reasonForAction", reason));
+  if (!areAllOptionsSelected(filters.ranges, options.range)) filters.ranges.forEach((range) => params.append("range", range));
+  if (!areAllOptionsSelected(filters.orgUnits, options.orgUnit)) filters.orgUnits.forEach((orgUnit) => params.append("orgUnit", orgUnit));
   return params;
 }
 
-function MultiSelectFilter({
-  id,
-  label,
-  options,
-  value,
-  onChange,
-  isOpen,
-  onToggle,
-}: {
-  id: string;
-  label: string;
-  options: string[];
-  value: string[];
-  onChange: (value: string[]) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-}) {
-  const visibleOptions = [...options, ...value.filter((item) => !options.includes(item))];
-  const allSelected = visibleOptions.length > 0 && visibleOptions.every((option) => value.includes(option));
-  const partiallySelected = value.length > 0 && !allSelected;
-  const summary = allSelected
-    ? "All"
-    : value.length === 0
-      ? "None selected"
-    : value.length === 1
-      ? value[0]
-      : `${value.length} selected`;
-  return (
-    <div className="overview-filters__field attrition-multi-select">
-      <span className="attrition-multi-select__label" id={`${id}-label`}>{label}</span>
-      <div className={`attrition-multi-select__control${isOpen ? " is-open" : ""}`}>
-        <button className="attrition-multi-select__trigger" type="button" aria-expanded={isOpen} aria-labelledby={`${id}-label ${id}-summary`} onClick={onToggle}>
-          <span id={`${id}-summary`}>{summary}</span>
-          <i className="a-icon boschicon-bosch-ic-down" aria-hidden="true" />
-        </button>
-        {isOpen && <div className="attrition-multi-select__options" role="group" aria-labelledby={`${id}-label`}>
-          <label><input
-            type="checkbox"
-            checked={allSelected}
-            ref={(node) => { if (node) node.indeterminate = partiallySelected; }}
-            onChange={(event) => onChange(event.target.checked ? visibleOptions : [])}
-          /><span>All</span></label>
-          {visibleOptions.map((option) => <label key={option}>
-            <input
-              type="checkbox"
-              checked={value.includes(option)}
-              onChange={() => {
-                onChange(value.includes(option)
-                  ? value.filter((item) => item !== option)
-                  : [...value, option]);
-              }}
-            />
-            <span>{option}</span>
-          </label>)}
-        </div>}
-      </div>
-    </div>
-  );
+function mapAttritionFilterOptions(options: AttritionFilterOptions): Record<keyof FilterState, string[]> {
+  return {
+    years: options.year,
+    separationTypes: options.separationType,
+    reasonsForAction: options.reasonForAction,
+    ranges: options.range,
+    orgUnits: options.orgUnit,
+  };
 }
 
 function importDescription(data: AttritionResponse) {
@@ -202,14 +166,14 @@ export function AttritionDashboard({
   const filtersRef = useRef<HTMLElement>(null);
   const showRange = data.organizationScope === "unrestricted";
   const showOrgUnit = data.organizationScope !== "rangeOrgUnit";
-  const isAllSelected = (value: string[], options: string[]) =>
-    options.length > 0 && options.every((option) => value.includes(option));
   const activeCount = Number(appliedFilters.years.length !== 1 || appliedFilters.years[0] !== String(new Date().getFullYear()))
-    + Number(!isAllSelected(appliedFilters.separationTypes, data.filterOptions.separationType))
-    + Number(showRange && !isAllSelected(appliedFilters.ranges, data.filterOptions.range))
-    + Number(showOrgUnit && !isAllSelected(appliedFilters.orgUnits, data.filterOptions.orgUnit));
+    + Number(!areAllOptionsSelected(appliedFilters.separationTypes, data.filterOptions.separationType))
+    + Number(!areAllOptionsSelected(appliedFilters.reasonsForAction, data.filterOptions.reasonForAction))
+    + Number(showRange && !areAllOptionsSelected(appliedFilters.ranges, data.filterOptions.range))
+    + Number(showOrgUnit && !areAllOptionsSelected(appliedFilters.orgUnits, data.filterOptions.orgUnit));
   const hasEmptyFilterSelection = (filters: FilterState) => filters.years.length === 0
     || filters.separationTypes.length === 0
+    || filters.reasonsForAction.length === 0
     || (showRange && filters.ranges.length === 0)
     || (showOrgUnit && filters.orgUnits.length === 0);
   const hasEmptySelection = hasEmptyFilterSelection(draftFilters);
@@ -226,30 +190,46 @@ export function AttritionDashboard({
     if (hasEmptyFilterSelection(filters)) return;
     setOpenFilter(null);
     setIsFiltering(true);
-    startTransition(() => router.push(`/attrition?${toSearchParams(filters)}`));
+    const params = toSearchParams(filters, filterOptions);
+    startTransition(() => router.push(params.size ? `/attrition?${params}` : "/attrition"));
   };
-  const refreshFilterOptions = async (filters: FilterState) => {
+  const refreshFilterOptions = async (filters: FilterState, changedKey: keyof FilterState) => {
     const requestId = ++optionRequestId.current;
+    const previousOptions = mapAttritionFilterOptions(filterOptions);
     setIsLoadingOptions(true);
     try {
-      const response = await fetch(`/api/attrition/filter-options?${toSearchParams(filters)}`);
+      const params = toSearchParams(filters, filterOptions);
+      const response = await fetch(`/api/attrition/filter-options${params.size ? `?${params}` : ""}`);
       if (!response.ok) return;
       const options = (await response.json()) as AttritionFilterOptions;
-      if (requestId === optionRequestId.current) setFilterOptions(options);
+      if (requestId === optionRequestId.current) {
+        const nextOptions = mapAttritionFilterOptions(options);
+        const reconciled = { ...filters };
+        (Object.keys(nextOptions) as Array<keyof FilterState>).forEach((key) => {
+          if (key === changedKey) return;
+          reconciled[key] = reconcileMultiSelectSelection(
+            filters[key],
+            previousOptions[key],
+            nextOptions[key],
+          );
+        });
+        setFilterOptions(options);
+        setDraftFilters(reconciled);
+      }
     } finally {
       if (requestId === optionRequestId.current) setIsLoadingOptions(false);
     }
   };
   const updateMultiFilter = (key: keyof FilterState, value: string[]) => {
     const next = { ...draftFilters, [key]: value };
-    if (key === "ranges") next.orgUnits = [];
     setDraftFilters(next);
-    void refreshFilterOptions(next);
+    void refreshFilterOptions(next, key);
   };
   const resetFilters = () => {
     const reset = {
       years: [String(new Date().getFullYear())],
       separationTypes: filterOptions.separationType,
+      reasonsForAction: filterOptions.reasonForAction,
       ranges: filterOptions.range,
       orgUnits: filterOptions.orgUnit,
     };
@@ -304,10 +284,11 @@ export function AttritionDashboard({
           {isExpanded && (
             <div className="overview-filters__content" id="attrition-filter-controls">
               <div className="overview-filters__grid">
-                <MultiSelectFilter id="attrition-filter-year" label="Year" options={filterOptions.year} value={draftFilters.years} isOpen={openFilter === "years"} onToggle={() => setOpenFilter((current) => current === "years" ? null : "years")} onChange={(value) => updateMultiFilter("years", value)} />
-                <MultiSelectFilter id="attrition-filter-type" label="Separation type" options={filterOptions.separationType} value={draftFilters.separationTypes} isOpen={openFilter === "separationTypes"} onToggle={() => setOpenFilter((current) => current === "separationTypes" ? null : "separationTypes")} onChange={(value) => updateMultiFilter("separationTypes", value)} />
-                {showRange && <MultiSelectFilter id="attrition-filter-range" label="Range" options={filterOptions.range} value={draftFilters.ranges} isOpen={openFilter === "ranges"} onToggle={() => setOpenFilter((current) => current === "ranges" ? null : "ranges")} onChange={(value) => updateMultiFilter("ranges", value)} />}
-                {showOrgUnit && <MultiSelectFilter id="attrition-filter-org-unit" label="Org Unit" options={filterOptions.orgUnit} value={draftFilters.orgUnits} isOpen={openFilter === "orgUnits"} onToggle={() => setOpenFilter((current) => current === "orgUnits" ? null : "orgUnits")} onChange={(value) => updateMultiFilter("orgUnits", value)} />}
+                <MultiSelectFilter id="attrition-filter-year" label="Year" options={filterOptions.year} value={draftFilters.years} isOpen={openFilter === "years"} onToggle={() => setOpenFilter((current) => current === "years" ? null : "years")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("years", value)} />
+                <MultiSelectFilter id="attrition-filter-type" label="Separation type" options={filterOptions.separationType} value={draftFilters.separationTypes} isOpen={openFilter === "separationTypes"} onToggle={() => setOpenFilter((current) => current === "separationTypes" ? null : "separationTypes")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("separationTypes", value)} />
+                <MultiSelectFilter id="attrition-filter-reason" label="Reason for Action" options={filterOptions.reasonForAction} value={draftFilters.reasonsForAction} isOpen={openFilter === "reasonsForAction"} onToggle={() => setOpenFilter((current) => current === "reasonsForAction" ? null : "reasonsForAction")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("reasonsForAction", value)} />
+                {showRange && <MultiSelectFilter id="attrition-filter-range" label="Range" options={filterOptions.range} value={draftFilters.ranges} isOpen={openFilter === "ranges"} onToggle={() => setOpenFilter((current) => current === "ranges" ? null : "ranges")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("ranges", value)} />}
+                {showOrgUnit && <MultiSelectFilter id="attrition-filter-org-unit" label="Org Unit" options={filterOptions.orgUnit} value={draftFilters.orgUnits} isOpen={openFilter === "orgUnits"} onToggle={() => setOpenFilter((current) => current === "orgUnits" ? null : "orgUnits")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("orgUnits", value)} />}
               </div>
               <footer className="overview-filters__footer">
                 <p className="overview-filters__status">{hasEmptySelection ? "Select at least one option in every filter" : activeCount ? `${activeCount} filter${activeCount === 1 ? "" : "s"} active` : "Current year · all authorized records"}</p>

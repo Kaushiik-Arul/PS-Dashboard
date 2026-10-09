@@ -103,22 +103,23 @@ export class OverviewService {
   }
 
   private normalizeFilters(filters: OverviewFilterDto): NormalizedOverviewFilters {
-    const normalize = (value: unknown, label: string): string | null => {
-      if (value === undefined || value === '') return null;
-      if (typeof value !== 'string' || value.length > 200) {
+    const normalizeMany = (value: unknown, label: string): string[] => {
+      if (value === undefined || value === '') return [];
+      const values = Array.isArray(value) ? value : [value];
+      if (values.some((item) => typeof item !== 'string' || item.length > 200)) {
         throw new BadRequestException(`${label} filter is invalid`);
       }
-      return value.trim() || null;
+      return [...new Set(values.map((item) => (item as string).trim()).filter(Boolean))];
     };
 
     return {
       reportingMonth: this.normalizeReportingMonth(filters.reportingMonth),
-      functionName: normalize(filters.functionName, 'Function'),
-      orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
-      range: normalize(filters.range, 'Range'),
-      location: normalize(filters.location, 'Location'),
-      gender: normalize(filters.gender, 'Gender'),
-      directOrIndirect: normalize(
+      functionName: normalizeMany(filters.functionName, 'Function'),
+      orgUnit: normalizeMany(filters.orgUnit, 'Organizational unit'),
+      range: normalizeMany(filters.range, 'Range'),
+      location: normalizeMany(filters.location, 'Location'),
+      gender: normalizeMany(filters.gender, 'Gender'),
+      directOrIndirect: normalizeMany(
         filters.directOrIndirect,
         'Direct or indirect',
       ),

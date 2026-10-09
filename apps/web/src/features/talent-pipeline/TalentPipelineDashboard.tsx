@@ -4,8 +4,12 @@ import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useRef, useState } from "react";
 import { getCsrfToken } from "@/auth/csrf";
 import {
+  appendFilterValues,
   emptyDashboardFilters,
+  mapWorkforceFilterOptions,
   OverviewFilters,
+  reconcileDashboardFilters,
+  toFilterSelection,
   type DashboardFilterKey,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
@@ -48,31 +52,29 @@ const latestSnapshotMonth = new Date(Date.UTC(currentDate.getUTCFullYear(), curr
   .toISOString()
   .slice(0, 7);
 
-function toDashboardFilters(filters: TalentPipelineQueryFilters): DashboardFilters {
+function toDashboardFilters(filters: TalentPipelineQueryFilters, options: TalentPipelineFilterOptions): DashboardFilters {
   return {
     ...emptyDashboardFilters,
-    functionName: filters.functionName ?? "All",
-    orgUnit: filters.orgUnit ?? "All",
-    range: filters.range ?? "All",
-    location: filters.location ?? "All",
-    gender: filters.gender ?? "All",
-    employmentType: filters.directOrIndirect ?? "All",
+    functionName: toFilterSelection(filters.functionName, options.functionName),
+    orgUnit: toFilterSelection(filters.orgUnit, options.orgUnit),
+    range: toFilterSelection(filters.range, options.range),
+    location: toFilterSelection(filters.location, options.location),
+    gender: toFilterSelection(filters.gender, options.gender),
+    employmentType: toFilterSelection(filters.directOrIndirect, options.directOrIndirect),
   };
 }
 
-function toSearchParams(filters: DashboardFilters) {
+function toSearchParams(filters: DashboardFilters, options: TalentPipelineFilterOptions) {
   const params = new URLSearchParams();
   const values = [
-    ["functionName", filters.functionName],
-    ["orgUnit", filters.orgUnit],
-    ["range", filters.range],
-    ["location", filters.location],
-    ["gender", filters.gender],
-    ["directOrIndirect", filters.employmentType],
+    ["functionName", filters.functionName, options.functionName],
+    ["orgUnit", filters.orgUnit, options.orgUnit],
+    ["range", filters.range, options.range],
+    ["location", filters.location, options.location],
+    ["gender", filters.gender, options.gender],
+    ["directOrIndirect", filters.employmentType, options.directOrIndirect],
   ] as const;
-  values.forEach(([key, value]) => {
-    if (value !== "All") params.set(key, value);
-  });
+  values.forEach(([key, value, allOptions]) => appendFilterValues(params, key, value, allOptions));
   return params;
 }
 
@@ -127,13 +129,13 @@ interface ActiveStepRow {
 
 const activeStepColumns: DataTableColumn<ActiveStepRow>[] = [
   { key: "year", label: "Year", group: "Employee", filterable: true },
-  { key: "persNo", label: "E No", group: "Employee", filterable: true },
-  { key: "employeeName", label: "E Name", group: "Employee", filterable: true },
+  { key: "persNo", label: "E No", group: "Employee", filterable: true, filterType: "search" },
+  { key: "employeeName", label: "E Name", group: "Employee", filterable: true, filterType: "search" },
   { key: "grp", label: "Group", group: "Employee", filterable: true },
   { key: "initiatedBy", label: "Initiated by (HRBP)", group: "Exchange", filterable: true },
   { key: "exchangedWith", label: "Exchanged with", group: "Exchange", filterable: true },
-  { key: "stepFrom", label: "STEP Period From", group: "STEP Period", filterable: true },
-  { key: "stepTo", label: "STEP Period To", group: "STEP Period", filterable: true },
+  { key: "stepFrom", label: "STEP Period From", group: "STEP Period", filterable: true, filterType: "date-range" },
+  { key: "stepTo", label: "STEP Period To", group: "STEP Period", filterable: true, filterType: "date-range" },
   { key: "entityFrom", label: "Entity From", group: "Entity", filterable: true },
   { key: "entityTo", label: "Entity To", group: "Entity", filterable: true },
   { key: "gbFrom", label: "GB From", group: "GB", filterable: true },
@@ -164,7 +166,7 @@ export function TalentPipelineDashboard({
   isSnapshot: boolean;
 }) {
   const router = useRouter();
-  const appliedFilters = toDashboardFilters(activeFilters);
+  const appliedFilters = toDashboardFilters(activeFilters, data.filterOptions);
   const [draftFilters, setDraftFilters] = useState(appliedFilters);
   const [filterOptions, setFilterOptions] = useState(data.filterOptions);
   const [isFiltering, setIsFiltering] = useState(false);
@@ -195,24 +197,33 @@ export function TalentPipelineDashboard({
   };
 
   const applyFilters = (filters: DashboardFilters) => {
-    const params = preserveReportingMonth(toSearchParams(filters));
+    const params = preserveReportingMonth(toSearchParams(filters, filterOptions));
     setIsFiltering(true);
     startTransition(() => {
       router.push(params.size ? `${routePath}?${params}` : routePath);
     });
   };
 
-  const refreshFilterOptions = async (filters: DashboardFilters) => {
+  const refreshFilterOptions = async (filters: DashboardFilters, changedKey: DashboardFilterKey) => {
     if (isSnapshot) return;
     const requestId = ++optionRequestId.current;
+    const previousOptions = mapWorkforceFilterOptions(filterOptions);
     setIsLoadingOptions(true);
     try {
-      const params = preserveReportingMonth(toSearchParams(filters));
+      const params = preserveReportingMonth(toSearchParams(filters, filterOptions));
       const query = params.size ? `?${params}` : "";
       const response = await fetch(`/api/talent-pipeline/filter-options${query}`);
       if (!response.ok) return;
       const options = (await response.json()) as TalentPipelineFilterOptions;
-      if (requestId === optionRequestId.current) setFilterOptions(options);
+      if (requestId === optionRequestId.current) {
+        setFilterOptions(options);
+        setDraftFilters(reconcileDashboardFilters(
+          filters,
+          previousOptions,
+          mapWorkforceFilterOptions(options),
+          changedKey,
+        ));
+      }
     } catch {
       // Retain current choices; Apply still validates filters on the server.
     } finally {
@@ -303,15 +314,19 @@ export function TalentPipelineDashboard({
         periodOptions={periodOptions}
         fields={talentFilterFields}
         filtersDisabled={isSnapshot}
-        options={{ functionName: filterOptions.functionName, orgUnit: filterOptions.orgUnit, range: filterOptions.range, location: filterOptions.location, gender: filterOptions.gender, employmentType: filterOptions.directOrIndirect }}
-        onChange={(filters) => { setDraftFilters(filters); void refreshFilterOptions(filters); }}
+        options={mapWorkforceFilterOptions(filterOptions)}
+        onChange={(filters, changedKey) => { setDraftFilters(filters); void refreshFilterOptions(filters, changedKey); }}
         onPeriodChange={historyState ? (reportingMonth) => {
           const params = new URLSearchParams();
           if (reportingMonth) params.set("reportingMonth", reportingMonth);
           startTransition(() => router.push(params.size ? `${routePath}?${params}` : routePath));
         } : undefined}
         onApply={() => applyFilters(draftFilters)}
-        onClear={() => { setDraftFilters(emptyDashboardFilters); applyFilters(emptyDashboardFilters); }}
+        onClear={() => {
+          const resetFilters = toDashboardFilters({}, data.filterOptions);
+          setDraftFilters(resetFilters);
+          applyFilters(resetFilters);
+        }}
         headerActions={historyState && !isSnapshot ? (
           <div className="talent-history-menu">
             <button

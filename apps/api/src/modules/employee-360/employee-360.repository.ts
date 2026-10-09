@@ -441,12 +441,12 @@ export class Employee360Repository {
           hrbp2_global_id, official_email, technical_entry_date,
           direct_or_indirect, jd_id, jd_name
         FROM scoped e
-        WHERE ($2::TEXT IS NULL OR BTRIM(e.function) = $2)
-          AND ($3::TEXT IS NULL OR BTRIM(e.organizational_unit) = $3)
-          AND ($4::TEXT IS NULL OR BTRIM(e.range) = $4)
-          AND ($5::TEXT IS NULL OR BTRIM(e.location) = $5)
-          AND ($6::TEXT IS NULL OR BTRIM(e.gender_key) = $6)
-          AND ($7::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $7)
+        WHERE (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR BTRIM(e.function) = ANY($2::TEXT[]))
+          AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR BTRIM(e.organizational_unit) = ANY($3::TEXT[]))
+          AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR BTRIM(e.range) = ANY($4::TEXT[]))
+          AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR BTRIM(e.location) = ANY($5::TEXT[]))
+          AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR BTRIM(e.gender_key) = ANY($6::TEXT[]))
+          AND (COALESCE(CARDINALITY($7::TEXT[]), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY($7::TEXT[]))
         ORDER BY e.personnel_number, e.pers_no
       `, values),
       this.database.query<FilterOptionsRow>(`
@@ -454,51 +454,51 @@ export class Employee360Repository {
         SELECT
           ARRAY(SELECT DISTINCT BTRIM(e.function) FROM scoped e
             WHERE NULLIF(BTRIM(e.function), '') IS NOT NULL
-              AND ($3::TEXT IS NULL OR BTRIM(e.organizational_unit) = $3)
-              AND ($4::TEXT IS NULL OR BTRIM(e.range) = $4)
-              AND ($5::TEXT IS NULL OR BTRIM(e.location) = $5)
-              AND ($6::TEXT IS NULL OR BTRIM(e.gender_key) = $6)
-              AND ($7::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $7)
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR BTRIM(e.organizational_unit) = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR BTRIM(e.range) = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR BTRIM(e.location) = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR BTRIM(e.gender_key) = ANY($6::TEXT[]))
+              AND (COALESCE(CARDINALITY($7::TEXT[]), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY($7::TEXT[]))
             ORDER BY 1) AS "functionName",
           ARRAY(SELECT DISTINCT BTRIM(e.organizational_unit) FROM scoped e
             WHERE NULLIF(BTRIM(e.organizational_unit), '') IS NOT NULL
-              AND ($2::TEXT IS NULL OR BTRIM(e.function) = $2)
-              AND ($4::TEXT IS NULL OR BTRIM(e.range) = $4)
-              AND ($5::TEXT IS NULL OR BTRIM(e.location) = $5)
-              AND ($6::TEXT IS NULL OR BTRIM(e.gender_key) = $6)
-              AND ($7::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $7)
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR BTRIM(e.function) = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR BTRIM(e.range) = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR BTRIM(e.location) = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR BTRIM(e.gender_key) = ANY($6::TEXT[]))
+              AND (COALESCE(CARDINALITY($7::TEXT[]), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY($7::TEXT[]))
             ORDER BY 1) AS "orgUnit",
           ARRAY(SELECT DISTINCT BTRIM(e.range) FROM scoped e
             WHERE NULLIF(BTRIM(e.range), '') IS NOT NULL
-              AND ($2::TEXT IS NULL OR BTRIM(e.function) = $2)
-              AND ($3::TEXT IS NULL OR BTRIM(e.organizational_unit) = $3)
-              AND ($5::TEXT IS NULL OR BTRIM(e.location) = $5)
-              AND ($6::TEXT IS NULL OR BTRIM(e.gender_key) = $6)
-              AND ($7::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $7)
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR BTRIM(e.function) = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR BTRIM(e.organizational_unit) = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR BTRIM(e.location) = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR BTRIM(e.gender_key) = ANY($6::TEXT[]))
+              AND (COALESCE(CARDINALITY($7::TEXT[]), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY($7::TEXT[]))
             ORDER BY 1) AS range,
           ARRAY(SELECT DISTINCT BTRIM(e.location) FROM scoped e
             WHERE NULLIF(BTRIM(e.location), '') IS NOT NULL
-              AND ($2::TEXT IS NULL OR BTRIM(e.function) = $2)
-              AND ($3::TEXT IS NULL OR BTRIM(e.organizational_unit) = $3)
-              AND ($4::TEXT IS NULL OR BTRIM(e.range) = $4)
-              AND ($6::TEXT IS NULL OR BTRIM(e.gender_key) = $6)
-              AND ($7::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $7)
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR BTRIM(e.function) = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR BTRIM(e.organizational_unit) = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR BTRIM(e.range) = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR BTRIM(e.gender_key) = ANY($6::TEXT[]))
+              AND (COALESCE(CARDINALITY($7::TEXT[]), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY($7::TEXT[]))
             ORDER BY 1) AS location,
           ARRAY(SELECT DISTINCT BTRIM(e.gender_key) FROM scoped e
             WHERE NULLIF(BTRIM(e.gender_key), '') IS NOT NULL
-              AND ($2::TEXT IS NULL OR BTRIM(e.function) = $2)
-              AND ($3::TEXT IS NULL OR BTRIM(e.organizational_unit) = $3)
-              AND ($4::TEXT IS NULL OR BTRIM(e.range) = $4)
-              AND ($5::TEXT IS NULL OR BTRIM(e.location) = $5)
-              AND ($7::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $7)
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR BTRIM(e.function) = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR BTRIM(e.organizational_unit) = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR BTRIM(e.range) = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR BTRIM(e.location) = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($7::TEXT[]), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY($7::TEXT[]))
             ORDER BY 1) AS gender,
           ARRAY(SELECT DISTINCT BTRIM(e.direct_or_indirect) FROM scoped e
             WHERE NULLIF(BTRIM(e.direct_or_indirect), '') IS NOT NULL
-              AND ($2::TEXT IS NULL OR BTRIM(e.function) = $2)
-              AND ($3::TEXT IS NULL OR BTRIM(e.organizational_unit) = $3)
-              AND ($4::TEXT IS NULL OR BTRIM(e.range) = $4)
-              AND ($5::TEXT IS NULL OR BTRIM(e.location) = $5)
-              AND ($6::TEXT IS NULL OR BTRIM(e.gender_key) = $6)
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR BTRIM(e.function) = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR BTRIM(e.organizational_unit) = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR BTRIM(e.range) = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR BTRIM(e.location) = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR BTRIM(e.gender_key) = ANY($6::TEXT[]))
             ORDER BY 1) AS "directOrIndirect"
       `, values),
     ]);

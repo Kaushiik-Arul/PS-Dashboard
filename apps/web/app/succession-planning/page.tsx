@@ -14,17 +14,20 @@ import type {
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const filterKeys = [
-  "reportingMonth", "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
+  "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
 ] as const;
 
 export default async function SuccessionPlanningPage({ searchParams }: Props) {
   await connection();
   const query = await searchParams;
   const filters: SuccessionPlanningQueryFilters = {};
+  const reportingMonth = query.reportingMonth;
+  const firstReportingMonth = Array.isArray(reportingMonth) ? reportingMonth[0] : reportingMonth;
+  if (firstReportingMonth) filters.reportingMonth = firstReportingMonth;
   filterKeys.forEach((key) => {
     const value = query[key];
-    const first = Array.isArray(value) ? value[0] : value;
-    if (first) filters[key] = first;
+    const values = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
+    if (values.length) filters[key] = values;
   });
   const historyState = await getSuccessionPlanningHistoryState().catch((): SuccessionPlanningHistoryState | null => null);
   const selectedMonth = filters.reportingMonth && historyState?.snapshotMonths.includes(filters.reportingMonth)
@@ -36,12 +39,11 @@ export default async function SuccessionPlanningPage({ searchParams }: Props) {
   const effectiveFilters: SuccessionPlanningQueryFilters = selectedMonth
     ? { reportingMonth: selectedMonth }
     : liveFilters;
+  let data: Awaited<ReturnType<typeof getSuccessionPlanningRegister>>;
   try {
-    const data = selectedMonth
+    data = selectedMonth
       ? await getSuccessionPlanningSnapshot(selectedMonth)
       : await getSuccessionPlanningRegister(effectiveFilters);
-    const filterKey = filterKeys.map((key) => effectiveFilters[key] ?? "").join("|");
-    return <SuccessionPlanningDashboard key={filterKey} data={data} activeFilters={effectiveFilters} historyState={historyState} isSnapshot={isSnapshot} />;
   } catch (error) {
     console.error("Unable to load Succession Planning", error);
     return <main className="error-page" role="alert">
@@ -53,4 +55,6 @@ export default async function SuccessionPlanningPage({ searchParams }: Props) {
       </Link>
     </main>;
   }
+  const filterKey = [effectiveFilters.reportingMonth ?? "", ...filterKeys.map((key) => effectiveFilters[key]?.join(",") ?? "")].join("|");
+  return <SuccessionPlanningDashboard key={filterKey} data={data} activeFilters={effectiveFilters} historyState={historyState} isSnapshot={isSnapshot} />;
 }

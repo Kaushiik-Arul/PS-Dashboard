@@ -38,12 +38,12 @@ export type SuccessionPlanningValues = Record<SuccessionPlanningColumn, string>;
 export type SuccessionPlanningRecord = SuccessionPlanningValues & { id: string };
 export type SuccessionPlanningQueryFilters = {
   reportingMonth?: string;
-  functionName?: string;
-  orgUnit?: string;
-  range?: string;
-  location?: string;
-  gender?: string;
-  directOrIndirect?: string;
+  functionName?: string[];
+  orgUnit?: string[];
+  range?: string[];
+  location?: string[];
+  gender?: string[];
+  directOrIndirect?: string[];
 };
 export type SuccessionPlanningFilterOptions = {
   functionName: string[];

@@ -21,27 +21,27 @@ class TalentPipelineFilterDto {
 }
 exports.TalentPipelineFilterDto = TalentPipelineFilterDto;
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], TalentPipelineFilterDto.prototype, "functionName", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], TalentPipelineFilterDto.prototype, "orgUnit", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], TalentPipelineFilterDto.prototype, "range", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], TalentPipelineFilterDto.prototype, "location", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], TalentPipelineFilterDto.prototype, "gender", void 0);
 __decorate([
-    (0, swagger_1.ApiPropertyOptional)(),
-    __metadata("design:type", String)
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
 ], TalentPipelineFilterDto.prototype, "directOrIndirect", void 0);
 //# sourceMappingURL=talent-pipeline-filter.dto.js.map

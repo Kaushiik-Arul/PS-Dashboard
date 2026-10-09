@@ -185,34 +185,34 @@ export class AttritionService {
     rows: ClassifiedAttritionRecord[],
     filters: NormalizedAttritionFilters,
   ) {
-    const matchesYearAndType = (row: ClassifiedAttritionRecord, omitType = false) =>
-      row.lwd_year !== null && filters.years.includes(row.lwd_year)
-      && (omitType || !filters.separationTypes.length || filters.separationTypes.includes(row.separationType));
+    type FilterKey = 'year' | 'separationType' | 'reasonForAction' | 'range' | 'orgUnit';
+    const matchesExcept = (row: ClassifiedAttritionRecord, omitted: FilterKey) =>
+      row.lwd_year !== null
+      && (omitted === 'year' || filters.years.includes(row.lwd_year))
+      && (omitted === 'separationType' || !filters.separationTypes.length || filters.separationTypes.includes(row.separationType))
+      && (omitted === 'reasonForAction' || !filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => normalizedKey(row.reason_for_action) === normalizedKey(reason)))
+      && (omitted === 'range' || !filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)))
+      && (omitted === 'orgUnit' || !filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)));
     return {
-      year: [...new Set([
-        ...filters.years.map(String),
-        ...rows.flatMap((row) => row.lwd_year === null ? [] : [String(row.lwd_year)]),
-      ])].sort((left, right) => Number(right) - Number(left)),
+      year: [...new Set(rows.filter((row) => matchesExcept(row, 'year'))
+        .flatMap((row) => row.lwd_year === null ? [] : [String(row.lwd_year)]))]
+        .sort((left, right) => Number(right) - Number(left)),
       separationType: separationTypes.filter((type) => rows.some((row) =>
-        row.lwd_year !== null && filters.years.includes(row.lwd_year)
-        && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)))
-        && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))
-        && row.separationType === type,
+        matchesExcept(row, 'separationType') && row.separationType === type,
       )),
-      range: sortValues(rows.filter((row) =>
-        matchesYearAndType(row)
-        && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))
-      ).map((row) => row.range).filter(Boolean)),
-      orgUnit: sortValues(rows.filter((row) =>
-        matchesYearAndType(row)
-        && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)))
-      ).map((row) => row.org_unit).filter(Boolean)),
+      reasonForAction: sortValues(rows.filter((row) => matchesExcept(row, 'reasonForAction'))
+        .map((row) => row.reason_for_action).filter(Boolean)),
+      range: sortValues(rows.filter((row) => matchesExcept(row, 'range'))
+        .map((row) => row.range).filter(Boolean)),
+      orgUnit: sortValues(rows.filter((row) => matchesExcept(row, 'orgUnit'))
+        .map((row) => row.org_unit).filter(Boolean)),
     };
   }
 
   private matches(row: ClassifiedAttritionRecord, filters: NormalizedAttritionFilters): boolean {
     return row.lwd_year !== null && filters.years.includes(row.lwd_year)
       && (!filters.separationTypes.length || filters.separationTypes.includes(row.separationType))
+      && (!filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => normalizedKey(row.reason_for_action) === normalizedKey(reason)))
       && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))
       && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)));
   }
@@ -325,6 +325,7 @@ export class AttritionService {
       separationTypes: selectedTypes,
       orgUnits: normalizeMany(filters.orgUnit, 'Organizational unit'),
       ranges: normalizeMany(filters.range, 'Range'),
+      reasonsForAction: normalizeMany(filters.reasonForAction, 'Reason for action'),
     };
   }
 }

@@ -1,30 +1,30 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class TalentPipelineFilterDto {
-  @ApiPropertyOptional()
-  functionName?: string;
+  @ApiPropertyOptional({ type: [String] })
+  functionName?: string | string[];
 
-  @ApiPropertyOptional()
-  orgUnit?: string;
+  @ApiPropertyOptional({ type: [String] })
+  orgUnit?: string | string[];
 
-  @ApiPropertyOptional()
-  range?: string;
+  @ApiPropertyOptional({ type: [String] })
+  range?: string | string[];
 
-  @ApiPropertyOptional()
-  location?: string;
+  @ApiPropertyOptional({ type: [String] })
+  location?: string | string[];
 
-  @ApiPropertyOptional()
-  gender?: string;
+  @ApiPropertyOptional({ type: [String] })
+  gender?: string | string[];
 
-  @ApiPropertyOptional()
-  directOrIndirect?: string;
+  @ApiPropertyOptional({ type: [String] })
+  directOrIndirect?: string | string[];
 }
 
 export type NormalizedTalentPipelineFilters = {
-  functionName: string | null;
-  orgUnit: string | null;
-  range: string | null;
-  location: string | null;
-  gender: string | null;
-  directOrIndirect: string | null;
+  functionName: string[];
+  orgUnit: string[];
+  range: string[];
+  location: string[];
+  gender: string[];
+  directOrIndirect: string[];
 };

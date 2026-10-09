@@ -10,6 +10,7 @@ export interface DataTableColumn<Row extends object> {
   label: string;
   group: string;
   filterable?: boolean;
+  filterType?: "select" | "search" | "date-range";
   exportable?: boolean;
   format?: (value: Row[keyof Row], row: Row) => string;
   render?: (value: Row[keyof Row], row: Row) => ReactNode;
@@ -31,6 +32,36 @@ interface DataTableProps<Row extends object> {
 }
 
 const BLANK_FILTER = "\u0000";
+
+interface DataTableFilterValue {
+  value?: string;
+  from?: string;
+  to?: string;
+}
+
+function hasActiveFilter(filter: DataTableFilterValue | undefined) {
+  return Boolean(filter?.value || filter?.from || filter?.to);
+}
+
+function parseDateValue(value: unknown) {
+  const text = String(value ?? "").trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/.exec(text)
+    ?? /^(\d{2})[./](\d{2})[./](\d{4})$/.exec(text);
+  if (!match) return null;
+
+  const isIsoDate = match[1].length === 4;
+  const year = Number(isIsoDate ? match[1] : match[3]);
+  const month = Number(match[2]);
+  const day = Number(isIsoDate ? match[3] : match[1]);
+  const date = Date.UTC(year, month - 1, day);
+  const parsed = new Date(date);
+
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day
+    ? date
+    : null;
+}
 
 function escapeCsvValue(value: unknown) {
   let text = value == null ? "" : String(value);
@@ -68,7 +99,7 @@ export function DataTable<Row extends object>({
     : (pageSizeOptions[0] ?? 10);
   const [pageSize, setPageSize] = useState(initialPageSize);
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<Record<string, DataTableFilterValue>>({});
   const [selectedFilterGroup, setSelectedFilterGroup] = useState<string | null>(null);
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -80,12 +111,26 @@ export function DataTable<Row extends object>({
   const filterableColumns = columns.filter((column) => column.filterable);
   const filterGroupNames = Array.from(new Set(filterableColumns.map((column) => column.group)));
   const currentFilterGroup = selectedFilterGroup ?? filterGroupNames[0];
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const activeFilterCount = Object.values(filters).filter(hasActiveFilter).length;
   const filterPanelId = `${downloadFileName}-filters`;
   const filteredRows = rows.filter((row) =>
     filterableColumns.every((column) => {
-      const selectedValue = filters[String(column.key)];
-      if (!selectedValue) return true;
+      const filter = filters[String(column.key)];
+      if (!hasActiveFilter(filter)) return true;
+
+      if (column.filterType === "search") {
+        return columnText(column, row).toLocaleLowerCase().includes(filter?.value?.trim().toLocaleLowerCase() ?? "");
+      }
+
+      if (column.filterType === "date-range") {
+        const value = parseDateValue(row[column.key]);
+        if (value === null) return false;
+        const from = filter?.from ? parseDateValue(filter.from) : null;
+        const to = filter?.to ? parseDateValue(filter.to) : null;
+        return (from === null || value >= from) && (to === null || value <= to);
+      }
+
+      const selectedValue = filter?.value;
       const value = String(row[column.key] ?? "");
       return selectedValue === BLANK_FILTER ? value === "" : value === selectedValue;
     }),
@@ -114,7 +159,7 @@ export function DataTable<Row extends object>({
 
       if (event.key !== "Tab") return;
       const focusableElements = tableCardRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
       );
       if (!focusableElements?.length) return;
       const firstElement = focusableElements[0];
@@ -270,11 +315,12 @@ export function DataTable<Row extends object>({
           style={groupFilters ? { display: "grid", gridTemplateColumns: "minmax(0, 1fr)" } : undefined}
         >
           {groupFilters && <div className="data-table__filter-groups" role="group" aria-label="Filter categories">{filterGroupNames.map((group) => {
-            const count = filterableColumns.filter((column) => column.group === group && filters[String(column.key)]).length;
+            const count = filterableColumns.filter((column) => column.group === group && hasActiveFilter(filters[String(column.key)])).length;
             return <button className="a-button a-button--integrated -small" type="button" key={group} aria-pressed={currentFilterGroup === group} onClick={() => setSelectedFilterGroup(group)}><span className="a-button__label">{group}{count ? ` (${count})` : ""}</span></button>;
           })}</div>}
           <div className="data-table__filter-controls">{filterableColumns.filter((column) => !groupFilters || column.group === currentFilterGroup).map((column) => {
             const key = String(column.key);
+            const filter = filters[key];
             const options = Array.from(new Map(
               rows
                 .map((row) => [String(row[column.key] ?? ""), columnText(column, row)] as const)
@@ -283,23 +329,64 @@ export function DataTable<Row extends object>({
             const hasBlank = rows.some((row) => row[column.key] == null || row[column.key] === "");
 
             return (
-              <label className="data-table__filter" key={key}>
+              <div className="data-table__filter" key={key}>
                 <span>{column.label}</span>
-                <select
-                  value={filters[key] ?? ""}
-                  onChange={(event) => {
-                    setFilters((current) => ({ ...current, [key]: event.target.value }));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All</option>
-                  {hasBlank && <option value={BLANK_FILTER}>(Blank)</option>}
-                  {options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </label>
+                {column.filterType === "search" ? (
+                  <input
+                    aria-label={`Search ${column.label}`}
+                    type="search"
+                    placeholder="Search"
+                    value={filter?.value ?? ""}
+                    onChange={(event) => {
+                      setFilters((current) => ({ ...current, [key]: { value: event.target.value } }));
+                      setCurrentPage(1);
+                    }}
+                  />
+                ) : column.filterType === "date-range" ? (
+                  <div className="data-table__date-range">
+                    <label className="data-table__date-field">
+                      <span>From</span>
+                      <input
+                        aria-label={`${column.label} from`}
+                        type="date"
+                        value={filter?.from ?? ""}
+                        onChange={(event) => {
+                          setFilters((current) => ({ ...current, [key]: { ...current[key], from: event.target.value } }));
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </label>
+                    <label className="data-table__date-field">
+                      <span>To</span>
+                      <input
+                        aria-label={`${column.label} to`}
+                        type="date"
+                        value={filter?.to ?? ""}
+                        onChange={(event) => {
+                          setFilters((current) => ({ ...current, [key]: { ...current[key], to: event.target.value } }));
+                          setCurrentPage(1);
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <select
+                    aria-label={`Filter ${column.label}`}
+                    value={filter?.value ?? ""}
+                    onChange={(event) => {
+                      setFilters((current) => ({ ...current, [key]: { value: event.target.value } }));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="">All</option>
+                    {hasBlank && <option value={BLANK_FILTER}>(Blank)</option>}
+                    {options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                )}
+              </div>
             );
           })}</div>
-          {Object.values(filters).some(Boolean) && (
+          {Object.values(filters).some(hasActiveFilter) && (
             <button
               className="a-button a-button--secondary -small"
               type="button"

@@ -54,6 +54,11 @@ export function PoolRegisterTable({
       key,
       label,
       filterable: true,
+      filterType: key === "pers_no" || key === "employee_name"
+        ? "search"
+        : key === "start_date" || key === "end_date"
+          ? "date-range"
+          : "select",
       group: ["start_date", "end_date"].includes(key)
         ? "Pool Period"
         : ["pool", "active_passive"].includes(key)

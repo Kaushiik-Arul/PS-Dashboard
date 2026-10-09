@@ -1,7 +1,7 @@
 import { getAttritionRegister } from "@/features/attrition/attrition.api";
 import type { AttritionQueryFilters } from "@/features/attrition/attrition.types";
 
-const multiFilterKeys = ["year", "separationType", "orgUnit", "range"] as const;
+const multiFilterKeys = ["year", "separationType", "reasonForAction", "orgUnit", "range"] as const;
 
 export async function GET(request: Request) {
   try {

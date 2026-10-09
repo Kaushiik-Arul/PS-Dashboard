@@ -35,12 +35,12 @@ export type RetirementRiskRow = {
 
 export type OverviewQueryFilters = {
   reportingMonth?: string;
-  functionName?: string;
-  orgUnit?: string;
-  range?: string;
-  location?: string;
-  gender?: string;
-  directOrIndirect?: string;
+  functionName?: string[];
+  orgUnit?: string[];
+  range?: string[];
+  location?: string[];
+  gender?: string[];
+  directOrIndirect?: string[];
 };
 
 export type OverviewFilterOptions = {

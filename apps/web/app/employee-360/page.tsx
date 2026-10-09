@@ -8,19 +8,22 @@ type Employee360PageProps = {
 };
 
 const queryKeys = [
-  "search", "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
+  "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
 ] as const;
 
 export default async function Employee360Page({ searchParams }: Employee360PageProps) {
   await connection();
   const params = await searchParams;
   const query: Employee360Query = {};
+  const search = params.search;
+  const firstSearch = Array.isArray(search) ? search[0] : search;
+  if (firstSearch) query.search = firstSearch;
   queryKeys.forEach((key) => {
     const value = params[key];
-    const firstValue = Array.isArray(value) ? value[0] : value;
-    if (firstValue) query[key] = firstValue;
+    const values = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
+    if (values.length) query[key] = values;
   });
   const data = await getEmployee360(query);
-  const viewKey = queryKeys.map((key) => query[key] ?? "").join("|");
+  const viewKey = [query.search ?? "", ...queryKeys.map((key) => query[key]?.join(",") ?? "")].join("|");
   return <Employee360Dashboard key={viewKey} data={data} activeQuery={query} />;
 }

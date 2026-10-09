@@ -1,36 +1,47 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
+import { areAllOptionsSelected, MultiSelectFilter, reconcileMultiSelectSelection } from "./MultiSelectFilter";
 import "./overview-filters.css";
 
 export interface DashboardFilters {
-  businessUnit: string;
-  functionName: string;
-  orgUnit: string;
-  range: string;
-  location: string;
-  gender: string;
-  employmentType: string;
-  hrbp: string;
+  businessUnit: string[];
+  functionName: string[];
+  orgUnit: string[];
+  range: string[];
+  location: string[];
+  gender: string[];
+  employmentType: string[];
+  hrbp: string[];
 }
 
 export type DashboardFilterKey = keyof DashboardFilters;
+export type DashboardFilterOptions = Partial<Record<DashboardFilterKey, string[]>>;
+
+type WorkforceFilterOptions = {
+  functionName: string[];
+  orgUnit: string[];
+  range: string[];
+  location: string[];
+  gender: string[];
+  directOrIndirect: string[];
+};
 
 function filterOptionLabel(key: DashboardFilterKey, value: string) {
   return key === "employmentType" ? formatDirectOrIndirect(value) : value;
 }
 
 export const emptyDashboardFilters: DashboardFilters = {
-  businessUnit: "All",
-  functionName: "All",
-  orgUnit: "All",
-  range: "All",
-  location: "All",
-  gender: "All",
-  employmentType: "All",
-  hrbp: "All",
+  businessUnit: [],
+  functionName: [],
+  orgUnit: [],
+  range: [],
+  location: [],
+  gender: [],
+  employmentType: [],
+  hrbp: [],
 };
 
 const filterFields: Array<{
@@ -38,27 +49,75 @@ const filterFields: Array<{
   label: string;
   options: string[];
 }> = [
-  { key: "businessUnit", label: "BU", options: ["All", "Mobility Solutions", "Industrial Technology", "Consumer Goods"] },
-  { key: "functionName", label: "Function", options: ["All", "Research & development", "Manufacturing", "Logistics", "Quality", "Sales & marketing", "HR", "Others"] },
-  { key: "range", label: "Range", options: ["All", "SL2", "SL1", "Group 1", "Group 2", "Group 3", "Group 4", "Group 5", "Group 6"] },
-  { key: "orgUnit", label: "Org unit", options: ["All", "Engineering", "Operations", "Commercial", "Corporate"] },
-  { key: "location", label: "Location", options: ["All", "Bangalore", "Bidadi", "Nashik", "Jaipur", "Pune"] },
-  { key: "gender", label: "Gender", options: ["All", "Female", "Male"] },
-  { key: "employmentType", label: "Direct / indirect", options: ["All", "Direct", "Indirect"] },
-  { key: "hrbp", label: "HRBP", options: ["All", "John Doe", "Priya Sharma", "Michael Chen"] },
+  { key: "businessUnit", label: "BU", options: ["Mobility Solutions", "Industrial Technology", "Consumer Goods"] },
+  { key: "functionName", label: "Function", options: ["Research & development", "Manufacturing", "Logistics", "Quality", "Sales & marketing", "HR", "Others"] },
+  { key: "range", label: "Range", options: ["SL2", "SL1", "Group 1", "Group 2", "Group 3", "Group 4", "Group 5", "Group 6"] },
+  { key: "orgUnit", label: "Org unit", options: ["Engineering", "Operations", "Commercial", "Corporate"] },
+  { key: "location", label: "Location", options: ["Bangalore", "Bidadi", "Nashik", "Jaipur", "Pune"] },
+  { key: "gender", label: "Gender", options: ["Female", "Male"] },
+  { key: "employmentType", label: "Direct / indirect", options: ["Direct", "Indirect"] },
+  { key: "hrbp", label: "HRBP", options: ["John Doe", "Priya Sharma", "Michael Chen"] },
 ];
+
+export function toFilterSelection(value: string | string[] | undefined, options: string[]) {
+  if (value === undefined) return [...options];
+  return Array.isArray(value) ? value : [value];
+}
+
+export function sameFilterSelection(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value) => right.includes(value));
+}
+
+export function appendFilterValues(
+  params: URLSearchParams,
+  key: string,
+  value: string[],
+  allOptions: string[],
+) {
+  if (value.length === 0 || areAllOptionsSelected(value, allOptions)) return;
+  value.forEach((item) => params.append(key, item));
+}
+
+export function mapWorkforceFilterOptions(options: WorkforceFilterOptions): DashboardFilterOptions {
+  return {
+    functionName: options.functionName,
+    orgUnit: options.orgUnit,
+    range: options.range,
+    location: options.location,
+    gender: options.gender,
+    employmentType: options.directOrIndirect,
+  };
+}
+
+export function reconcileDashboardFilters(
+  filters: DashboardFilters,
+  previousOptions: DashboardFilterOptions,
+  nextOptions: DashboardFilterOptions,
+  changedKey: DashboardFilterKey,
+) {
+  const reconciled = { ...filters };
+  (Object.keys(nextOptions) as DashboardFilterKey[]).forEach((key) => {
+    if (key === changedKey) return;
+    reconciled[key] = reconcileMultiSelectSelection(
+      filters[key],
+      previousOptions[key] ?? [],
+      nextOptions[key] ?? [],
+    );
+  });
+  return reconciled;
+}
 
 interface OverviewFiltersProps {
   value: DashboardFilters;
   activeValue: DashboardFilters;
   period?: string;
   periodOptions?: Array<{ value: string; label: string; disabled?: boolean }>;
-  onChange: (filters: DashboardFilters) => void;
+  onChange: (filters: DashboardFilters, changedKey: DashboardFilterKey) => void;
   onPeriodChange?: (period: string) => void;
   onApply: () => void;
   onClear: () => void;
   fields?: readonly DashboardFilterKey[];
-  options?: Partial<Record<DashboardFilterKey, string[]>>;
+  options?: DashboardFilterOptions;
   filtersDisabled?: boolean;
   headerActions?: ReactNode;
 }
@@ -78,30 +137,37 @@ export function OverviewFilters({
   headerActions,
 }: OverviewFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [openFilter, setOpenFilter] = useState<DashboardFilterKey | null>(null);
+  const filtersRef = useRef<HTMLElement>(null);
   const visibleFields = fields
     ? filterFields.filter((field) => fields.includes(field.key))
     : filterFields;
-  const activeFilters = visibleFields.filter((field) => activeValue[field.key] !== "All");
+  const getFieldOptions = (field: (typeof filterFields)[number]) => {
+    const available = options?.[field.key] ?? field.options;
+    return [...available, ...value[field.key].filter((item) => !available.includes(item))];
+  };
+  const activeFilters = visibleFields.filter((field) => (
+    !areAllOptionsSelected(activeValue[field.key], getFieldOptions(field))
+  ));
   const hasPendingChanges = visibleFields.some(
-    (field) => value[field.key] !== activeValue[field.key],
+    (field) => !sameFilterSelection(value[field.key], activeValue[field.key]),
   );
+  const hasEmptySelection = visibleFields.some((field) => value[field.key].length === 0);
   const snapshotMonthLabel = period && /^\d{4}-\d{2}$/.test(period)
     ? new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" })
       .format(new Date(`${period}-01T00:00:00Z`))
     : period;
-  const getFieldOptions = (field: (typeof filterFields)[number]) => {
-    const available = options?.[field.key]
-      ?? field.options.filter((option) => option !== "All");
-    const selected = value[field.key];
-    return [
-      "All",
-      ...(selected !== "All" && !available.includes(selected) ? [selected] : []),
-      ...available,
-    ];
-  };
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (filtersRef.current && !filtersRef.current.contains(event.target as Node)) setOpenFilter(null);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, []);
 
   return (
-    <section className="overview-filters -primary" aria-labelledby="overview-filters-title">
+    <section className="overview-filters -primary" aria-labelledby="overview-filters-title" ref={filtersRef}>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -123,7 +189,7 @@ export function OverviewFilters({
               type="button"
               aria-expanded={isExpanded}
               aria-controls="overview-filter-controls"
-              onClick={() => setIsExpanded((expanded) => !expanded)}
+              onClick={() => { setIsExpanded((expanded) => !expanded); setOpenFilter(null); }}
             >
               <i className="a-icon boschicon-bosch-ic-filter" aria-hidden="true" />
               <span id="overview-filters-title">Filters</span>
@@ -156,35 +222,35 @@ export function OverviewFilters({
         {isExpanded && !filtersDisabled && (
           <div className="overview-filters__content" id="overview-filter-controls">
             <div className="overview-filters__grid">
-              {visibleFields.map((field) => (
-                <div className="a-dropdown overview-filters__field" key={field.key}>
-                  <label htmlFor={`filter-${field.key}`}>{field.label}</label>
-                  <select
-                    id={`filter-${field.key}`}
-                    value={value[field.key]}
-                    onChange={(event) => onChange({ ...value, [field.key]: event.target.value })}
-                  >
-                    {getFieldOptions(field).map((option) => (
-                      <option key={option} value={option}>{filterOptionLabel(field.key, option)}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+              {visibleFields.map((field) => <MultiSelectFilter
+                key={field.key}
+                id={`filter-${field.key}`}
+                label={field.label}
+                options={getFieldOptions(field)}
+                value={value[field.key]}
+                isOpen={openFilter === field.key}
+                onToggle={() => setOpenFilter((current) => current === field.key ? null : field.key)}
+                onClose={() => setOpenFilter(null)}
+                onChange={(selection) => onChange({ ...value, [field.key]: selection }, field.key)}
+                formatOption={(option) => filterOptionLabel(field.key, option)}
+              />)}
             </div>
 
             <div className="overview-filters__footer">
               <p className="overview-filters__status" aria-live="polite">
-                {hasPendingChanges
+                {hasEmptySelection
+                  ? "Select at least one option in every filter."
+                  : hasPendingChanges
                   ? "Changes not applied. Click Apply filters to update the dashboard."
                   : activeFilters.length === 0
                   ? "Showing all employees"
-                  : `Filtered by ${activeFilters.map((field) => `${field.label}: ${filterOptionLabel(field.key, activeValue[field.key])}`).join("; ")}`}
+                  : `Filtered by ${activeFilters.map((field) => `${field.label}: ${activeValue[field.key].length === 1 ? filterOptionLabel(field.key, activeValue[field.key][0]) : `${activeValue[field.key].length} selected`}`).join("; ")}`}
               </p>
               <div className="overview-filters__actions">
                 <button className="a-button a-button--secondary -small" type="button" onClick={onClear}>
                   <span className="a-button__label">Reset</span>
                 </button>
-                <button className="a-button -small" type="submit">
+                <button className="a-button -small" type="submit" disabled={hasEmptySelection}>
                   <i className="a-icon a-button__icon boschicon-bosch-ic-filter" aria-hidden="true" />
                   <span className="a-button__label">Apply filters</span>
                 </button>

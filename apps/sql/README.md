@@ -7,8 +7,8 @@ public.employee_status
 
 | Function | Arguments | Return type | Purpose |
 | --- | --- | --- | --- |
-| public.get_workforce_kpis() | DATE, six optional TEXT filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview KPI values |
-| public.get_workforce_charts() | DATE, six optional TEXT filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview chart data |
+| public.get_workforce_kpis() | DATE, six optional TEXT[] filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview KPI values |
+| public.get_workforce_charts() | DATE, six optional TEXT[] filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview chart data |
 
 ## Rules
 
@@ -44,8 +44,8 @@ public.employee_status
 
 | Function | Arguments | Return type | Purpose |
 | --- | --- | --- | --- |
-| `public.get_talent_pipeline_kpis()` | DATE, six optional TEXT filters, authenticated account UUID | JSONB | Scope-filtered Talent and Development Pool KPI values |
-| `public.get_talent_pipeline_charts()` | DATE, six optional TEXT filters, authenticated account UUID | JSONB | Scope-filtered Talent Pipeline chart distributions |
+| `public.get_talent_pipeline_kpis()` | DATE, six optional TEXT[] filters, authenticated account UUID | JSONB | Scope-filtered Talent and Development Pool KPI values |
+| `public.get_talent_pipeline_charts()` | DATE, six optional TEXT[] filters, authenticated account UUID | JSONB | Scope-filtered Talent Pipeline chart distributions |
 
 The KPI function reads `talent_pool_register` for total, Active, Passive, and
 To-date expiry counts. It reads `development_pool_register` for the total and

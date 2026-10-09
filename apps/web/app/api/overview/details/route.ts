@@ -7,7 +7,7 @@ const detailMetrics = new Set<OverviewDetailMetric>([
 ]);
 
 const filterKeys = [
-  "reportingMonth", "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
+  "functionName", "orgUnit", "range", "location", "gender", "directOrIndirect",
 ] as const;
 
 export async function GET(request: Request) {
@@ -19,9 +19,11 @@ export async function GET(request: Request) {
 
   try {
     const filters: OverviewQueryFilters = {};
+    const reportingMonth = searchParams.get("reportingMonth");
+    if (reportingMonth) filters.reportingMonth = reportingMonth;
     filterKeys.forEach((key) => {
-      const value = searchParams.get(key);
-      if (value) filters[key] = value;
+      const values = searchParams.getAll(key).filter(Boolean);
+      if (values.length) filters[key] = values;
     });
     return Response.json(await getOverviewDetails(metric, filters));
   } catch {

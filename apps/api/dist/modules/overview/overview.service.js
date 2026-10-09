@@ -79,22 +79,23 @@ let OverviewService = OverviewService_1 = class OverviewService {
         }
     }
     normalizeFilters(filters) {
-        const normalize = (value, label) => {
+        const normalizeMany = (value, label) => {
             if (value === undefined || value === '')
-                return null;
-            if (typeof value !== 'string' || value.length > 200) {
+                return [];
+            const values = Array.isArray(value) ? value : [value];
+            if (values.some((item) => typeof item !== 'string' || item.length > 200)) {
                 throw new common_1.BadRequestException(`${label} filter is invalid`);
             }
-            return value.trim() || null;
+            return [...new Set(values.map((item) => item.trim()).filter(Boolean))];
         };
         return {
             reportingMonth: this.normalizeReportingMonth(filters.reportingMonth),
-            functionName: normalize(filters.functionName, 'Function'),
-            orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
-            range: normalize(filters.range, 'Range'),
-            location: normalize(filters.location, 'Location'),
-            gender: normalize(filters.gender, 'Gender'),
-            directOrIndirect: normalize(filters.directOrIndirect, 'Direct or indirect'),
+            functionName: normalizeMany(filters.functionName, 'Function'),
+            orgUnit: normalizeMany(filters.orgUnit, 'Organizational unit'),
+            range: normalizeMany(filters.range, 'Range'),
+            location: normalizeMany(filters.location, 'Location'),
+            gender: normalizeMany(filters.gender, 'Gender'),
+            directOrIndirect: normalizeMany(filters.directOrIndirect, 'Direct or indirect'),
         };
     }
     normalizeReportingMonth(value) {

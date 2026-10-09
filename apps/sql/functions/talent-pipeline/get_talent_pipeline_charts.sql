@@ -1,11 +1,14 @@
+DROP FUNCTION IF EXISTS public.get_talent_pipeline_charts(DATE, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, UUID);
+DROP FUNCTION IF EXISTS public.get_talent_pipeline_charts(DATE, TEXT[], TEXT[], TEXT[], TEXT[], TEXT[], TEXT[], UUID);
+
 CREATE OR REPLACE FUNCTION public.get_talent_pipeline_charts(
     p_as_of_date DATE DEFAULT CURRENT_DATE,
-    p_function TEXT DEFAULT NULL,
-    p_organizational_unit TEXT DEFAULT NULL,
-    p_range TEXT DEFAULT NULL,
-    p_location TEXT DEFAULT NULL,
-    p_gender_key TEXT DEFAULT NULL,
-    p_direct_or_indirect TEXT DEFAULT NULL,
+    p_function TEXT[] DEFAULT NULL,
+    p_organizational_unit TEXT[] DEFAULT NULL,
+    p_range TEXT[] DEFAULT NULL,
+    p_location TEXT[] DEFAULT NULL,
+    p_gender_key TEXT[] DEFAULT NULL,
+    p_direct_or_indirect TEXT[] DEFAULT NULL,
     p_account_id UUID DEFAULT NULL
 )
 RETURNS JSONB
@@ -47,12 +50,12 @@ BEGIN
                       AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
                   )
             )
-              AND (p_function IS NULL OR BTRIM(e.function) = p_function)
-              AND (p_organizational_unit IS NULL OR BTRIM(e.organizational_unit) = p_organizational_unit)
-              AND (p_range IS NULL OR BTRIM(e.range) = p_range)
-              AND (p_location IS NULL OR BTRIM(e.location) = p_location)
-              AND (p_gender_key IS NULL OR BTRIM(e.gender_key) = p_gender_key)
-              AND (p_direct_or_indirect IS NULL OR BTRIM(e.direct_or_indirect) = p_direct_or_indirect)
+              AND (COALESCE(CARDINALITY(p_function), 0) = 0 OR BTRIM(e.function) = ANY(p_function))
+              AND (COALESCE(CARDINALITY(p_organizational_unit), 0) = 0 OR BTRIM(e.organizational_unit) = ANY(p_organizational_unit))
+              AND (COALESCE(CARDINALITY(p_range), 0) = 0 OR BTRIM(e.range) = ANY(p_range))
+              AND (COALESCE(CARDINALITY(p_location), 0) = 0 OR BTRIM(e.location) = ANY(p_location))
+              AND (COALESCE(CARDINALITY(p_gender_key), 0) = 0 OR BTRIM(e.gender_key) = ANY(p_gender_key))
+              AND (COALESCE(CARDINALITY(p_direct_or_indirect), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY(p_direct_or_indirect))
         ),
         development AS (
             SELECT
@@ -78,12 +81,12 @@ BEGIN
                       AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
                   )
             )
-              AND (p_function IS NULL OR BTRIM(e.function) = p_function)
-              AND (p_organizational_unit IS NULL OR BTRIM(e.organizational_unit) = p_organizational_unit)
-              AND (p_range IS NULL OR BTRIM(e.range) = p_range)
-              AND (p_location IS NULL OR BTRIM(e.location) = p_location)
-              AND (p_gender_key IS NULL OR BTRIM(e.gender_key) = p_gender_key)
-              AND (p_direct_or_indirect IS NULL OR BTRIM(e.direct_or_indirect) = p_direct_or_indirect)
+              AND (COALESCE(CARDINALITY(p_function), 0) = 0 OR BTRIM(e.function) = ANY(p_function))
+              AND (COALESCE(CARDINALITY(p_organizational_unit), 0) = 0 OR BTRIM(e.organizational_unit) = ANY(p_organizational_unit))
+              AND (COALESCE(CARDINALITY(p_range), 0) = 0 OR BTRIM(e.range) = ANY(p_range))
+              AND (COALESCE(CARDINALITY(p_location), 0) = 0 OR BTRIM(e.location) = ANY(p_location))
+              AND (COALESCE(CARDINALITY(p_gender_key), 0) = 0 OR BTRIM(e.gender_key) = ANY(p_gender_key))
+              AND (COALESCE(CARDINALITY(p_direct_or_indirect), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY(p_direct_or_indirect))
         ),
         latest_nomination_year AS (
             SELECT MAX(year) AS year
@@ -111,12 +114,12 @@ BEGIN
                       AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
                   )
               )
-              AND (p_function IS NULL OR BTRIM(e.function) = p_function)
-              AND (p_organizational_unit IS NULL OR BTRIM(e.organizational_unit) = p_organizational_unit)
-              AND (p_range IS NULL OR BTRIM(e.range) = p_range)
-              AND (p_location IS NULL OR BTRIM(e.location) = p_location)
-              AND (p_gender_key IS NULL OR BTRIM(e.gender_key) = p_gender_key)
-              AND (p_direct_or_indirect IS NULL OR BTRIM(e.direct_or_indirect) = p_direct_or_indirect)
+              AND (COALESCE(CARDINALITY(p_function), 0) = 0 OR BTRIM(e.function) = ANY(p_function))
+              AND (COALESCE(CARDINALITY(p_organizational_unit), 0) = 0 OR BTRIM(e.organizational_unit) = ANY(p_organizational_unit))
+              AND (COALESCE(CARDINALITY(p_range), 0) = 0 OR BTRIM(e.range) = ANY(p_range))
+              AND (COALESCE(CARDINALITY(p_location), 0) = 0 OR BTRIM(e.location) = ANY(p_location))
+              AND (COALESCE(CARDINALITY(p_gender_key), 0) = 0 OR BTRIM(e.gender_key) = ANY(p_gender_key))
+              AND (COALESCE(CARDINALITY(p_direct_or_indirect), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY(p_direct_or_indirect))
         ),
         distributions AS (
             SELECT 'talent_pool_distribution' AS chart, talent_pool AS label, COUNT(*) AS headcount

@@ -235,14 +235,23 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
             }
             return item.trim() || null;
         };
+        const values = (item, label) => {
+            if (item === undefined || item === '')
+                return [];
+            const items = Array.isArray(item) ? item : [item];
+            if (items.some((entry) => typeof entry !== 'string' || entry.length > 200)) {
+                throw new common_1.BadRequestException(`${label} is invalid`);
+            }
+            return [...new Set(items.map((entry) => entry.trim()).filter(Boolean))];
+        };
         return {
             search: value(input.search, 'Search', 100),
-            functionName: value(input.functionName, 'Function filter'),
-            orgUnit: value(input.orgUnit, 'Organizational unit filter'),
-            range: value(input.range, 'Range filter'),
-            location: value(input.location, 'Location filter'),
-            gender: value(input.gender, 'Gender filter'),
-            directOrIndirect: value(input.directOrIndirect, 'Direct or indirect filter'),
+            functionName: values(input.functionName, 'Function filter'),
+            orgUnit: values(input.orgUnit, 'Organizational unit filter'),
+            range: values(input.range, 'Range filter'),
+            location: values(input.location, 'Location filter'),
+            gender: values(input.gender, 'Gender filter'),
+            directOrIndirect: values(input.directOrIndirect, 'Direct or indirect filter'),
         };
     }
 };

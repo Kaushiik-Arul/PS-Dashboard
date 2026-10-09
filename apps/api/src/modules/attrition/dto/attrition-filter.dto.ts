@@ -13,6 +13,8 @@ export class AttritionFilterDto {
   @ApiPropertyOptional({ type: [String] })
   range?: string | string[];
 
+  @ApiPropertyOptional({ type: [String] })
+  reasonForAction?: string | string[];
 }
 
 export type NormalizedAttritionFilters = {
@@ -20,4 +22,5 @@ export type NormalizedAttritionFilters = {
   separationTypes: string[];
   orgUnits: string[];
   ranges: string[];
+  reasonsForAction: string[];
 };

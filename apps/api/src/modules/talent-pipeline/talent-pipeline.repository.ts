@@ -47,12 +47,12 @@ export class TalentPipelineRepository {
     return this.database.transaction(async (client) => {
       await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('talent_pipeline_snapshot'))`);
       const emptyFilters: NormalizedTalentPipelineFilters = {
-        functionName: null,
-        orgUnit: null,
-        range: null,
-        location: null,
-        gender: null,
-        directOrIndirect: null,
+        functionName: [],
+        orgUnit: [],
+        range: [],
+        location: [],
+        gender: [],
+        directOrIndirect: [],
       };
       const dashboard = await this.queryDashboard(
         emptyFilters,
@@ -150,12 +150,12 @@ export class TalentPipelineRepository {
                 AND BTRIM(e.organizational_unit) = BTRIM(access.assigned_org_unit))
             )
         )
-          AND ($1::TEXT IS NULL OR BTRIM(e.function) = $1)
-          AND ($2::TEXT IS NULL OR BTRIM(e.organizational_unit) = $2)
-          AND ($3::TEXT IS NULL OR BTRIM(e.range) = $3)
-          AND ($4::TEXT IS NULL OR BTRIM(e.location) = $4)
-          AND ($5::TEXT IS NULL OR BTRIM(e.gender_key) = $5)
-          AND ($6::TEXT IS NULL OR BTRIM(e.direct_or_indirect) = $6)
+          AND (COALESCE(CARDINALITY($1::TEXT[]), 0) = 0 OR BTRIM(e.function) = ANY($1::TEXT[]))
+          AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR BTRIM(e.organizational_unit) = ANY($2::TEXT[]))
+          AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR BTRIM(e.range) = ANY($3::TEXT[]))
+          AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR BTRIM(e.location) = ANY($4::TEXT[]))
+          AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR BTRIM(e.gender_key) = ANY($5::TEXT[]))
+          AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR BTRIM(e.direct_or_indirect) = ANY($6::TEXT[]))
       )
       SELECT JSONB_BUILD_OBJECT(
         'workforceHeadcount', (SELECT headcount FROM scoped_workforce),
@@ -169,61 +169,61 @@ export class TalentPipelineRepository {
           'functionName', TO_JSONB(ARRAY(
             SELECT DISTINCT e.function_name FROM filter_employees e
             WHERE e.function_name IS NOT NULL
-              AND ($2::TEXT IS NULL OR e.org_unit = $2)
-              AND ($3::TEXT IS NULL OR e.range_name = $3)
-              AND ($4::TEXT IS NULL OR e.location_name = $4)
-              AND ($5::TEXT IS NULL OR e.gender_name = $5)
-              AND ($6::TEXT IS NULL OR e.direct_or_indirect = $6)
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR e.org_unit = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR e.range_name = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR e.location_name = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR e.gender_name = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR e.direct_or_indirect = ANY($6::TEXT[]))
             ORDER BY e.function_name
           )),
           'orgUnit', TO_JSONB(ARRAY(
             SELECT DISTINCT e.org_unit FROM filter_employees e
             WHERE e.org_unit IS NOT NULL
-              AND ($1::TEXT IS NULL OR e.function_name = $1)
-              AND ($3::TEXT IS NULL OR e.range_name = $3)
-              AND ($4::TEXT IS NULL OR e.location_name = $4)
-              AND ($5::TEXT IS NULL OR e.gender_name = $5)
-              AND ($6::TEXT IS NULL OR e.direct_or_indirect = $6)
+              AND (COALESCE(CARDINALITY($1::TEXT[]), 0) = 0 OR e.function_name = ANY($1::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR e.range_name = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR e.location_name = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR e.gender_name = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR e.direct_or_indirect = ANY($6::TEXT[]))
             ORDER BY e.org_unit
           )),
           'range', TO_JSONB(ARRAY(
             SELECT DISTINCT e.range_name FROM filter_employees e
             WHERE e.range_name IS NOT NULL
-              AND ($1::TEXT IS NULL OR e.function_name = $1)
-              AND ($2::TEXT IS NULL OR e.org_unit = $2)
-              AND ($4::TEXT IS NULL OR e.location_name = $4)
-              AND ($5::TEXT IS NULL OR e.gender_name = $5)
-              AND ($6::TEXT IS NULL OR e.direct_or_indirect = $6)
+              AND (COALESCE(CARDINALITY($1::TEXT[]), 0) = 0 OR e.function_name = ANY($1::TEXT[]))
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR e.org_unit = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR e.location_name = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR e.gender_name = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR e.direct_or_indirect = ANY($6::TEXT[]))
             ORDER BY e.range_name
           )),
           'location', TO_JSONB(ARRAY(
             SELECT DISTINCT e.location_name FROM filter_employees e
             WHERE e.location_name IS NOT NULL
-              AND ($1::TEXT IS NULL OR e.function_name = $1)
-              AND ($2::TEXT IS NULL OR e.org_unit = $2)
-              AND ($3::TEXT IS NULL OR e.range_name = $3)
-              AND ($5::TEXT IS NULL OR e.gender_name = $5)
-              AND ($6::TEXT IS NULL OR e.direct_or_indirect = $6)
+              AND (COALESCE(CARDINALITY($1::TEXT[]), 0) = 0 OR e.function_name = ANY($1::TEXT[]))
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR e.org_unit = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR e.range_name = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR e.gender_name = ANY($5::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR e.direct_or_indirect = ANY($6::TEXT[]))
             ORDER BY e.location_name
           )),
           'gender', TO_JSONB(ARRAY(
             SELECT DISTINCT e.gender_name FROM filter_employees e
             WHERE e.gender_name IS NOT NULL
-              AND ($1::TEXT IS NULL OR e.function_name = $1)
-              AND ($2::TEXT IS NULL OR e.org_unit = $2)
-              AND ($3::TEXT IS NULL OR e.range_name = $3)
-              AND ($4::TEXT IS NULL OR e.location_name = $4)
-              AND ($6::TEXT IS NULL OR e.direct_or_indirect = $6)
+              AND (COALESCE(CARDINALITY($1::TEXT[]), 0) = 0 OR e.function_name = ANY($1::TEXT[]))
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR e.org_unit = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR e.range_name = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR e.location_name = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($6::TEXT[]), 0) = 0 OR e.direct_or_indirect = ANY($6::TEXT[]))
             ORDER BY e.gender_name
           )),
           'directOrIndirect', TO_JSONB(ARRAY(
             SELECT DISTINCT e.direct_or_indirect FROM filter_employees e
             WHERE e.direct_or_indirect IS NOT NULL
-              AND ($1::TEXT IS NULL OR e.function_name = $1)
-              AND ($2::TEXT IS NULL OR e.org_unit = $2)
-              AND ($3::TEXT IS NULL OR e.range_name = $3)
-              AND ($4::TEXT IS NULL OR e.location_name = $4)
-              AND ($5::TEXT IS NULL OR e.gender_name = $5)
+              AND (COALESCE(CARDINALITY($1::TEXT[]), 0) = 0 OR e.function_name = ANY($1::TEXT[]))
+              AND (COALESCE(CARDINALITY($2::TEXT[]), 0) = 0 OR e.org_unit = ANY($2::TEXT[]))
+              AND (COALESCE(CARDINALITY($3::TEXT[]), 0) = 0 OR e.range_name = ANY($3::TEXT[]))
+              AND (COALESCE(CARDINALITY($4::TEXT[]), 0) = 0 OR e.location_name = ANY($4::TEXT[]))
+              AND (COALESCE(CARDINALITY($5::TEXT[]), 0) = 0 OR e.gender_name = ANY($5::TEXT[]))
             ORDER BY e.direct_or_indirect
           ))
         )

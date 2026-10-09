@@ -7,6 +7,7 @@ export declare class AttritionController {
     getFilterOptions(filters: AttritionFilterDto, user: AuthenticatedUser): Promise<{
         year: string[];
         separationType: ("Resignation" | "Transfer" | "Retirement" | "Other")[];
+        reasonForAction: string[];
         range: string[];
         orgUnit: string[];
     }>;
@@ -35,6 +36,7 @@ export declare class AttritionController {
         filterOptions: {
             year: string[];
             separationType: ("Resignation" | "Transfer" | "Retirement" | "Other")[];
+            reasonForAction: string[];
             range: string[];
             orgUnit: string[];
         };

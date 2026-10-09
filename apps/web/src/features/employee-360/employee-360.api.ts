@@ -26,7 +26,8 @@ export async function getEmployee360(
 ): Promise<Employee360Response> {
   const searchParams = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
-    if (value) searchParams.set(key, value);
+    if (Array.isArray(value)) value.forEach((item) => searchParams.append(key, item));
+    else if (value) searchParams.set(key, value);
   });
   const suffix = searchParams.size ? `?${searchParams.toString()}` : "";
   const response = await fetch(`${getApiBaseUrl()}/employee-360${suffix}`, {

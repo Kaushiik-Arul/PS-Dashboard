@@ -9,7 +9,6 @@ type OverviewPageProps = {
 };
 
 const filterKeys = [
-  "reportingMonth",
   "functionName",
   "orgUnit",
   "range",
@@ -22,10 +21,13 @@ export default async function OverviewPage({ searchParams }: OverviewPageProps) 
   await connection();
   const query = await searchParams;
   const filters: OverviewQueryFilters = {};
+  const reportingMonth = query.reportingMonth;
+  const firstReportingMonth = Array.isArray(reportingMonth) ? reportingMonth[0] : reportingMonth;
+  if (firstReportingMonth) filters.reportingMonth = firstReportingMonth;
   filterKeys.forEach((key) => {
     const value = query[key];
-    const firstValue = Array.isArray(value) ? value[0] : value;
-    if (firstValue) filters[key] = firstValue;
+    const values = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
+    if (values.length) filters[key] = values;
   });
   const [availableMonths, archivedMonths] = await Promise.all([
     getOverviewAvailableMonths().catch((): OverviewAvailableMonths => ({ currentMonth: null, detailedMonths: [] })),
@@ -61,6 +63,6 @@ export default async function OverviewPage({ searchParams }: OverviewPageProps) 
       </main>
     );
   }
-  const filterKey = filterKeys.map((key) => effectiveFilters[key] ?? "").join("|");
+  const filterKey = [effectiveFilters.reportingMonth ?? "", ...filterKeys.map((key) => effectiveFilters[key]?.join(",") ?? "")].join("|");
   return <OverviewDashboard key={filterKey} data={overview} activeFilters={effectiveFilters} availableMonths={availableMonths} archivedMonths={archivedMonths} isArchived={isArchived} />;
 }

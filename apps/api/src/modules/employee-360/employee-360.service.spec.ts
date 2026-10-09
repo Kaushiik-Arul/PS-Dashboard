@@ -62,18 +62,18 @@ describe('Employee360Service', () => {
   it('normalizes filters and forwards account and employee identity', async () => {
     await service.getEmployees({
       search: '  Jane  ',
-      range: '  PS-CC/RBU-IN  ',
+      range: ['  PS-CC/RBU-IN  ', 'PS-ES-IN'],
     }, user);
 
     expect(getEmployees).toHaveBeenCalledWith(
       {
         search: 'Jane',
-        functionName: null,
-        orgUnit: null,
-        range: 'PS-CC/RBU-IN',
-        location: null,
-        gender: null,
-        directOrIndirect: null,
+        functionName: [],
+        orgUnit: [],
+        range: ['PS-CC/RBU-IN', 'PS-ES-IN'],
+        location: [],
+        gender: [],
+        directOrIndirect: [],
       },
       user.accountId,
       user.persNo,

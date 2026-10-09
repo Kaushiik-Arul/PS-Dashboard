@@ -23,17 +23,17 @@ describe('OverviewService', () => {
     const response = {} as OverviewResponseDto;
     getOverview.mockResolvedValue(response);
 
-    await expect(service.getOverview({ range: '  PS/CA-IN  ' }, 'account-id'))
+    await expect(service.getOverview({ range: ['  PS/CA-IN  ', 'PS/CA-IN', 'PS/ES-IN'] }, 'account-id'))
       .resolves.toBe(response);
 
     expect(getOverview).toHaveBeenCalledWith(
       {
-        functionName: null,
-        orgUnit: null,
-        range: 'PS/CA-IN',
-        location: null,
-        gender: null,
-        directOrIndirect: null,
+        functionName: [],
+        orgUnit: [],
+        range: ['PS/CA-IN', 'PS/ES-IN'],
+        location: [],
+        gender: [],
+        directOrIndirect: [],
         reportingMonth: null,
       },
       'account-id',
@@ -51,19 +51,19 @@ describe('OverviewService', () => {
     getOverviewDetails.mockResolvedValue([]);
 
     await expect(service.getOverviewDetails(
-      { metric: 'direct-hc', location: '  Bangalore  ' },
+      { metric: 'direct-hc', location: ['  Bangalore  ', 'Pune'] },
       'account-id',
     )).resolves.toEqual([]);
 
     expect(getOverviewDetails).toHaveBeenCalledWith(
       'direct-hc',
       {
-        functionName: null,
-        orgUnit: null,
-        range: null,
-        location: 'Bangalore',
-        gender: null,
-        directOrIndirect: null,
+        functionName: [],
+        orgUnit: [],
+        range: [],
+        location: ['Bangalore', 'Pune'],
+        gender: [],
+        directOrIndirect: [],
         reportingMonth: null,
       },
       'account-id',

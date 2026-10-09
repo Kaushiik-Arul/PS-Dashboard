@@ -28,6 +28,7 @@ export declare class AttritionService {
         filterOptions: {
             year: string[];
             separationType: ("Resignation" | "Transfer" | "Retirement" | "Other")[];
+            reasonForAction: string[];
             range: string[];
             orgUnit: string[];
         };
@@ -54,6 +55,7 @@ export declare class AttritionService {
     getFilterOptions(accountId: string, input?: AttritionFilterDto): Promise<{
         year: string[];
         separationType: ("Resignation" | "Transfer" | "Retirement" | "Other")[];
+        reasonForAction: string[];
         range: string[];
         orgUnit: string[];
     }>;

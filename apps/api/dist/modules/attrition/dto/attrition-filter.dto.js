@@ -16,6 +16,7 @@ class AttritionFilterDto {
     separationType;
     orgUnit;
     range;
+    reasonForAction;
 }
 exports.AttritionFilterDto = AttritionFilterDto;
 __decorate([
@@ -34,4 +35,8 @@ __decorate([
     (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
     __metadata("design:type", Object)
 ], AttritionFilterDto.prototype, "range", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ type: [String] }),
+    __metadata("design:type", Object)
+], AttritionFilterDto.prototype, "reasonForAction", void 0);
 //# sourceMappingURL=attrition-filter.dto.js.map

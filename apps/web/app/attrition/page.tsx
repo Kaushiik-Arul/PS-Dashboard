@@ -6,7 +6,7 @@ import type { AttritionQueryFilters } from "@/features/attrition/attrition.types
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const multiFilterKeys = ["year", "separationType", "orgUnit", "range"] as const;
+const multiFilterKeys = ["year", "separationType", "reasonForAction", "orgUnit", "range"] as const;
 
 export default async function AttritionPage({ searchParams }: Props) {
   await connection();
@@ -17,10 +17,9 @@ export default async function AttritionPage({ searchParams }: Props) {
     const values = Array.isArray(value) ? value : value ? [value] : [];
     if (values.length) filters[key] = values;
   });
+  let data: Awaited<ReturnType<typeof getAttritionRegister>>;
   try {
-    const data = await getAttritionRegister(filters);
-    const filterKey = multiFilterKeys.map((key) => filters[key]?.join(",") ?? "").join("|");
-    return <AttritionDashboard key={filterKey} data={data} activeFilters={filters} />;
+    data = await getAttritionRegister(filters);
   } catch (error) {
     console.error("Unable to load Attrition", error);
     return <main className="error-page" role="alert">
@@ -30,4 +29,6 @@ export default async function AttritionPage({ searchParams }: Props) {
       <Link className="a-button a-button--primary" href="/attrition"><span className="a-button__label">Reload page</span></Link>
     </main>;
   }
+  const filterKey = multiFilterKeys.map((key) => filters[key]?.join(",") ?? "").join("|");
+  return <AttritionDashboard key={filterKey} data={data} activeFilters={filters} />;
 }

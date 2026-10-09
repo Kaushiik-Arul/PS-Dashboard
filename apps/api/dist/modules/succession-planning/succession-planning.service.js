@@ -52,7 +52,14 @@ let SuccessionPlanningService = class SuccessionPlanningService {
         const reportingMonth = this.normalizeReportingMonth(reportingMonthInput);
         return this.database.transaction(async (client) => {
             await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('succession_planning_snapshot'))`);
-            const emptyFilters = Object.fromEntries(filterKeys.map((key) => [key, null]));
+            const emptyFilters = {
+                functionName: [],
+                orgUnit: [],
+                range: [],
+                location: [],
+                gender: [],
+                directOrIndirect: [],
+            };
             const dashboard = await this.queryRegister(client, accountId, emptyFilters);
             const snapshot = await client.query(`WITH next_version AS (
            SELECT COALESCE(MAX(version), 0) + 1 AS version
@@ -155,14 +162,14 @@ let SuccessionPlanningService = class SuccessionPlanningService {
         const authorizedRows = result.rows;
         const rows = authorizedRows.filter((row) => filterKeys.every((key) => {
             const selected = filters[key];
-            return (!selected
-                || row.filter_employees.some((employee) => employee[key] === selected));
+            return (selected.length === 0
+                || row.filter_employees.some((employee) => selected.includes(employee[key])));
         }));
         const filterOptions = Object.fromEntries(filterKeys.map((optionKey) => {
             const values = authorizedRows.flatMap((row) => row.filter_employees
                 .filter((employee) => filterKeys.every((filterKey) => filterKey === optionKey
-                || !filters[filterKey]
-                || employee[filterKey] === filters[filterKey]))
+                || filters[filterKey].length === 0
+                || filters[filterKey].includes(employee[filterKey])))
                 .map((employee) => employee[optionKey])
                 .filter(Boolean));
             return [
@@ -179,20 +186,21 @@ let SuccessionPlanningService = class SuccessionPlanningService {
         };
     }
     normalizeFilters(filters) {
-        const normalize = (value, label) => {
+        const normalizeMany = (value, label) => {
             if (value === undefined || value === '')
-                return null;
-            if (typeof value !== 'string' || value.length > 200)
+                return [];
+            const values = Array.isArray(value) ? value : [value];
+            if (values.some((item) => typeof item !== 'string' || item.length > 200))
                 throw new common_1.BadRequestException(`${label} filter is invalid`);
-            return value.trim() || null;
+            return [...new Set(values.map((item) => item.trim()).filter(Boolean))];
         };
         return {
-            functionName: normalize(filters.functionName, 'Function'),
-            orgUnit: normalize(filters.orgUnit, 'Organizational unit'),
-            range: normalize(filters.range, 'Range'),
-            location: normalize(filters.location, 'Location'),
-            gender: normalize(filters.gender, 'Gender'),
-            directOrIndirect: normalize(filters.directOrIndirect, 'Direct or indirect'),
+            functionName: normalizeMany(filters.functionName, 'Function'),
+            orgUnit: normalizeMany(filters.orgUnit, 'Organizational unit'),
+            range: normalizeMany(filters.range, 'Range'),
+            location: normalizeMany(filters.location, 'Location'),
+            gender: normalizeMany(filters.gender, 'Gender'),
+            directOrIndirect: normalizeMany(filters.directOrIndirect, 'Direct or indirect'),
         };
     }
     normalizeReportingMonth(value) {

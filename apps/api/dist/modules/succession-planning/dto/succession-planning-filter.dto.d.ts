@@ -1,16 +1,16 @@
 export declare class SuccessionPlanningFilterDto {
-    functionName?: string;
-    orgUnit?: string;
-    range?: string;
-    location?: string;
-    gender?: string;
-    directOrIndirect?: string;
+    functionName?: string | string[];
+    orgUnit?: string | string[];
+    range?: string | string[];
+    location?: string | string[];
+    gender?: string | string[];
+    directOrIndirect?: string | string[];
 }
 export type NormalizedSuccessionPlanningFilters = {
-    functionName: string | null;
-    orgUnit: string | null;
-    range: string | null;
-    location: string | null;
-    gender: string | null;
-    directOrIndirect: string | null;
+    functionName: string[];
+    orgUnit: string[];
+    range: string[];
+    location: string[];
+    gender: string[];
+    directOrIndirect: string[];
 };

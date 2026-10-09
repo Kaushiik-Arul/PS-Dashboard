@@ -23,7 +23,8 @@ export function TalentLandscapeTabs({
 }) {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
-    if (value) params.set(key, value);
+    if (Array.isArray(value)) value.forEach((item) => params.append(key, item));
+    else if (value) params.set(key, value);
   });
 
   return (
