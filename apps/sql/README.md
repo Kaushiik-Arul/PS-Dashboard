@@ -1,5 +1,7 @@
 # Overview database contract
 
+Org Structure import setup and behavior: [Org Structure Import](../../ORG_STRUCTURE_IMPORT.md).
+
 API endpoint: GET /api/v1/overview
 
 Source tables: public.employee_namelist, public.employee_namelist_monthly,

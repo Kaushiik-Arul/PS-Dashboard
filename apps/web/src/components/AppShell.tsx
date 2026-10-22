@@ -115,6 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       return hasPermission(role, "manageAccessPoint");
     }
 
+    if (item.href === "/org-structure") {
+      return hasPermission(role, "viewOrgStructure");
+    }
+
     return true;
   });
   const activeItem =

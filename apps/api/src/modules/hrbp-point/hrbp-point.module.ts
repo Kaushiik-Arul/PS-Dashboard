@@ -43,10 +43,13 @@ import { SuccessionPlanningImportController } from './succession-planning-import
 import { SuccessionPlanningImportService } from './succession-planning-import/succession-planning-import.service';
 import { AttritionImportController } from './attrition-import/attrition-import.controller';
 import { AttritionImportService } from './attrition-import/attrition-import.service';
+import { OrgStructureImportController } from './org-structure-import/org-structure-import.controller';
+import { OrgStructureImportRepository } from './org-structure-import/org-structure-import.repository';
+import { OrgStructureImportService } from './org-structure-import/org-structure-import.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController, AttritionImportController],
+  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController, AttritionImportController, OrgStructureImportController],
   providers: [AvailableTalentService,
     PoolRegisterService,
     NominationStatusService,
@@ -74,6 +77,8 @@ import { AttritionImportService } from './attrition-import/attrition-import.serv
     RbinExceptionsRepository,
     SuccessionPlanningImportService,
     AttritionImportService,
+    OrgStructureImportService,
+    OrgStructureImportRepository,
   ],
 })
 export class HrbpPointModule {}

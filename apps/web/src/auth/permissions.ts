@@ -8,6 +8,7 @@ export type Permission =
   | "viewHrbpPoint"
   | "viewEmployee360"
   | "viewTalentPipeline"
+  | "viewOrgStructure"
   | "successionPlanningPoint"
   | "attritionPoint"
   | "manageAccessPoint"
@@ -21,6 +22,7 @@ export const permissions: Record<Permission, readonly UserRole[]> = {
   viewHrbpPoint: ["hrbp"],
   viewEmployee360: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   viewTalentPipeline: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
+  viewOrgStructure: ["hrbp"],
   successionPlanningPoint: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   attritionPoint: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   manageAccessPoint: ["hrbp"],

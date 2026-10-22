@@ -67,6 +67,7 @@ next-env.d.ts
 !apps/sql/rbin_finalize_replacement_migration.sql
 !apps/sql/employee_jd_allow_unassigned.sql
 !apps/sql/active_step_migration.sql
+!apps/sql/org_structure_migration.sql
 !apps/sql/pool_registers_migration.sql
 !apps/sql/split_pool_register_tables_migration.sql
 !apps/sql/nomination_status_migration.sql

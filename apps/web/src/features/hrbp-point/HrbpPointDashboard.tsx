@@ -22,6 +22,7 @@ import { ActiveStepImportPanel } from "./ActiveStepImportPanel";
 import { NominationStatusImportPanel } from "./NominationStatusImportPanel";
 import { SuccessionPlanningImportPanel } from "./SuccessionPlanningImportPanel";
 import { AttritionImportPanel } from "./AttritionImportPanel";
+import { OrgStructureImportPanel } from "./OrgStructureImportPanel";
 import "@/components/data-table/data-table.css";
 import "./hrbp-point.css";
 
@@ -245,7 +246,7 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
       )}
 
       {canManageNamelist && (
-        <section className="talent-development-management hrbp-register-management" aria-label="Succession Planning and Attrition imports">
+        <section className="talent-development-management hrbp-register-management" aria-label="Succession Planning, Attrition, and Org Structure imports">
           <div className="hrbp-register-management__item">
             <header className="hrbp-page__heading">
               <div>
@@ -268,6 +269,18 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
             </header>
             <div className="hrbp-pool-registers">
               <AttritionImportPanel />
+            </div>
+          </div>
+          <div className="hrbp-register-management__item hrbp-register-management__item--wide">
+            <header className="hrbp-page__heading">
+              <div>
+                <p className="hrbp-section__eyebrow">Organization</p>
+                <h2 id="org-structure-management-title">Org Structure</h2>
+                <p>Import and replace role-to-role reporting relationships.</p>
+              </div>
+            </header>
+            <div className="hrbp-pool-registers">
+              <OrgStructureImportPanel />
             </div>
           </div>
         </section>
