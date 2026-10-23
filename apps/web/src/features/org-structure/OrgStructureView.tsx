@@ -12,6 +12,18 @@ type OpenFilter = 'careerLevel' | 'grade' | 'function' | 'layer' | 'status' | nu
 
 const statusOptions = ['Active', 'Inactive'];
 
+function OrgStructureColumnGroup() {
+  return <colgroup>
+    <col className="org-tree__role-column" />
+    <col className="org-tree__jd-column" />
+    <col className="org-tree__career-column" />
+    <col className="org-tree__grade-column" />
+    <col className="org-tree__function-column" />
+    <col className="org-tree__layer-column" />
+    <col className="org-tree__status-column" />
+  </colgroup>;
+}
+
 const normalizedTitle = (value: string) => value.trim().toLocaleLowerCase();
 
 function sortRows(first: OrgStructureRow, second: OrgStructureRow) {
@@ -215,7 +227,6 @@ export function OrgStructureView() {
         <td data-label="Grade">{role.grade || '-'}</td>
         <td data-label="Function">{role.function || '-'}</td>
         <td data-label="Layer">{role.layer || '-'}</td>
-        <td data-label="Order">{role.orderBy ?? '-'}</td>
         <td data-label="Status"><span className={`org-tree__status ${role.isActive ? 'is-active' : 'is-inactive'}`}>{role.isActive ? 'Active' : 'Inactive'}</span></td>
       </tr>
       {isExpanded && visibleChildren.map((child) => renderNode(child, depth + 1, unlinked))}
@@ -251,10 +262,10 @@ export function OrgStructureView() {
       {!rows.length ? <div className="org-tree__empty"><h2>No org structure imported</h2><p>Import the current workbook from HRBP Point to populate this page.</p></div>
         : matchingRows === 0 ? <div className="org-tree__empty"><h2>No matching roles</h2><p>Adjust the search or active-status filter.</p></div>
         : <>
-          {hierarchy.roots.some((node) => visibleIds.has(node.row.id)) && <div className="org-tree__table-wrap"><table className="org-tree__table"><thead><tr><th>Role Title / Reporting To</th><th>JD ID</th><th>Career Level</th><th>Grade</th><th>Function</th><th>Layer</th><th>Order</th><th>Status</th></tr></thead><tbody>{hierarchy.roots.map((node) => renderNode(node, 0))}</tbody></table></div>}
+          {hierarchy.roots.some((node) => visibleIds.has(node.row.id)) && <div className="org-tree__table-wrap"><table className="org-tree__table"><OrgStructureColumnGroup /><thead><tr><th>Role Title / Reporting To</th><th>JD ID</th><th>Career Level</th><th>Grade</th><th>Function</th><th>Layer</th><th>Status</th></tr></thead><tbody>{hierarchy.roots.map((node) => renderNode(node, 0))}</tbody></table></div>}
           {hierarchy.unlinked.some((node) => visibleIds.has(node.row.id)) && <section className="org-tree__unlinked" aria-labelledby="org-tree-unlinked-title">
             <div><h2 id="org-tree-unlinked-title">Unlinked roles</h2><p>These branches reference a missing reporting role or contain a cyclic reporting relationship.</p></div>
-            <div className="org-tree__table-wrap"><table className="org-tree__table"><thead><tr><th>Role Title / Reporting To</th><th>JD ID</th><th>Career Level</th><th>Grade</th><th>Function</th><th>Layer</th><th>Order</th><th>Status</th></tr></thead><tbody>{hierarchy.unlinked.map((node) => renderNode(node, 0, true))}</tbody></table></div>
+            <div className="org-tree__table-wrap"><table className="org-tree__table"><OrgStructureColumnGroup /><thead><tr><th>Role Title / Reporting To</th><th>JD ID</th><th>Career Level</th><th>Grade</th><th>Function</th><th>Layer</th><th>Status</th></tr></thead><tbody>{hierarchy.unlinked.map((node) => renderNode(node, 0, true))}</tbody></table></div>
           </section>}
         </>}
     </section>

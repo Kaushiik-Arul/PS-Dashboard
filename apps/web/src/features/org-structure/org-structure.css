@@ -17,16 +17,15 @@
 .org-tree__meta h2, .org-tree__unlinked h2 { font: var(--sem__typography__bold__l); margin: 0; }
 .org-tree__meta span, .org-tree__unlinked p { color: var(--base-major__enabled__default__fill); font-size: 0.875rem; }
 .org-tree__table-wrap { overflow-x: auto; }
-.org-tree__table { border-collapse: collapse; min-width: 64rem; table-layout: fixed; width: 100%; }
+.org-tree__table { border-collapse: collapse; min-width: 72rem; table-layout: fixed; width: 100%; }
 .org-tree__table th { background: var(--plain-pure__enabled__default__front); color: var(--background); font-size: 0.75rem; padding: var(--app-space-3); text-align: left; }
-.org-tree__table th:first-child { width: 34%; }
-.org-tree__table th:nth-child(2) { width: 10%; }
-.org-tree__table th:nth-child(3) { width: 11%; }
-.org-tree__table th:nth-child(4) { width: 8%; }
-.org-tree__table th:nth-child(5) { width: 12%; }
-.org-tree__table th:nth-child(6) { width: 8%; }
-.org-tree__table th:nth-child(7) { width: 7%; }
-.org-tree__table th:nth-child(8) { width: 10%; }
+.org-tree__role-column { width: 38%; }
+.org-tree__jd-column { width: 11%; }
+.org-tree__career-column { width: 12%; }
+.org-tree__grade-column { width: 10%; }
+.org-tree__function-column { width: 14%; }
+.org-tree__layer-column { width: 7%; }
+.org-tree__status-column { width: 8%; }
 .org-tree__table td { border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); padding: var(--app-space-2) var(--app-space-3); vertical-align: middle; }
 .org-tree__group-row td { background: var(--base-minor__enabled__default__fill); padding: 0; }
 .org-tree__group { align-items: center; background: transparent; border: 0; color: inherit; cursor: pointer; display: grid; font: inherit; gap: var(--app-space-2); grid-template-columns: 2rem minmax(0, 1fr) auto; padding: var(--app-space-3); text-align: start; width: 100%; }
@@ -38,11 +37,11 @@
 .org-tree__group-count { color: var(--base-major__enabled__default__fill); font-size: 0.75rem; white-space: nowrap; }
 .org-tree__table tr.is-inactive { color: var(--base-major__enabled__default__fill); }
 .org-tree__table tr.is-context { background: var(--base-minor__enabled__default__fill); }
-.org-tree__role { align-items: center; display: flex; gap: var(--app-space-2); padding-inline-start: calc(var(--tree-depth, 0) * 1.5rem); }
+.org-tree__role { align-items: center; display: flex; gap: var(--app-space-2); padding-inline-start: min(calc(var(--tree-depth, 0) * 1.5rem), 9rem); }
 .org-tree__role--child { padding-inline-start: 1.5rem; }
-.org-tree__role > span:last-child { display: grid; gap: 0.125rem; min-width: 0; }
-.org-tree__role strong { overflow-wrap: anywhere; }
-.org-tree__role small { color: var(--base-major__enabled__default__fill); overflow-wrap: anywhere; }
+.org-tree__role > span:last-child { display: grid; flex: 1 1 auto; gap: 0.125rem; min-width: 0; }
+.org-tree__role strong { overflow-wrap: break-word; word-break: normal; }
+.org-tree__role small { color: var(--base-major__enabled__default__fill); overflow-wrap: break-word; word-break: normal; }
 .org-tree__toggle, .org-tree__spacer { flex: 0 0 2rem; height: 2rem; width: 2rem; }
 .org-tree__toggle { align-items: center; background: transparent; border: 0; color: inherit; cursor: pointer; display: inline-flex; justify-content: center; }
 .org-tree__status { display: inline-flex; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.5rem; }
@@ -74,7 +73,7 @@
   .org-tree__table td::before { color: var(--base-major__enabled__default__fill); content: attr(data-label); font-size: 0.75rem; font-weight: 700; }
   .org-tree__table td:first-child { display: block; padding-block-end: var(--app-space-2); }
   .org-tree__table td:first-child::before { display: none; }
-  .org-tree__role { padding-inline-start: calc(var(--tree-depth, 0) * 0.75rem); }
+  .org-tree__role { padding-inline-start: min(calc(var(--tree-depth, 0) * 0.75rem), 4.5rem); }
   .org-tree__role--child { padding-inline-start: 0.75rem; }
   .org-tree__group-count { display: none; }
 }
