@@ -7,7 +7,7 @@ export declare class AuthController {
     private readonly authService;
     private readonly config;
     constructor(authService: AuthService, config: ConfigService<Environment, true>);
-    login(input: unknown, request: Request, response: Response): Promise<{
+    login(input: unknown, contentType: string | undefined, request: Request, response: Response): Promise<{
         accountId: string;
         persNo: string | null;
         displayName: string;

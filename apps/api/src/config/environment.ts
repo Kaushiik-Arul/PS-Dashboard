@@ -15,10 +15,10 @@ const nodeEnvironments = new Set<NodeEnvironment>([
 export function validateEnvironment(
   values: Record<string, unknown>,
 ): Record<string, unknown> & Environment {
-  const nodeEnvironmentValue = values.NODE_ENV ?? 'development';
+  const nodeEnvironmentValue = values.NODE_ENV;
 
   if (typeof nodeEnvironmentValue !== 'string') {
-    throw new Error('NODE_ENV must be development, test, or production');
+    throw new Error('NODE_ENV is required and must be development, test, or production');
   }
 
   const nodeEnvironment = nodeEnvironmentValue;

@@ -3,11 +3,13 @@ import {
   Controller,
   Get,
   Header,
+  Headers,
   HttpCode,
   HttpStatus,
   Post,
   Req,
   Res,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
@@ -56,9 +58,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() input: unknown,
+    @Headers('content-type') contentType: string | undefined,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
+    if (contentType?.split(';', 1)[0].trim().toLowerCase() !== 'application/json') {
+      throw new UnsupportedMediaTypeException('Content-Type must be application/json');
+    }
+
     const result = await this.authService.login(input, metadata(request));
     this.writeSession(response, result);
     return responseUser(result.user);

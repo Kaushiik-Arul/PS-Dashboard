@@ -246,6 +246,15 @@ Audit details must not include passwords, raw session tokens, CSRF secrets, pass
 
 Cookie authentication requires protection against cross-site request forgery. State-changing requests must use a CSRF token in a custom header and validate the request `Origin` against the configured allowlist. SameSite cookies are an additional control, not the only CSRF control.
 
+Development invariants:
+
+- Next.js Proxy must cover `/api/:path*` and reject every unsafe method whose `Origin` does not exactly match the application origin.
+- NestJS `AuthGuard` must remain a global guard and require the session-bound CSRF cookie and header on every non-public unsafe endpoint.
+- Public unsafe endpoints require explicit security review. Login accepts only `application/json`; browser form content types are rejected at both the Next.js and NestJS boundaries.
+- Next.js mutation handlers must forward the session cookies and `X-CSRF-Token` header to NestJS. They must not perform authoritative mutations locally.
+- GET, HEAD, and OPTIONS handlers must not change server-side state.
+- Changes to authentication, cookies, Proxy matchers, public decorators, or mutation forwarding require CSRF regression tests and security review.
+
 Other browser-facing controls include:
 
 - HTTPS in production.
@@ -377,6 +386,9 @@ Before production rollout:
 8. Verify logout revokes only the current session.
 9. Verify sensitive responses cannot be stored in shared caches.
 10. Establish session and audit retention, cleanup, monitoring, and incident-response procedures.
+11. Verify cross-origin unsafe requests are rejected by Next.js before reaching a route handler.
+12. Verify login rejects form-compatible content types and accepts same-origin JSON only.
+13. Verify authenticated mutations reject missing, mismatched, and cross-session CSRF tokens.
 
 ## 17. Deferred Decisions
 

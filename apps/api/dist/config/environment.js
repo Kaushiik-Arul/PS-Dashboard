@@ -7,9 +7,9 @@ const nodeEnvironments = new Set([
     'production',
 ]);
 function validateEnvironment(values) {
-    const nodeEnvironmentValue = values.NODE_ENV ?? 'development';
+    const nodeEnvironmentValue = values.NODE_ENV;
     if (typeof nodeEnvironmentValue !== 'string') {
-        throw new Error('NODE_ENV must be development, test, or production');
+        throw new Error('NODE_ENV is required and must be development, test, or production');
     }
     const nodeEnvironment = nodeEnvironmentValue;
     if (!nodeEnvironments.has(nodeEnvironment)) {

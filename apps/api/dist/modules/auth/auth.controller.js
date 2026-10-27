@@ -44,7 +44,10 @@ let AuthController = class AuthController {
         this.authService = authService;
         this.config = config;
     }
-    async login(input, request, response) {
+    async login(input, contentType, request, response) {
+        if (contentType?.split(';', 1)[0].trim().toLowerCase() !== 'application/json') {
+            throw new common_1.UnsupportedMediaTypeException('Content-Type must be application/json');
+        }
         const result = await this.authService.login(input, metadata(request));
         this.writeSession(response, result);
         return responseUser(result.user);
@@ -75,10 +78,11 @@ __decorate([
     (0, common_1.Header)('Cache-Control', 'private, no-store'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Req)()),
-    __param(2, (0, common_1.Res)({ passthrough: true })),
+    __param(1, (0, common_1.Headers)('content-type')),
+    __param(2, (0, common_1.Req)()),
+    __param(3, (0, common_1.Res)({ passthrough: true })),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, Object]),
+    __metadata("design:paramtypes", [Object, Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
