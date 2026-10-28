@@ -1,5 +1,5 @@
-import { ComingSoonPage } from "@/components/ComingSoonPage";
+import { MrmReport } from "@/features/mrm/MrmReport";
 
 export default function MrmPage() {
-  return <ComingSoonPage title="MRM" icon="boschicon-bosch-ic-calendar" />;
+  return <MrmReport initialReportingMonth={new Date().toISOString().slice(0, 7)} />;
 }

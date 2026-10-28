@@ -22,6 +22,7 @@ import {
   reconcileDashboardFilters,
   toFilterSelection,
   type DashboardFilterKey,
+  type DashboardFilterSelectionIntent,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
@@ -208,6 +209,7 @@ export function CustomOverviewDashboard({
   const [detailError, setDetailError] = useState("");
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const optionRequestId = useRef(0);
+  const filterSelectionIntent = useRef<DashboardFilterSelectionIntent>({});
   const detailRequestId = useRef(0);
   const detailDialogRef = useRef<HTMLDialogElement>(null);
   const draggingWidget = useRef<CustomOverviewWidgetId | null>(null);
@@ -238,6 +240,7 @@ export function CustomOverviewDashboard({
           previousOptions,
           mapWorkforceFilterOptions(options),
           changedKey,
+          filterSelectionIntent.current,
         ));
       }
     } catch {
@@ -459,6 +462,7 @@ export function CustomOverviewDashboard({
         onChange={(filters, changedKey) => { setDraftFilters(filters); void refreshFilterOptions(filters, changedKey); }}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => {
+          filterSelectionIntent.current = {};
           const resetFilters = toDashboardFilters({}, demographics.filterOptions);
           setDraftFilters(resetFilters);
           applyFilters(resetFilters);

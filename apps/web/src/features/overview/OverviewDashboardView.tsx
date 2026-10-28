@@ -21,6 +21,7 @@ import {
   reconcileDashboardFilters,
   toFilterSelection,
   type DashboardFilterKey,
+  type DashboardFilterSelectionIntent,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
@@ -211,6 +212,7 @@ export function OverviewDashboard({
   const [isFiltering, setIsFiltering] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const optionRequestId = useRef(0);
+  const filterSelectionIntent = useRef<DashboardFilterSelectionIntent>({});
   const asOfLabel = formatDate(data.asOfDate, {
     day: "numeric",
     month: "long",
@@ -290,6 +292,7 @@ export function OverviewDashboard({
           previousOptions,
           mapWorkforceFilterOptions(nextOptions),
           changedKey,
+          filterSelectionIntent.current,
         ));
       }
     } catch {
@@ -324,6 +327,7 @@ export function OverviewDashboard({
         }}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => {
+          filterSelectionIntent.current = {};
           const resetFilters = toDashboardFilters({}, data.filterOptions);
           setDraftFilters(resetFilters);
           applyFilters(resetFilters);

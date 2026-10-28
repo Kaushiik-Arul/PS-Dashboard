@@ -11,6 +11,7 @@ import {
   reconcileDashboardFilters,
   toFilterSelection,
   type DashboardFilterKey,
+  type DashboardFilterSelectionIntent,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 
@@ -172,6 +173,7 @@ export function TalentPipelineDashboard({
   const [isFiltering, setIsFiltering] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const optionRequestId = useRef(0);
+  const filterSelectionIntent = useRef<DashboardFilterSelectionIntent>({});
   const [activeStepRows, setActiveStepRows] = useState<ActiveStepRow[]>([]);
   const [activeStepError, setActiveStepError] = useState("");
   const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
@@ -222,6 +224,7 @@ export function TalentPipelineDashboard({
           previousOptions,
           mapWorkforceFilterOptions(options),
           changedKey,
+          filterSelectionIntent.current,
         ));
       }
     } catch {
@@ -323,6 +326,7 @@ export function TalentPipelineDashboard({
         } : undefined}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => {
+          filterSelectionIntent.current = {};
           const resetFilters = toDashboardFilters({}, data.filterOptions);
           setDraftFilters(resetFilters);
           applyFilters(resetFilters);

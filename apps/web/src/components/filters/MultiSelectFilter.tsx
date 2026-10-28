@@ -20,10 +20,39 @@ export function reconcileMultiSelectSelection(
   selected: string[],
   previousOptions: string[],
   nextOptions: string[],
+  selectionWasAll = areAllOptionsSelected(selected, previousOptions),
 ) {
-  if (areAllOptionsSelected(selected, previousOptions)) return [...nextOptions];
-  const validSelection = selected.filter((item) => nextOptions.includes(item));
-  return validSelection.length > 0 ? validSelection : [...nextOptions];
+  if (selectionWasAll) return [...nextOptions];
+  return selected.length > 0 ? [...selected] : [...nextOptions];
+}
+
+export type MultiSelectSelectionIntent<TKey extends string> = Partial<Record<TKey, boolean>>;
+
+export function reconcileMultiSelectSelections<TKey extends string>(
+  selections: Record<TKey, string[]>,
+  previousOptions: Partial<Record<TKey, string[]>>,
+  nextOptions: Partial<Record<TKey, string[]>>,
+  changedKey: TKey,
+  selectionIntent: MultiSelectSelectionIntent<TKey>,
+) {
+  const reconciled = { ...selections };
+  (Object.keys(nextOptions) as TKey[]).forEach((key) => {
+    const previous = previousOptions[key] ?? [];
+    const next = nextOptions[key] ?? [];
+    const selectionWasAll = key === changedKey
+      ? areAllOptionsSelected(selections[key], previous)
+      : selectionIntent[key] ?? areAllOptionsSelected(selections[key], previous);
+    selectionIntent[key] = selectionWasAll;
+    if (key !== changedKey) {
+      reconciled[key] = reconcileMultiSelectSelection(
+        selections[key],
+        previous,
+        next,
+        selectionWasAll,
+      );
+    }
+  });
+  return reconciled;
 }
 
 export function MultiSelectFilter({

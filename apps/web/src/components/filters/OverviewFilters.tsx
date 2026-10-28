@@ -3,7 +3,12 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
-import { areAllOptionsSelected, MultiSelectFilter, reconcileMultiSelectSelection } from "./MultiSelectFilter";
+import {
+  areAllOptionsSelected,
+  MultiSelectFilter,
+  reconcileMultiSelectSelections,
+  type MultiSelectSelectionIntent,
+} from "./MultiSelectFilter";
 import "./overview-filters.css";
 
 export interface DashboardFilters {
@@ -19,6 +24,7 @@ export interface DashboardFilters {
 
 export type DashboardFilterKey = keyof DashboardFilters;
 export type DashboardFilterOptions = Partial<Record<DashboardFilterKey, string[]>>;
+export type DashboardFilterSelectionIntent = MultiSelectSelectionIntent<DashboardFilterKey>;
 
 type WorkforceFilterOptions = {
   functionName: string[];
@@ -94,17 +100,15 @@ export function reconcileDashboardFilters(
   previousOptions: DashboardFilterOptions,
   nextOptions: DashboardFilterOptions,
   changedKey: DashboardFilterKey,
+  selectionIntent: DashboardFilterSelectionIntent,
 ) {
-  const reconciled = { ...filters };
-  (Object.keys(nextOptions) as DashboardFilterKey[]).forEach((key) => {
-    if (key === changedKey) return;
-    reconciled[key] = reconcileMultiSelectSelection(
-      filters[key],
-      previousOptions[key] ?? [],
-      nextOptions[key] ?? [],
-    );
-  });
-  return reconciled;
+  return reconcileMultiSelectSelections(
+    filters,
+    previousOptions,
+    nextOptions,
+    changedKey,
+    selectionIntent,
+  );
 }
 
 interface OverviewFiltersProps {

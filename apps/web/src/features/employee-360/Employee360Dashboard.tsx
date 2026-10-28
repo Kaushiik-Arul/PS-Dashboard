@@ -11,6 +11,7 @@ import {
   sameFilterSelection,
   toFilterSelection,
   type DashboardFilterKey,
+  type DashboardFilterSelectionIntent,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 import { areAllOptionsSelected, MultiSelectFilter } from "@/components/filters/MultiSelectFilter";
@@ -110,6 +111,7 @@ export function Employee360Dashboard({
   const [openFilter, setOpenFilter] = useState<DashboardFilterKey | null>(null);
   const controlsRef = useRef<HTMLElement>(null);
   const optionRequestId = useRef(0);
+  const filterSelectionIntent = useRef<DashboardFilterSelectionIntent>({});
   const [filterOptions, setFilterOptions] = useState(data.filterOptions);
   const dashboardFilterOptions = mapWorkforceFilterOptions(filterOptions);
   const activeFilters = filterFields.filter((key) => !areAllOptionsSelected(appliedFilters[key], dashboardFilterOptions[key] ?? []));
@@ -171,7 +173,13 @@ export function Employee360Dashboard({
       if (requestId === optionRequestId.current) {
         const nextOptions = mapWorkforceFilterOptions(options);
         setFilterOptions(options);
-        setDraftFilters(reconcileDashboardFilters(filters, previousOptions, nextOptions, changedKey));
+        setDraftFilters(reconcileDashboardFilters(
+          filters,
+          previousOptions,
+          nextOptions,
+          changedKey,
+          filterSelectionIntent.current,
+        ));
       }
     } finally {
       if (requestId === optionRequestId.current) setIsLoadingOptions(false);
@@ -214,7 +222,7 @@ export function Employee360Dashboard({
             <span>Current view:</span>
             {activeQuery.search && <strong>Search: {activeQuery.search}</strong>}
             {activeFilters.map((key) => <strong key={key}>{filterLabels[key]}: {appliedFilters[key].length === 1 ? appliedFilters[key][0] : `${appliedFilters[key].length} selected`}</strong>)}
-            <button className="a-button a-button--integrated -small" type="button" onClick={() => { const resetFilters = toDashboardFilters({}, data.filterOptions); setSearch(""); setDraftFilters(resetFilters); navigate(resetFilters, ""); }}>
+            <button className="a-button a-button--integrated -small" type="button" onClick={() => { filterSelectionIntent.current = {}; const resetFilters = toDashboardFilters({}, data.filterOptions); setSearch(""); setDraftFilters(resetFilters); navigate(resetFilters, ""); }}>
               <i className="a-icon a-button__icon boschicon-bosch-ic-reset" aria-hidden="true" />
               <span className="a-button__label">Clear all</span>
             </button>
@@ -242,7 +250,7 @@ export function Employee360Dashboard({
             <div className="employee-360__filter-footer">
               <p aria-live="polite">{isLoadingOptions ? "Updating filter choices..." : hasPendingChanges ? "Changes are ready to apply." : activeFilters.length > 0 ? `${activeFilters.length} filters applied.` : "No filters applied."}</p>
               <div>
-                <button className="a-button a-button--secondary -small" type="button" onClick={() => { const resetFilters = toDashboardFilters({}, data.filterOptions); setDraftFilters(resetFilters); navigate(resetFilters, search); }}><span className="a-button__label">Reset filters</span></button>
+                <button className="a-button a-button--secondary -small" type="button" onClick={() => { filterSelectionIntent.current = {}; const resetFilters = toDashboardFilters({}, data.filterOptions); setDraftFilters(resetFilters); navigate(resetFilters, search); }}><span className="a-button__label">Reset filters</span></button>
                 <button className="a-button a-button--primary -small" type="submit" disabled={hasEmptySelection}>
                   <i className="a-icon a-button__icon boschicon-bosch-ic-filter" aria-hidden="true" />
                   <span className="a-button__label">Apply</span>

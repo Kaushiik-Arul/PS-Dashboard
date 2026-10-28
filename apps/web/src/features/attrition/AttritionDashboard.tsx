@@ -5,7 +5,12 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { ChartCard, HorizontalBarChart } from "@/components/charts/OverviewCharts";
 import { DataTable, type DataTableColumn } from "@/components/data-table/DataTable";
 import "@/components/filters/overview-filters.css";
-import { areAllOptionsSelected, MultiSelectFilter, reconcileMultiSelectSelection } from "@/components/filters/MultiSelectFilter";
+import {
+  areAllOptionsSelected,
+  MultiSelectFilter,
+  reconcileMultiSelectSelections,
+  type MultiSelectSelectionIntent,
+} from "@/components/filters/MultiSelectFilter";
 import { KpiCard, type KpiMetric } from "@/components/kpi/KpiCard";
 import { KpiGrid } from "@/components/kpi/KpiGrid";
 import {
@@ -163,6 +168,7 @@ export function AttritionDashboard({
   const [isFiltering, setIsFiltering] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const optionRequestId = useRef(0);
+  const filterSelectionIntent = useRef<MultiSelectSelectionIntent<keyof FilterState>>({});
   const filtersRef = useRef<HTMLElement>(null);
   const showRange = data.organizationScope === "unrestricted";
   const showOrgUnit = data.organizationScope !== "rangeOrgUnit";
@@ -204,17 +210,14 @@ export function AttritionDashboard({
       const options = (await response.json()) as AttritionFilterOptions;
       if (requestId === optionRequestId.current) {
         const nextOptions = mapAttritionFilterOptions(options);
-        const reconciled = { ...filters };
-        (Object.keys(nextOptions) as Array<keyof FilterState>).forEach((key) => {
-          if (key === changedKey) return;
-          reconciled[key] = reconcileMultiSelectSelection(
-            filters[key],
-            previousOptions[key],
-            nextOptions[key],
-          );
-        });
         setFilterOptions(options);
-        setDraftFilters(reconciled);
+        setDraftFilters(reconcileMultiSelectSelections(
+          filters,
+          previousOptions,
+          nextOptions,
+          changedKey,
+          filterSelectionIntent.current,
+        ));
       }
     } finally {
       if (requestId === optionRequestId.current) setIsLoadingOptions(false);
@@ -226,6 +229,7 @@ export function AttritionDashboard({
     void refreshFilterOptions(next, key);
   };
   const resetFilters = () => {
+    filterSelectionIntent.current = {};
     const reset = {
       years: [String(new Date().getFullYear())],
       separationTypes: filterOptions.separationType,

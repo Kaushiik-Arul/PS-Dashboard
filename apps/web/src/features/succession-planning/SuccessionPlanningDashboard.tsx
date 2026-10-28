@@ -19,6 +19,7 @@ import {
   reconcileDashboardFilters,
   toFilterSelection,
   type DashboardFilterKey,
+  type DashboardFilterSelectionIntent,
   type DashboardFilters,
 } from "@/components/filters/OverviewFilters";
 import {
@@ -194,6 +195,7 @@ export function SuccessionPlanningDashboard({
   const [isFiltering, setIsFiltering] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const optionRequestId = useRef(0);
+  const filterSelectionIntent = useRef<DashboardFilterSelectionIntent>({});
   const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
   const [snapshotMessage, setSnapshotMessage] = useState("");
   const [snapshotMonth, setSnapshotMonth] = useState(latestSnapshotMonth);
@@ -228,6 +230,7 @@ export function SuccessionPlanningDashboard({
           previousOptions,
           mapWorkforceFilterOptions(options),
           changedKey,
+          filterSelectionIntent.current,
         ));
       }
     } catch {
@@ -319,6 +322,7 @@ export function SuccessionPlanningDashboard({
         } : undefined}
         onApply={() => applyFilters(draftFilters)}
         onClear={() => {
+          filterSelectionIntent.current = {};
           const resetFilters = toDashboardFilters({}, data.filterOptions);
           setDraftFilters(resetFilters);
           applyFilters(resetFilters);
