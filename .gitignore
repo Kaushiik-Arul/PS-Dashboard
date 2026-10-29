@@ -46,45 +46,8 @@ next-env.d.ts
 
 #sql
 **/*.sql
-!apps/sql/auth_creation.sql
-!apps/sql/auth_account_uuid_migration.sql
-!apps/sql/remove_account_lockout_migration.sql
-!apps/sql/access_point_multi_assignment_migration.sql
-!apps/sql/overview_access_scope_migration.sql
-!apps/sql/namelist_import_staging_migration.sql
-!apps/sql/namelist_monthly_history_migration.sql
-!apps/sql/namelist_reporting_month_confirmation_migration.sql
-!apps/sql/dashboard_json_snapshots_migration.sql
-!apps/sql/attrition_import_migration.sql
-!apps/sql/mrm_creation_migration.sql
-!apps/sql/employee_headcount_org_unit_migration.sql
-!apps/sql/account_dashboard_preferences_migration.sql
-!apps/sql/rbin_namelist_creation.sql
-!apps/sql/rbin_cleaning_migration.sql
-!apps/sql/rbin_employee_exceptions_migration.sql
-!apps/sql/employee_career_journey_migration.sql
-!apps/sql/employee_ppp_history_migration.sql
-!apps/sql/rbin_current_snapshot_migration.sql
-!apps/sql/rbin_finalize_replacement_migration.sql
-!apps/sql/employee_jd_allow_unassigned.sql
-!apps/sql/active_step_migration.sql
-!apps/sql/org_structure_migration.sql
-!apps/sql/pool_registers_migration.sql
-!apps/sql/split_pool_register_tables_migration.sql
-!apps/sql/nomination_status_migration.sql
-!apps/sql/talent_pipeline_functions_migration.sql
-!apps/sql/multi_select_dashboard_filters_migration.sql
-!apps/sql/reset_rbin_automation_data.sql
-!apps/sql/functions/
-!apps/sql/functions/overview/
-!apps/sql/functions/overview/*.sql
-!apps/sql/functions/talent-pipeline/
-!apps/sql/functions/talent-pipeline/*.sql
+!apps/sql/**/*.sql
 
 
 # Local patch files
 *.patch
-
-!apps/sql/available_talent_migration.sql
-!apps/sql/succession_planning_migration.sql
-!apps/sql/employee_idp_status_migration.sql
