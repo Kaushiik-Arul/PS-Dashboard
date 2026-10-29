@@ -1,4 +1,35 @@
-# Overview database contract
+# Database setup and contracts
+
+## Fresh database setup
+
+Use `bootstrap_fresh_database.sql` to initialize a new, empty PostgreSQL
+database with every table, constraint, index, and function required by the API.
+The script stops immediately if any included migration fails.
+
+From the repository root in PowerShell:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/bootstrap_fresh_database.sql"
+```
+
+The database named by `DATABASE_URL` must already exist and must be empty. Do
+not run this bootstrap against an existing installation because creation
+migrations are intentionally not idempotent. Legacy upgrade migrations and
+`reset_rbin_automation_data.sql` are intentionally excluded.
+
+After the schema is created, create the first login from `apps/api`. The command
+prompts securely for a temporary password of at least 12 characters:
+
+```powershell
+npm run seed:access -- --role admin --email admin@example.com --name "Initial Admin"
+```
+
+Add `--pers-no 12345678` only when the matching employee has already been
+imported into `employee_namelist`. Organizational Unit mapping rows and business
+register data are application data, so load or import them after bootstrap.
+
+## Overview database contract
 
 Org Structure import setup and behavior: [Org Structure Import](../../ORG_STRUCTURE_IMPORT.md).
 
@@ -12,7 +43,7 @@ public.employee_status
 | public.get_workforce_kpis() | DATE, six optional TEXT[] filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview KPI values |
 | public.get_workforce_charts() | DATE, six optional TEXT[] filters, authenticated account UUID, optional reporting month | JSONB | Scope-filtered overview chart data |
 
-## Rules
+### Rules
 
 - Both functions are read-only. Workforce KPIs and charts use
   employee_namelist for the current view and employee_namelist_monthly for a
