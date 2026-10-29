@@ -7,6 +7,8 @@ export const permissions = [
   'succession-planning:import',
   'attrition:view',
   'attrition:import',
+  'mrm:view',
+  'mrm:manage',
   'hrbp-point:view',
   'hrbp-point:manage',
   'headcount:import',
@@ -23,10 +25,10 @@ export type Permission = (typeof permissions)[number];
 
 const rolePermissions: Record<UserRole, ReadonlySet<Permission>> = {
   hrbp: new Set(permissions),
-  admin: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'dashboard-customization:manage']),
-  range_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
-  department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
-  sub_department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
+  admin: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view', 'dashboard-customization:manage']),
+  range_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view']),
+  department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view']),
+  sub_department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view']),
 };
 
 export function hasPermission(

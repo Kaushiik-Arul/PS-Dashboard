@@ -275,6 +275,29 @@ Apply `employee_headcount_org_unit_migration.sql` after the original monthly
 headcount migration, then reimport all historical PS Namelist workbooks before
 relying on organization-filtered percentages.
 
+## Management Review Meeting
+
+Full cross-stack documentation: [Management Review Meeting](../../MRM.md).
+
+Apply `mrm_creation_migration.sql` after authentication, Namelist, Namelist
+monthly history, and Attrition migrations. Back up the database and apply it to
+a test or backup database before production:
+
+```powershell
+$db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_creation_migration.sql"
+```
+
+The migration creates the report, managed catalog, resolved column, cell,
+metric bucket, attachment, immutable snapshot, and MRM audit tables. It seeds
+the stable row and column keys used by the application. Finalized parent
+triggers reject inserts, updates, and deletes in report-owned tables.
+
+The migration is transactional. On failure, correct the reported prerequisite
+or SQL issue and rerun the complete file. Restore the complete pre-migration
+backup when deployment rollback is required. Use forward migrations for later
+catalog or schema changes; do not alter finalized report data in place.
+
 ## Employee PPP history
 
 Apply `employee_ppp_history_migration.sql` after the authentication and

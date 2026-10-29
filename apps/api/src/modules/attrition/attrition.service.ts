@@ -4,9 +4,12 @@ import type {
   AttritionFilterDto,
   NormalizedAttritionFilters,
 } from './dto/attrition-filter.dto';
-
-const separationTypes = ['Resignation', 'Transfer', 'Retirement', 'Other'] as const;
-type SeparationType = (typeof separationTypes)[number];
+import {
+  classifySeparation,
+  normalizedKey,
+  separationTypes,
+  type SeparationType,
+} from './attrition-classification';
 
 type AttritionRecord = {
   id: string;
@@ -28,18 +31,6 @@ type AttritionRecord = {
 };
 
 type ClassifiedAttritionRecord = AttritionRecord & { separationType: SeparationType };
-
-function normalizedKey(value: string): string {
-  return value.trim().replace(/\s+/g, ' ').toUpperCase();
-}
-
-function classifySeparation(row: AttritionRecord): SeparationType {
-  const source = `${row.filter_value} ${row.reason_for_action}`.toLowerCase();
-  if (/retir/.test(source)) return 'Retirement';
-  if (/transfer/.test(source)) return 'Transfer';
-  if (/resign|separation|exit/.test(source)) return 'Resignation';
-  return 'Other';
-}
 
 function sortValues(values: string[]): string[] {
   return [...new Set(values)].sort((left, right) =>

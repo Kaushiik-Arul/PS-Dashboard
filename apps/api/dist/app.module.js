@@ -18,6 +18,7 @@ const auth_module_1 = require("./modules/auth/auth.module");
 const dashboard_preferences_module_1 = require("./modules/dashboard-preferences/dashboard-preferences.module");
 const employee_360_module_1 = require("./modules/employee-360/employee-360.module");
 const hrbp_point_module_1 = require("./modules/hrbp-point/hrbp-point.module");
+const mrm_module_1 = require("./modules/mrm/mrm.module");
 const overview_module_1 = require("./modules/overview/overview.module");
 const succession_planning_module_1 = require("./modules/succession-planning/succession-planning.module");
 const talent_pipeline_module_1 = require("./modules/talent-pipeline/talent-pipeline.module");
@@ -38,6 +39,7 @@ exports.AppModule = AppModule = __decorate([
             access_point_module_1.AccessPointModule,
             employee_360_module_1.Employee360Module,
             hrbp_point_module_1.HrbpPointModule,
+            mrm_module_1.MrmModule,
             overview_module_1.OverviewModule,
             succession_planning_module_1.SuccessionPlanningModule,
             talent_pipeline_module_1.TalentPipelineModule,

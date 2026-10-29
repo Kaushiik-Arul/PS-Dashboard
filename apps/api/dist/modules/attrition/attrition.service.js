@@ -12,20 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AttritionService = void 0;
 const common_1 = require("@nestjs/common");
 const database_service_1 = require("../../database/database.service");
-const separationTypes = ['Resignation', 'Transfer', 'Retirement', 'Other'];
-function normalizedKey(value) {
-    return value.trim().replace(/\s+/g, ' ').toUpperCase();
-}
-function classifySeparation(row) {
-    const source = `${row.filter_value} ${row.reason_for_action}`.toLowerCase();
-    if (/retir/.test(source))
-        return 'Retirement';
-    if (/transfer/.test(source))
-        return 'Transfer';
-    if (/resign|separation|exit/.test(source))
-        return 'Resignation';
-    return 'Other';
-}
+const attrition_classification_1 = require("./attrition-classification");
 function sortValues(values) {
     return [...new Set(values)].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
 }
@@ -83,7 +70,7 @@ let AttritionService = class AttritionService {
         ]);
         const authorizedRows = result.rows.map((row) => ({
             ...row,
-            separationType: classifySeparation(row),
+            separationType: (0, attrition_classification_1.classifySeparation)(row),
         }));
         const rows = authorizedRows.filter((row) => this.matches(row, filters));
         const headcountByMonth = await this.getMonthlyHeadcount(accountId, filters);
@@ -130,7 +117,7 @@ let AttritionService = class AttritionService {
                 resignations: countType('Resignation'),
                 transfers: countType('Transfer'),
                 retirements: countType('Retirement'),
-                female: rows.filter((row) => normalizedKey(row.gender_key) === 'FEMALE').length,
+                female: rows.filter((row) => (0, attrition_classification_1.normalizedKey)(row.gender_key) === 'FEMALE').length,
                 averageHeadcount: averageHeadcount === null ? null : Math.round(averageHeadcount),
                 attritionRate: averageHeadcount && averageHeadcount > 0
                     ? Number(((rows.length / averageHeadcount) * 100).toFixed(2))
@@ -149,14 +136,14 @@ let AttritionService = class AttritionService {
         const matchesExcept = (row, omitted) => row.lwd_year !== null
             && (omitted === 'year' || filters.years.includes(row.lwd_year))
             && (omitted === 'separationType' || !filters.separationTypes.length || filters.separationTypes.includes(row.separationType))
-            && (omitted === 'reasonForAction' || !filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => normalizedKey(row.reason_for_action) === normalizedKey(reason)))
-            && (omitted === 'range' || !filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)))
-            && (omitted === 'orgUnit' || !filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)));
+            && (omitted === 'reasonForAction' || !filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => (0, attrition_classification_1.normalizedKey)(row.reason_for_action) === (0, attrition_classification_1.normalizedKey)(reason)))
+            && (omitted === 'range' || !filters.ranges.length || filters.ranges.some((range) => (0, attrition_classification_1.normalizedKey)(row.range) === (0, attrition_classification_1.normalizedKey)(range)))
+            && (omitted === 'orgUnit' || !filters.orgUnits.length || filters.orgUnits.some((orgUnit) => (0, attrition_classification_1.normalizedKey)(row.org_unit) === (0, attrition_classification_1.normalizedKey)(orgUnit)));
         return {
             year: [...new Set(rows.filter((row) => matchesExcept(row, 'year'))
                     .flatMap((row) => row.lwd_year === null ? [] : [String(row.lwd_year)]))]
                 .sort((left, right) => Number(right) - Number(left)),
-            separationType: separationTypes.filter((type) => rows.some((row) => matchesExcept(row, 'separationType') && row.separationType === type)),
+            separationType: attrition_classification_1.separationTypes.filter((type) => rows.some((row) => matchesExcept(row, 'separationType') && row.separationType === type)),
             reasonForAction: sortValues(rows.filter((row) => matchesExcept(row, 'reasonForAction'))
                 .map((row) => row.reason_for_action).filter(Boolean)),
             range: sortValues(rows.filter((row) => matchesExcept(row, 'range'))
@@ -168,9 +155,9 @@ let AttritionService = class AttritionService {
     matches(row, filters) {
         return row.lwd_year !== null && filters.years.includes(row.lwd_year)
             && (!filters.separationTypes.length || filters.separationTypes.includes(row.separationType))
-            && (!filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => normalizedKey(row.reason_for_action) === normalizedKey(reason)))
-            && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))
-            && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)));
+            && (!filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => (0, attrition_classification_1.normalizedKey)(row.reason_for_action) === (0, attrition_classification_1.normalizedKey)(reason)))
+            && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => (0, attrition_classification_1.normalizedKey)(row.org_unit) === (0, attrition_classification_1.normalizedKey)(orgUnit)))
+            && (!filters.ranges.length || filters.ranges.some((range) => (0, attrition_classification_1.normalizedKey)(row.range) === (0, attrition_classification_1.normalizedKey)(range)));
     }
     async getMonthlyHeadcount(accountId, filters) {
         const result = await this.database.query(`WITH access_rows AS (
@@ -242,8 +229,8 @@ let AttritionService = class AttritionService {
            FROM selected GROUP BY EXTRACT(MONTH FROM reporting_month) ORDER BY month`, [
             accountId,
             filters.years,
-            filters.ranges.length ? filters.ranges.map(normalizedKey) : null,
-            filters.orgUnits.length ? filters.orgUnits.map(normalizedKey) : null,
+            filters.ranges.length ? filters.ranges.map(attrition_classification_1.normalizedKey) : null,
+            filters.orgUnits.length ? filters.orgUnits.map(attrition_classification_1.normalizedKey) : null,
         ]);
         return new Map(result.rows.map((row) => [
             row.month,
@@ -266,7 +253,7 @@ let AttritionService = class AttritionService {
             throw new common_1.BadRequestException('Year filter is invalid');
         }
         const selectedTypes = normalizeMany(filters.separationType, 'Separation type');
-        if (selectedTypes.some((type) => !separationTypes.includes(type))) {
+        if (selectedTypes.some((type) => !attrition_classification_1.separationTypes.includes(type))) {
             throw new common_1.BadRequestException('Separation type filter is invalid');
         }
         return {

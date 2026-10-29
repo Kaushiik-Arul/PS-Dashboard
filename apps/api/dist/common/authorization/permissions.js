@@ -9,6 +9,8 @@ exports.permissions = [
     'succession-planning:import',
     'attrition:view',
     'attrition:import',
+    'mrm:view',
+    'mrm:manage',
     'hrbp-point:view',
     'hrbp-point:manage',
     'headcount:import',
@@ -22,10 +24,10 @@ exports.permissions = [
 ];
 const rolePermissions = {
     hrbp: new Set(exports.permissions),
-    admin: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'dashboard-customization:manage']),
-    range_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
-    department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
-    sub_department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view']),
+    admin: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view', 'dashboard-customization:manage']),
+    range_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view']),
+    department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view']),
+    sub_department_head: new Set(['workforce:view', 'succession-planning:view', 'attrition:view', 'mrm:view']),
 };
 function hasPermission(roles, permission) {
     return roles.some((role) => rolePermissions[role].has(permission));

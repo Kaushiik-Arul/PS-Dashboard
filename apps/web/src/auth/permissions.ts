@@ -11,6 +11,8 @@ export type Permission =
   | "viewOrgStructure"
   | "successionPlanningPoint"
   | "attritionPoint"
+  | "viewMrm"
+  | "manageMrm"
   | "manageAccessPoint"
   | "viewCustomOverview";
 
@@ -25,6 +27,8 @@ export const permissions: Record<Permission, readonly UserRole[]> = {
   viewOrgStructure: ["hrbp"],
   successionPlanningPoint: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
   attritionPoint: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
+  viewMrm: ["hrbp", "admin", "range_head", "department_head", "sub_department_head"],
+  manageMrm: ["hrbp"],
   manageAccessPoint: ["hrbp"],
   viewCustomOverview: ["hrbp", "admin"],
 };

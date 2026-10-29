@@ -37,7 +37,9 @@ function sortRows(first: OrgStructureRow, second: OrgStructureRow) {
 
 function buildHierarchy(rows: OrgStructureRow[]): OrgHierarchy {
   const sortedRows = [...rows].sort(sortRows);
-  const nodes = new Map(sortedRows.map((row) => [row.id, { row, parentId: null, children: [] } satisfies TreeNode]));
+  const nodes = new Map<string, TreeNode>(
+    sortedRows.map((row) => [row.id, { row, parentId: null, children: [] }]),
+  );
   const titleOwners = new Map<string, OrgStructureRow>();
   for (const row of sortedRows) {
     const title = normalizedTitle(row.roleTitle);

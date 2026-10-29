@@ -111,6 +111,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       return hasPermission(role, "attritionPoint");
     }
 
+    if (item.href === "/mrm") {
+      return hasPermission(role, "viewMrm");
+    }
+
     if (item.href === "/access-point") {
       return hasPermission(role, "manageAccessPoint");
     }
