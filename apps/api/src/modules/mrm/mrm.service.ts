@@ -95,7 +95,7 @@ export class MrmService {
       if (!this.isDocument(snapshot)) throw new Error('MRM_SNAPSHOT_INVALID');
       const buckets = await this.repository.getScopedBuckets(report.id, user.accountId);
       return this.applyCalculatedValues({
-        ...snapshot,
+        ...this.normalizeDocument(snapshot),
         canManage: false,
         updatedAt: report.updated_at,
         finalizedAt: report.finalized_at,
@@ -244,6 +244,8 @@ export class MrmService {
   ) {
     return {
       key: row.row_key,
+      tableKey: row.table_key,
+      calculationKey: row.metric_key,
       title: row.title,
       description: row.description,
       mode: row.value_mode,
@@ -284,7 +286,7 @@ export class MrmService {
         const cells = { ...row.cells };
         for (const [columnKey, dataMonth] of rollingMonths) {
           if (!document.columns.some((column) => column.key === columnKey)) continue;
-          const metric = totals.get(`${dataMonth}\0${row.key}`);
+          const metric = totals.get(`${dataMonth}\0${row.calculationKey ?? row.key}`);
           cells[columnKey] = !metric
             ? null
             : metric.denominator === null
@@ -331,6 +333,7 @@ export class MrmService {
       if (!entry || typeof entry !== 'object') throw new BadRequestException('MRM row is invalid.');
       const row = entry as Record<string, unknown>;
       if (typeof row.key !== 'string' || !keyPattern.test(row.key)
+        || typeof row.tableKey !== 'string' || !keyPattern.test(row.tableKey)
         || typeof row.title !== 'string' || !row.title.trim() || row.title.length > 300
         || typeof row.description !== 'string' || row.description.length > 500
         || typeof row.highlighted !== 'boolean' || typeof row.muted !== 'boolean'
@@ -339,7 +342,8 @@ export class MrmService {
         throw new BadRequestException('MRM row is invalid.');
       }
       return {
-        key: row.key, title: row.title, description: row.description,
+        key: row.key, tableKey: row.tableKey,
+        title: row.title, description: row.description,
         highlighted: row.highlighted, muted: row.muted,
         emphasized: row.emphasized, managed: row.managed,
         cells: row.cells as Record<string, unknown>,
@@ -359,7 +363,8 @@ export class MrmService {
         key: column.key, label: column.label, type: column.type, managed: column.managed,
       })),
       rows: document.rows.map((row) => ({
-        key: row.key, title: row.title, description: row.description,
+        key: row.key, tableKey: row.tableKey,
+        title: row.title, description: row.description,
         highlighted: row.highlighted, muted: row.muted,
         emphasized: row.emphasized, managed: row.managed,
         cells: row.mode === 'manual' ? row.cells : {},
@@ -375,5 +380,16 @@ export class MrmService {
     if (!value || typeof value !== 'object') return false;
     const document = value as Partial<MrmReportDocument>;
     return document.schemaVersion === 1 && Array.isArray(document.columns) && Array.isArray(document.rows);
+  }
+
+  private normalizeDocument(document: MrmReportDocument): MrmReportDocument {
+    return {
+      ...document,
+      rows: document.rows.map((row) => ({
+        ...row,
+        tableKey: row.tableKey ?? 'ps-in',
+        calculationKey: row.calculationKey ?? (row.mode === 'calculated' ? row.key : null),
+      })),
+    };
   }
 }

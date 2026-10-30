@@ -2,6 +2,17 @@
 
 MRM reports are shared PostgreSQL documents. Browser `localStorage` is not a data source and the retired `ps-dashboard:mrm-prototype:v1` key is deleted by the client.
 
+## Report structure
+
+Each reporting month contains two independent KPI tables:
+
+- **PS Corp Performance Dashboard:** PUL and the Corp performance KPIs.
+- **PS-IN Performance Dashboard:** Performance KPIs followed by the workforce/PUL breakdown. The two PS-IN reference screenshots are the upper and lower continuation of this one logical table.
+
+The tables share column definitions, including Actual, Target, rolling months, YTD status, and Attachments. Their rows have independent keys, manual values, statuses, attachments, display order, and highlighting. Duplicate calculated KPIs can reuse the same normalized calculation metric without sharing stored cells between tables.
+
+Custom KPI rows are created inside a selected table and can only be reordered within that table. Copy and Excel export preserve both table headings and the separation between the two tables.
+
 ## Access and lifecycle
 
 All authenticated HRBP, Admin, Range Head, Department Head, and Sub-department Head roles can view MRM. Only HRBP can save drafts, upload or delete attachments, and finalize reports. Draft saves use an expected revision; a stale revision returns HTTP 409 and must not overwrite local edits.
@@ -39,7 +50,7 @@ Attachments are stored in PostgreSQL `BYTEA`. The maximum file size is 10 MB. Al
 
 ## Deployment
 
-Back up PostgreSQL first. Apply `apps/sql/mrm_creation_migration.sql` after authentication, Namelist, Namelist monthly history, and Attrition schemas. Then apply `apps/sql/mrm_monthly_metric_snapshots_migration.sql`. The migrations are additive and transactional.
+Back up PostgreSQL first. Apply `apps/sql/mrm_creation_migration.sql` after authentication, Namelist, Namelist monthly history, and Attrition schemas. Then apply `apps/sql/mrm_monthly_metric_snapshots_migration.sql` and `apps/sql/mrm_table_sections_migration.sql`. The migrations are additive and transactional.
 
 Deploy in this order:
 
@@ -56,6 +67,7 @@ Apply to a backup or test database with:
 $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_creation_migration.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_monthly_metric_snapshots_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_table_sections_migration.sql"
 ```
 
 If migration application fails, `ON_ERROR_STOP=1` and the transaction roll back the attempt. Correct the reported prerequisite or SQL issue and rerun the whole migration. After deployment, use forward migrations for catalog/schema changes. Do not edit finalized rows or restore selected child tables independently; restore the complete database backup when rollback is required.

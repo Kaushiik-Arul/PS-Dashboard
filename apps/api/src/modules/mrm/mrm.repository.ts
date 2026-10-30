@@ -25,6 +25,8 @@ export type MrmReportRecord = {
 
 export type MrmRowDefinitionRecord = {
   row_key: string;
+  table_key: string;
+  metric_key: string | null;
   title: string;
   description: string;
   value_mode: 'manual' | 'calculated';
@@ -121,12 +123,13 @@ export class MrmRepository {
       }
     }
     const result = await this.database.query<MrmRowDefinitionRecord>(
-      `SELECT row_key, title, description, value_mode, highlighted, muted,
-              emphasized, managed
+            `SELECT row_key, table_key, metric_key, title, description, value_mode,
+              highlighted, muted, emphasized, managed
        FROM public.mrm_row_definitions
        WHERE active_from_month <= $1::date
          AND (active_to_month IS NULL OR active_to_month >= $1::date)
-       ORDER BY display_order, row_key`,
+      ORDER BY CASE table_key WHEN 'ps-corp' THEN 0 WHEN 'ps-in' THEN 1 ELSE 2 END,
+          table_key, display_order, row_key`,
       [monthDate(reportingMonth)],
     );
     return result.rows;
@@ -311,16 +314,17 @@ export class MrmRepository {
     for (const [index, row] of input.rows.entries()) {
       await client.query(
         `INSERT INTO public.mrm_row_definitions (
-           row_key, title, description, value_mode, display_order,
+           row_key, table_key, metric_key, title, description, value_mode, display_order,
            highlighted, muted, emphasized, active_from_month, managed
-         ) VALUES ($1, $2, $3, 'manual', $4, $5, $6, $7, DATE '2025-01-01', FALSE)
+         ) VALUES ($1, $2, NULL, $3, $4, 'manual', $5, $6, $7, $8, DATE '2025-01-01', FALSE)
          ON CONFLICT (row_key) DO UPDATE SET
            display_order = EXCLUDED.display_order,
+           table_key = CASE WHEN NOT public.mrm_row_definitions.managed THEN EXCLUDED.table_key ELSE public.mrm_row_definitions.table_key END,
            title = CASE WHEN NOT public.mrm_row_definitions.managed THEN EXCLUDED.title ELSE public.mrm_row_definitions.title END,
            description = CASE WHEN NOT public.mrm_row_definitions.managed THEN EXCLUDED.description ELSE public.mrm_row_definitions.description END,
            highlighted = EXCLUDED.highlighted, muted = EXCLUDED.muted,
            emphasized = EXCLUDED.emphasized`,
-        [row.key, row.title, row.description, index, row.highlighted, row.muted, row.emphasized],
+        [row.key, row.tableKey, row.title, row.description, index, row.highlighted, row.muted, row.emphasized],
       );
     }
     for (const [index, column] of input.columns.entries()) {

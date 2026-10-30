@@ -136,7 +136,32 @@
 }
 
 .mrm-report {
-  margin-block-start: 0.75rem;
+  margin-block-start: 1.5rem;
+}
+
+.mrm-report__header {
+  align-items: flex-end;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-block-end: 0.5rem;
+}
+
+.mrm-report__header h2,
+.mrm-report__header p {
+  margin: 0;
+}
+
+.mrm-report__header h2 {
+  font-size: 1.25rem;
+  letter-spacing: 0;
+  line-height: 1.75rem;
+}
+
+.mrm-report__header p {
+  color: var(--accent-major__enabled__default__fill);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .mrm-table-scroll {
@@ -437,6 +462,11 @@
 
   .mrm-header__actions {
     justify-content: flex-start;
+  }
+
+  .mrm-report__header {
+    align-items: flex-start;
+    display: grid;
   }
 
   .mrm-toolbar {

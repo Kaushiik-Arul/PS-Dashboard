@@ -11,6 +11,8 @@ export type MrmColumn = {
 
 export type MrmRow = {
   key: string;
+  tableKey: string;
+  calculationKey: string | null;
   title: string;
   description: string;
   mode: "manual" | "calculated";
@@ -58,5 +60,5 @@ export type MrmMonthsResponse = { currentMonth: string; months: MrmMonth[] };
 export type MrmSavePayload = {
   expectedRevision: number;
   columns: Array<Pick<MrmColumn, "key" | "label" | "type" | "managed">>;
-  rows: Array<Omit<MrmRow, "mode">>;
+  rows: Array<Omit<MrmRow, "mode" | "calculationKey">>;
 };

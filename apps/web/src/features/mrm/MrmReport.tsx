@@ -8,6 +8,10 @@ import "./mrm.css";
 
 type Status = "" | "green" | "amber" | "red";
 const statuses: Status[] = ["", "green", "amber", "red"];
+const tableDefinitions = [
+  { key: "ps-corp", title: "PS Corp Performance Dashboard" },
+  { key: "ps-in", title: "PS-IN Performance Dashboard" },
+] as const;
 
 function moveItem<T>(items: T[], index: number, offset: -1 | 1) {
   const target = index + offset;
@@ -35,13 +39,23 @@ function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function reportTables(rows: MrmRow[]) {
+  return tableDefinitions.map((definition) => ({
+    ...definition,
+    rows: rows.filter((row) => row.tableKey === definition.key),
+  })).filter((table) => table.rows.length > 0);
+}
+
 type MrmReportProps = { initialReport: MrmReportDocument; months: MrmMonth[] };
 
 function savePayload(source: MrmReportDocument): MrmSavePayload {
   return {
     expectedRevision: source.revision,
     columns: source.columns.map(({ key, label, type, managed }) => ({ key, label, type, managed })),
-    rows: source.rows.map(({ mode, ...row }) => ({ ...row, cells: mode === "manual" ? row.cells : {} })),
+    rows: source.rows.map(({ mode, calculationKey: _calculationKey, ...row }) => ({
+      ...row,
+      cells: mode === "manual" ? row.cells : {},
+    })),
   };
 }
 
@@ -135,13 +149,29 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     setMessage("Column added. Rename it in the table header.");
   };
 
-  const addRow = () => {
+  const addRow = (tableKey: string) => {
     const key = newId("row");
     mutateDocument((current) => ({
       ...current,
-      rows: [...current.rows, { key, title: "New KPI", description: "", mode: "manual", highlighted: false, muted: false, emphasized: true, managed: false, cells: {} }],
+      rows: [...current.rows, { key, tableKey, calculationKey: null, title: "New KPI", description: "", mode: "manual", highlighted: false, muted: false, emphasized: true, managed: false, cells: {} }],
     }));
     setMessage("KPI row added.");
+  };
+
+  const moveRow = (rowId: string, offset: -1 | 1) => {
+    mutateDocument((current) => {
+      const sourceIndex = current.rows.findIndex((row) => row.key === rowId);
+      if (sourceIndex < 0) return current;
+      const tableIndexes = current.rows
+        .map((row, index) => row.tableKey === current.rows[sourceIndex].tableKey ? index : -1)
+        .filter((index) => index >= 0);
+      const tableIndex = tableIndexes.indexOf(sourceIndex);
+      const targetIndex = tableIndexes[tableIndex + offset];
+      if (targetIndex === undefined) return current;
+      const rows = [...current.rows];
+      [rows[sourceIndex], rows[targetIndex]] = [rows[targetIndex], rows[sourceIndex]];
+      return { ...current, rows };
+    });
   };
 
   const cycleStatus = (row: MrmRow, column: MrmColumn) => {
@@ -194,33 +224,37 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     setMessage("Report finalized.");
   };
 
-  const reportMatrix = () => [
+  const reportMatrix = () => reportTables(document.rows).flatMap((table, tableIndex) => [
+    ...(tableIndex > 0 ? [[""]] : []),
+    [table.title],
     ["KPI", ...document.columns.map((column) => column.label.replaceAll("\n", " "))],
-    ...document.rows.map((row) => [
+    ...table.rows.map((row) => [
       row.description ? `${row.title} (${row.description})` : row.title,
       ...document.columns.map((column) => cellText(row, column)),
     ]),
-  ];
+  ]);
 
   const reportHtml = () => {
     const headers = ["KPI", ...document.columns.map((column) => column.label)]
       .map((label, index) => `<th style="background:#ffffff;border:1px solid #008ecf;border-bottom:2px solid #252525;font-size:16px;font-weight:700;height:58px;padding:6px;text-align:center;vertical-align:middle;white-space:normal;width:${index === 0 ? "250px" : "145px"}">${htmlValue(label).replaceAll("\n", "<br>")}</th>`)
       .join("");
-    const rows = document.rows.map((row) => {
-      const background = row.highlighted ? "#bfe5f7" : row.muted ? "#c9c9c9" : "#ffffff";
-      const title = htmlValue(row.title);
-      const kpi = `${row.emphasized === false ? title : `<strong>${title}</strong>`}${row.description ? `<br><small>${htmlValue(row.description)}</small>` : ""}`;
-      const cells = document.columns.map((column) => {
-        const value = cellText(row, column);
-        const statusSymbols: Record<string, string> = { Green: "🟢", Amber: "🟠", Red: "🔴" };
-        const content = column.type === "status" && statusSymbols[value]
-          ? `<span style="font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif;font-size:20px">${statusSymbols[value]}</span>`
-          : htmlValue(value);
-        return `<td style="background:${background};border:1px solid #252525;font-size:15px;height:42px;mso-number-format:'\\@';padding:6px;text-align:center;vertical-align:middle;white-space:normal">${content}</td>`;
+    return reportTables(document.rows).map((table) => {
+      const rows = table.rows.map((row) => {
+        const background = row.highlighted ? "#bfe5f7" : row.muted ? "#c9c9c9" : "#ffffff";
+        const title = htmlValue(row.title);
+        const kpi = `${row.emphasized === false ? title : `<strong>${title}</strong>`}${row.description ? `<br><small>${htmlValue(row.description)}</small>` : ""}`;
+        const cells = document.columns.map((column) => {
+          const value = cellText(row, column);
+          const statusSymbols: Record<string, string> = { Green: "🟢", Amber: "🟠", Red: "🔴" };
+          const content = column.type === "status" && statusSymbols[value]
+            ? `<span style="font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif;font-size:20px">${statusSymbols[value]}</span>`
+            : htmlValue(value);
+          return `<td style="background:${background};border:1px solid #252525;font-size:15px;height:42px;mso-number-format:'\\@';padding:6px;text-align:center;vertical-align:middle;white-space:normal">${content}</td>`;
+        }).join("");
+        return `<tr><th style="background:${background};border:1px solid #252525;font-size:15px;height:42px;padding:6px;text-align:center;vertical-align:middle;white-space:normal;width:250px">${kpi}</th>${cells}</tr>`;
       }).join("");
-      return `<tr><th style="background:${background};border:1px solid #252525;font-size:15px;height:42px;padding:6px;text-align:center;vertical-align:middle;white-space:normal;width:250px">${kpi}</th>${cells}</tr>`;
+      return `<h2 style="color:#008ecf;font-family:Arial,sans-serif;font-size:22px;margin:18px 0 6px">${htmlValue(table.title)}</h2><table cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-family:Arial,sans-serif;table-layout:fixed;width:${250 + (document.columns.length * 145)}px"><colgroup><col style="width:250px">${document.columns.map(() => '<col style="width:145px">').join("")}</colgroup><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
     }).join("");
-    return `<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-family:Arial,sans-serif;table-layout:fixed;width:${250 + (document.columns.length * 145)}px"><colgroup><col style="width:250px">${document.columns.map(() => '<col style="width:145px">').join("")}</colgroup><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
   };
 
   const copyReport = async () => {
@@ -234,7 +268,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
       } else {
         await navigator.clipboard.writeText(plainText);
       }
-      setMessage("Table copied. Paste it into Excel or PowerPoint.");
+      setMessage("Tables copied. Paste them into Excel or PowerPoint.");
     } catch {
       setMessage("The browser blocked clipboard access.");
     }
@@ -248,7 +282,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     link.download = `MRM-${document.reportingMonth}.xls`;
     link.click();
     URL.revokeObjectURL(url);
-    setMessage("Formatted Excel table exported.");
+    setMessage("Formatted Excel tables exported.");
   };
 
   return (
@@ -257,12 +291,12 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         <div>
           <p className="mrm-header__eyebrow">Monthly reporting</p>
           <h1>Management Review Meeting</h1>
-          <p className="mrm-header__description">Prepare the rolling KPI table, complete manual values, and share it with the monthly review.</p>
+          <p className="mrm-header__description">Prepare the PS Corp and PS-IN KPI tables, complete manual values, and share them with the monthly review.</p>
         </div>
         <div className="mrm-header__actions">
           <button className="a-button a-button--secondary -small" type="button" onClick={() => void copyReport()}>
             <i className="a-icon a-button__icon boschicon-bosch-ic-copy" aria-hidden="true" />
-            <span className="a-button__label">Copy table</span>
+            <span className="a-button__label">Copy tables</span>
           </button>
           <button className="a-button a-button--secondary -small" type="button" onClick={exportExcel}>
             <i className="a-icon a-button__icon boschicon-bosch-ic-download" aria-hidden="true" />
@@ -302,7 +336,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         <section className="mrm-layout-tools" aria-label="Layout tools">
           <div>
             <strong>Layout mode</strong>
-            <span>Edit headings, highlight rows, or change their order.</span>
+            <span>Edit shared headings, highlight rows, or change their order within each table.</span>
           </div>
           <label className="mrm-field" htmlFor="mrm-new-column-type">
             <span>New column type</span>
@@ -316,10 +350,6 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
             <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
             <span className="a-button__label">Add column</span>
           </button>
-          <button className="a-button a-button--secondary -small" type="button" onClick={addRow}>
-            <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
-            <span className="a-button__label">Add KPI row</span>
-          </button>
           <button className="a-button a-button--integrated -small" type="button" onClick={() => window.location.reload()}>
             <i className="a-icon a-button__icon boschicon-bosch-ic-reset" aria-hidden="true" />
             <span className="a-button__label">Reload</span>
@@ -329,7 +359,17 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
 
       {message && <p className="mrm-message" role="status">{message}</p>}
 
-      <section className="mrm-report" aria-label={`MRM report for ${document.reportingMonth}`}>
+      {reportTables(document.rows).map((table) => <section className="mrm-report" aria-labelledby={`mrm-table-${table.key}`} key={table.key}>
+        <header className="mrm-report__header">
+          <div>
+            <p>Performance Dashboard</p>
+            <h2 id={`mrm-table-${table.key}`}>{table.title}</h2>
+          </div>
+          {isEditingLayout && <button className="a-button a-button--secondary -small" type="button" onClick={() => addRow(table.key)}>
+            <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
+            <span className="a-button__label">Add KPI row</span>
+          </button>}
+        </header>
         <div className="mrm-table-scroll">
           <table className="mrm-table">
             <thead>
@@ -355,7 +395,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
               </tr>
             </thead>
             <tbody>
-              {document.rows.map((row, rowIndex) => (
+              {table.rows.map((row, rowIndex) => (
                 <tr key={row.key} className={row.highlighted ? "is-highlighted" : row.muted ? "is-muted" : undefined}>
                   <th scope="row">
                     {isEditingLayout ? (
@@ -364,8 +404,8 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                         <input aria-label={`KPI description for ${row.title}`} disabled={row.managed} placeholder="Description" value={row.description} onChange={(event) => updateRow(row.key, { description: event.target.value })} />
                         <label><input type="checkbox" checked={row.highlighted} onChange={(event) => updateRow(row.key, { highlighted: event.target.checked })} /> Highlight row</label>
                         <div className="mrm-row-actions">
-                          <button type="button" aria-label={`Move ${row.title} up`} disabled={rowIndex === 0} onClick={() => mutateDocument((current) => ({ ...current, rows: moveItem(current.rows, rowIndex, -1) }))}><i className="a-icon boschicon-bosch-ic-arrow-up" aria-hidden="true" /></button>
-                          <button type="button" aria-label={`Move ${row.title} down`} disabled={rowIndex === document.rows.length - 1} onClick={() => mutateDocument((current) => ({ ...current, rows: moveItem(current.rows, rowIndex, 1) }))}><i className="a-icon boschicon-bosch-ic-arrow-down" aria-hidden="true" /></button>
+                          <button type="button" aria-label={`Move ${row.title} up`} disabled={rowIndex === 0} onClick={() => moveRow(row.key, -1)}><i className="a-icon boschicon-bosch-ic-arrow-up" aria-hidden="true" /></button>
+                          <button type="button" aria-label={`Move ${row.title} down`} disabled={rowIndex === table.rows.length - 1} onClick={() => moveRow(row.key, 1)}><i className="a-icon boschicon-bosch-ic-arrow-down" aria-hidden="true" /></button>
                           {!row.managed && <button type="button" aria-label={`Remove ${row.title}`} onClick={() => mutateDocument((current) => ({ ...current, rows: current.rows.filter((item) => item.key !== row.key) }))}><i className="a-icon boschicon-bosch-ic-delete" aria-hidden="true" /></button>}
                         </div>
                       </div>
@@ -391,7 +431,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
             </tbody>
           </table>
         </div>
-      </section>
+      </section>)}
     </main>
   );
 }

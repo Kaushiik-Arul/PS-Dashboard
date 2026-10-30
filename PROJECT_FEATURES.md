@@ -572,20 +572,27 @@ MRM provides a controlled monthly KPI document for management reviews. It combin
 8. Finalize the report.
 9. View the finalized report as an immutable monthly record.
 
-### 11.3 KPI Table
+### 11.3 Performance Dashboard Tables
 
-The report supports:
+Each reporting month contains two independent tables:
+
+- **PS Corp Performance Dashboard:** PUL and the Corp performance KPIs shown in the first reference.
+- **PS-IN Performance Dashboard:** Performance KPIs followed by the workforce/PUL breakdown. The second and third references are two continuations of this single PS-IN table, not separate tables.
+
+The tables share reporting columns but keep their rows, manual values, statuses, attachments, highlighting, and ordering independent. Calculated KPIs that appear in both tables reuse the same governed calculation while retaining separate table rows.
+
+Both tables support:
 
 - Calculated cells supplied by backend metric definitions.
 - Manual value cells.
 - Traffic-light status cells.
 - Attachment cells.
 - Managed KPI rows protected from structural deletion.
-- User-created KPI rows.
+- User-created KPI rows within the selected table.
 - User-created value, status, or attachment columns.
 - Editable headings and descriptions.
 - Row highlighting and muted presentation.
-- Reordering of rows and columns.
+- Reordering of rows within their table and shared columns across both tables.
 
 ### 11.4 Persistence and Concurrency
 
@@ -618,8 +625,8 @@ Authorized users can download attachments. HRBP can upload or delete attachments
 
 ### 11.7 Presentation Outputs
 
-- **Copy Table:** Copies rich HTML and plain text suitable for pasting into Excel or PowerPoint.
-- **Export Excel:** Downloads a formatted `.xls` representation of the report.
+- **Copy Tables:** Copies both tables as rich HTML and plain text suitable for pasting into Excel or PowerPoint.
+- **Export Excel:** Downloads a formatted `.xls` representation containing both table sections.
 - Status cells are represented with presentation-friendly status indicators.
 
 Relevant implementation:
@@ -1157,7 +1164,7 @@ PS Dashboard replaces disconnected spreadsheets with a governed workforce platfo
 2. Update a manual value and status.
 3. Show autosave and revision state.
 4. Add a supporting attachment.
-5. Copy the formatted table or export Excel.
+5. Copy the formatted tables or export both sections to Excel.
 6. Explain finalization and immutability without finalizing a production report during the demo.
 
 ### Step 10: HRBP Import Governance
