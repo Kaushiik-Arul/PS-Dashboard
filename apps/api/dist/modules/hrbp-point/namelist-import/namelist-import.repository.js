@@ -13,13 +13,16 @@ exports.NamelistImportRepository = void 0;
 const common_1 = require("@nestjs/common");
 const node_crypto_1 = require("node:crypto");
 const database_service_1 = require("../../../database/database.service");
+const mrm_calculation_service_1 = require("../../mrm/mrm-calculation.service");
 function mapMonth(value) {
     return value instanceof Date ? value.toISOString().slice(0, 7) : value.slice(0, 7);
 }
 let NamelistImportRepository = class NamelistImportRepository {
     database;
-    constructor(database) {
+    mrmCalculations;
+    constructor(database, mrmCalculations) {
         this.database = database;
+        this.mrmCalculations = mrmCalculations;
     }
     async createPreview(actorAccountId, file, rows, reportingMonth) {
         return this.createPreviewForMonth(actorAccountId, file, rows, reportingMonth, 'live');
@@ -267,6 +270,7 @@ let NamelistImportRepository = class NamelistImportRepository {
        ORDER BY reporting_month DESC
        OFFSET 3`);
         for (const row of expired.rows) {
+            await this.mrmCalculations.archiveMonth(mapMonth(row.reporting_month), actorAccountId, client);
             await this.archiveOverviewMonth(row.reporting_month, actorAccountId, client);
             await client.query(`DELETE FROM public.employee_namelist_monthly WHERE reporting_month = $1`, [row.reporting_month]);
         }
@@ -352,6 +356,7 @@ let NamelistImportRepository = class NamelistImportRepository {
 exports.NamelistImportRepository = NamelistImportRepository;
 exports.NamelistImportRepository = NamelistImportRepository = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [database_service_1.DatabaseService])
+    __metadata("design:paramtypes", [database_service_1.DatabaseService,
+        mrm_calculation_service_1.MrmCalculationService])
 ], NamelistImportRepository);
 //# sourceMappingURL=namelist-import.repository.js.map

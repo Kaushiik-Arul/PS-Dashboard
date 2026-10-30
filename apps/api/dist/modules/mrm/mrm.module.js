@@ -27,6 +27,7 @@ exports.MrmModule = MrmModule = __decorate([
             mrm_calculation_repository_1.MrmCalculationRepository,
             mrm_calculation_service_1.MrmCalculationService,
         ],
+        exports: [mrm_calculation_service_1.MrmCalculationService],
     })
 ], MrmModule);
 //# sourceMappingURL=mrm.module.js.map

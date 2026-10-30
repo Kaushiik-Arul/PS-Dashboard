@@ -6,6 +6,7 @@ import { NominationStatusController } from './nomination-status/nomination-statu
 import { NominationStatusService } from './nomination-status/nomination-status.service';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
+import { MrmModule } from '../mrm/mrm.module';
 import { ActiveStepController } from './active-step/active-step.controller';
 import { ActiveStepService } from './active-step/active-step.service';
 import { ActiveStepRepository } from './active-step/active-step.repository';
@@ -48,7 +49,7 @@ import { OrgStructureImportRepository } from './org-structure-import/org-structu
 import { OrgStructureImportService } from './org-structure-import/org-structure-import.service';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, MrmModule],
   controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController, AttritionImportController, OrgStructureImportController],
   providers: [AvailableTalentService,
     PoolRegisterService,

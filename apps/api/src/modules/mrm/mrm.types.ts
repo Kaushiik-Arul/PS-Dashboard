@@ -34,7 +34,7 @@ export type MrmRow = {
 
 export type MrmSourceStatus = {
   available: boolean;
-  source: 'live' | 'history' | null;
+  source: 'live' | 'history' | 'snapshot' | null;
 };
 
 export type MrmReportDocument = {
@@ -53,6 +53,7 @@ export type MrmReportDocument = {
 };
 
 export type MrmMetricBucket = {
+  dataMonth: string;
   metricKey: string;
   rangeKey: string;
   orgUnitKey: string;

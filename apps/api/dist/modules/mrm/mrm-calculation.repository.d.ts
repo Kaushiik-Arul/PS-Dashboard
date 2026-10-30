@@ -1,5 +1,6 @@
 import { DatabaseService } from '../../database/database.service';
-import type { MrmSourceStatus } from './mrm.types';
+import type { MrmMetricBucket, MrmSourceStatus } from './mrm.types';
+export type MrmQueryExecutor = Pick<DatabaseService, 'query'>;
 export type MrmEmployeeSourceRow = {
     range: string;
     org_unit: string;
@@ -18,7 +19,9 @@ export type MrmAttritionSourceRow = {
 export declare class MrmCalculationRepository {
     private readonly database;
     constructor(database: DatabaseService);
-    getSourceStatus(dataMonth: string): Promise<MrmSourceStatus>;
-    getEmployees(dataMonth: string, accountId: string, source: 'live' | 'history'): Promise<MrmEmployeeSourceRow[]>;
-    getAttrition(dataMonth: string, accountId: string): Promise<MrmAttritionSourceRow[]>;
+    getSourceStatus(dataMonth: string, executor?: MrmQueryExecutor): Promise<MrmSourceStatus>;
+    getEmployees(dataMonth: string, accountId: string, source: 'live' | 'history', executor?: MrmQueryExecutor): Promise<MrmEmployeeSourceRow[]>;
+    getAttrition(dataMonth: string, accountId: string, executor?: MrmQueryExecutor): Promise<MrmAttritionSourceRow[]>;
+    getSnapshotBuckets(dataMonth: string, accountId: string, executor?: MrmQueryExecutor): Promise<MrmMetricBucket[]>;
+    replaceMonthlySnapshot(dataMonth: string, accountId: string, buckets: MrmMetricBucket[], executor: MrmQueryExecutor): Promise<void>;
 }

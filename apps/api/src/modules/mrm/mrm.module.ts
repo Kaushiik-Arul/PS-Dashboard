@@ -15,5 +15,6 @@ import { MrmService } from './mrm.service';
     MrmCalculationRepository,
     MrmCalculationService,
   ],
+  exports: [MrmCalculationService],
 })
 export class MrmModule {}

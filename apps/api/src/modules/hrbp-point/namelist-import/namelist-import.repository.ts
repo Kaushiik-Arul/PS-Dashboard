@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../../database/database.service';
+import { MrmCalculationService } from '../../mrm/mrm-calculation.service';
 import type {
   NamelistPreviewPage,
   NamelistPreviewSummary,
@@ -37,7 +38,10 @@ function mapMonth(value: Date | string): string {
 
 @Injectable()
 export class NamelistImportRepository {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly mrmCalculations: MrmCalculationService,
+  ) {}
 
   async createPreview(
     actorAccountId: string,
@@ -379,6 +383,11 @@ export class NamelistImportRepository {
     );
 
     for (const row of expired.rows) {
+      await this.mrmCalculations.archiveMonth(
+        mapMonth(row.reporting_month),
+        actorAccountId,
+        client,
+      );
       await this.archiveOverviewMonth(row.reporting_month, actorAccountId, client);
       await client.query(
         `DELETE FROM public.employee_namelist_monthly WHERE reporting_month = $1`,

@@ -5,6 +5,7 @@ import {
 } from '../attrition/attrition-classification';
 import {
   MrmCalculationRepository,
+  type MrmQueryExecutor,
   type MrmAttritionSourceRow,
   type MrmEmployeeSourceRow,
 } from './mrm-calculation.repository';
@@ -23,26 +24,54 @@ const sulGrades = new Set(['GROUP1', 'GROUP2', 'SL2', 'SL3', 'SL4']);
 export class MrmCalculationService {
   constructor(private readonly repository: MrmCalculationRepository) {}
 
-  getSourceStatus(dataMonth: string) {
-    return this.repository.getSourceStatus(dataMonth);
+  getSourceStatus(dataMonth: string, executor?: MrmQueryExecutor) {
+    return this.repository.getSourceStatus(dataMonth, executor);
   }
 
-  async calculate(dataMonth: string, accountId: string): Promise<MrmCalculation> {
-    const sourceStatus = await this.repository.getSourceStatus(dataMonth);
+  async calculate(
+    dataMonth: string,
+    accountId: string,
+    executor?: MrmQueryExecutor,
+  ): Promise<MrmCalculation> {
+    const sourceStatus = await this.repository.getSourceStatus(dataMonth, executor);
     if (!sourceStatus.available || !sourceStatus.source) {
       return { sourceStatus, buckets: [] };
     }
+    if (sourceStatus.source === 'snapshot') {
+      return {
+        sourceStatus,
+        buckets: await this.repository.getSnapshotBuckets(dataMonth, accountId, executor),
+      };
+    }
     const [employees, attrition] = await Promise.all([
-      this.repository.getEmployees(dataMonth, accountId, sourceStatus.source),
-      this.repository.getAttrition(dataMonth, accountId),
+      this.repository.getEmployees(dataMonth, accountId, sourceStatus.source, executor),
+      this.repository.getAttrition(dataMonth, accountId, executor),
     ]);
     return {
       sourceStatus,
-      buckets: this.buildBuckets(employees, attrition),
+      buckets: this.buildBuckets(dataMonth, employees, attrition),
     };
   }
 
+  async archiveMonth(
+    dataMonth: string,
+    accountId: string,
+    executor: MrmQueryExecutor,
+  ): Promise<void> {
+    const calculation = await this.calculate(dataMonth, accountId, executor);
+    if (!calculation.sourceStatus.available || calculation.sourceStatus.source === 'snapshot') {
+      throw new Error('MRM_SOURCE_MONTH_UNAVAILABLE');
+    }
+    await this.repository.replaceMonthlySnapshot(
+      dataMonth,
+      accountId,
+      calculation.buckets,
+      executor,
+    );
+  }
+
   private buildBuckets(
+    dataMonth: string,
     employees: MrmEmployeeSourceRow[],
     attrition: MrmAttritionSourceRow[],
   ): MrmMetricBucket[] {
@@ -59,6 +88,7 @@ export class MrmCalculationService {
       const orgUnitKey = normalizedKey(orgUnit);
       const id = `${metricKey}\0${rangeKey}\0${orgUnitKey}`;
       const bucket = buckets.get(id) ?? {
+        dataMonth,
         metricKey,
         rangeKey,
         orgUnitKey,

@@ -13,6 +13,7 @@ import {
   type MrmRowDefinitionRecord,
 } from './mrm.repository';
 import type {
+  MrmCalculation,
   MrmMetricBucket,
   MrmReportDocument,
   MrmSaveInput,
@@ -54,10 +55,31 @@ export class MrmService {
 
   async listMonths() {
     const generatedMonth = currentMonth();
-    const reports = await this.repository.listReports();
-    const months = reports.some((report) => report.reportingMonth === generatedMonth)
-      ? reports
-      : [{ reportingMonth: generatedMonth, dataMonth: shiftMonth(generatedMonth, -1), status: 'draft' as const }, ...reports];
+    const [reports, availableDataMonths] = await Promise.all([
+      this.repository.listReports(),
+      this.repository.listAvailableDataMonths(),
+    ]);
+    const monthsByReportingMonth = new Map(reports.map((report) => [report.reportingMonth, report]));
+    monthsByReportingMonth.set(
+      generatedMonth,
+      monthsByReportingMonth.get(generatedMonth) ?? {
+        reportingMonth: generatedMonth,
+        dataMonth: shiftMonth(generatedMonth, -1),
+        status: 'draft' as const,
+      },
+    );
+    for (const dataMonth of availableDataMonths) {
+      const reportingMonth = shiftMonth(dataMonth, 1);
+      if (reportingMonth > generatedMonth || monthsByReportingMonth.has(reportingMonth)) continue;
+      monthsByReportingMonth.set(reportingMonth, {
+        reportingMonth,
+        dataMonth,
+        status: 'draft' as const,
+      });
+    }
+    const months = [...monthsByReportingMonth.values()].sort((left, right) => (
+      right.reportingMonth.localeCompare(left.reportingMonth)
+    ));
     const statuses = await Promise.all(months.map(async (month) => ({
       ...month,
       sourceStatus: await this.calculations.getSourceStatus(month.dataMonth),
@@ -80,13 +102,16 @@ export class MrmService {
       }, buckets);
     }
     const dataMonth = shiftMonth(reportingMonth, -1);
-    const [rows, columns, cells, attachments, calculation] = await Promise.all([
+    const [rows, columns, cells, attachments, calculations] = await Promise.all([
       this.repository.getRows(reportingMonth, report?.id ?? null),
       this.repository.getColumns(reportingMonth, report?.id ?? null),
       this.repository.getCells(report?.id ?? null),
       this.repository.getAttachments(report?.id ?? null),
-      this.calculations.calculate(dataMonth, user.accountId),
+      this.calculateRollingMonths(reportingMonth, user.accountId),
     ]);
+    const latestCalculation = calculations.find((calculation) => (
+      calculation.buckets.some((bucket) => bucket.dataMonth === dataMonth)
+    )) ?? calculations[calculations.length - 1];
     const cellMap = new Map(cells.map((cell) => [`${cell.row_key}\0${cell.column_key}`, cell.value]));
     const document: MrmReportDocument = {
       schemaVersion: 1,
@@ -95,14 +120,17 @@ export class MrmService {
       status: 'draft',
       revision: Number(report?.revision ?? 0),
       canManage: user.roles.includes('hrbp'),
-      sourceStatus: calculation.sourceStatus,
+      sourceStatus: latestCalculation?.sourceStatus ?? { available: false, source: null },
       columns: columns.map((column) => this.mapColumn(column, reportingMonth)),
       rows: rows.map((row) => this.mapRow(row, columns, cellMap)),
       attachments,
       updatedAt: report?.updated_at ?? null,
       finalizedAt: null,
     };
-    return this.applyCalculatedValues(document, calculation.buckets);
+    return this.applyCalculatedValues(
+      document,
+      calculations.flatMap((calculation) => calculation.buckets),
+    );
   }
 
   async saveReport(reportingMonth: string, user: AuthenticatedUser, body: unknown) {
@@ -131,15 +159,16 @@ export class MrmService {
     }
     const report = await this.repository.getReport(reportingMonth);
     if (!report) throw new NotFoundException('MRM report not found.');
-    const calculation = await this.calculations.calculate(document.dataMonth, user.accountId);
-    if (!calculation.sourceStatus.available) {
+    const calculations = await this.calculateRollingMonths(reportingMonth, user.accountId);
+    const latestCalculation = calculations[calculations.length - 1];
+    if (!latestCalculation?.sourceStatus.available) {
       throw new BadRequestException('The MRM source month is unavailable.');
     }
     await this.repository.finalize(
       report.id,
       user.accountId,
       document.revision,
-      calculation.buckets,
+      calculations.flatMap((calculation) => calculation.buckets),
       document,
     );
     return this.getReport(reportingMonth, user);
@@ -230,13 +259,16 @@ export class MrmService {
   }
 
   private applyCalculatedValues(document: MrmReportDocument, buckets: MrmMetricBucket[]): MrmReportDocument {
-    const latestColumn = document.columns.find((column) => column.key === 'rolling-latest');
-    if (!latestColumn) return document;
+    const rollingMonths = new Map([
+      ['rolling-previous', shiftMonth(document.reportingMonth, -2)],
+      ['rolling-latest', shiftMonth(document.reportingMonth, -1)],
+    ]);
     const totals = new Map<string, MrmMetricBucket>();
     for (const bucket of buckets) {
-      const total = totals.get(bucket.metricKey);
+      const key = `${bucket.dataMonth}\0${bucket.metricKey}`;
+      const total = totals.get(key);
       if (!total) {
-        totals.set(bucket.metricKey, { ...bucket });
+        totals.set(key, { ...bucket });
         continue;
       }
       total.numerator += bucket.numerator;
@@ -249,15 +281,29 @@ export class MrmService {
       ...document,
       rows: document.rows.map((row) => {
         if (row.mode !== 'calculated') return row;
-        const metric = totals.get(row.key);
-        const value = !document.sourceStatus.available || !metric
-          ? null
-          : metric.denominator === null
-            ? String(metric.numerator)
-            : `${metric.numerator} (${metric.denominator > 0 ? ((metric.numerator / metric.denominator) * 100).toFixed(1) : '0.0'}%)`;
-        return { ...row, cells: { ...row.cells, [latestColumn.key]: value } };
+        const cells = { ...row.cells };
+        for (const [columnKey, dataMonth] of rollingMonths) {
+          if (!document.columns.some((column) => column.key === columnKey)) continue;
+          const metric = totals.get(`${dataMonth}\0${row.key}`);
+          cells[columnKey] = !metric
+            ? null
+            : metric.denominator === null
+              ? String(metric.numerator)
+              : `${metric.numerator} (${metric.denominator > 0 ? ((metric.numerator / metric.denominator) * 100).toFixed(1) : '0.0'}%)`;
+        }
+        return { ...row, cells };
       }),
     };
+  }
+
+  private calculateRollingMonths(
+    reportingMonth: string,
+    accountId: string,
+  ): Promise<MrmCalculation[]> {
+    return Promise.all([
+      this.calculations.calculate(shiftMonth(reportingMonth, -2), accountId),
+      this.calculations.calculate(shiftMonth(reportingMonth, -1), accountId),
+    ]);
   }
 
   private parseSaveInput(body: unknown): MrmSaveInput {

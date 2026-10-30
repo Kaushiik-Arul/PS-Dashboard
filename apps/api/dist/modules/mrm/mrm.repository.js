@@ -21,6 +21,27 @@ let MrmRepository = class MrmRepository {
     constructor(database) {
         this.database = database;
     }
+    async listAvailableDataMonths() {
+        const result = await this.database.query(`WITH current_live AS (
+         SELECT reporting_month AS data_month
+         FROM public.namelist_imports
+         WHERE reporting_month_confirmed
+           AND import_mode = 'live' AND status = 'completed'
+         ORDER BY reporting_month DESC, imported_at DESC, id DESC
+         LIMIT 1
+       ), available AS (
+         SELECT data_month FROM current_live
+         UNION
+         SELECT DISTINCT reporting_month
+         FROM public.employee_namelist_monthly
+         UNION
+         SELECT DISTINCT data_month
+         FROM public.mrm_monthly_snapshots
+       )
+       SELECT TO_CHAR(data_month, 'YYYY-MM') AS data_month
+       FROM available ORDER BY data_month DESC`);
+        return result.rows.map((row) => row.data_month);
+    }
     async listReports() {
         const result = await this.database.query(`SELECT TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month,
               TO_CHAR(data_month, 'YYYY-MM') AS data_month,
@@ -111,7 +132,8 @@ let MrmRepository = class MrmRepository {
         return result.rows[0]?.payload ?? null;
     }
     async getScopedBuckets(reportId, accountId) {
-        const result = await this.database.query(`SELECT bucket.metric_key,
+        const result = await this.database.query(`SELECT TO_CHAR(bucket.data_month, 'YYYY-MM') AS data_month,
+              bucket.metric_key,
               SUM(bucket.numerator)::text AS numerator,
               CASE WHEN BOOL_OR(bucket.denominator IS NOT NULL)
                 THEN SUM(COALESCE(bucket.denominator, 0))::text END AS denominator,
@@ -130,8 +152,10 @@ let MrmRepository = class MrmRepository {
                  AND bucket.org_unit_key = UPPER(REGEXP_REPLACE(BTRIM(access.assigned_org_unit), '[[:space:]]+', ' ', 'g')))
              )
          )
-       GROUP BY bucket.metric_key ORDER BY bucket.metric_key`, [reportId, accountId]);
+      GROUP BY bucket.data_month, bucket.metric_key
+      ORDER BY bucket.data_month, bucket.metric_key`, [reportId, accountId]);
         return result.rows.map((row) => ({
+            dataMonth: row.data_month,
             metricKey: row.metric_key,
             rangeKey: '',
             orgUnitKey: '',
@@ -236,9 +260,9 @@ let MrmRepository = class MrmRepository {
             }
             for (const bucket of buckets) {
                 await client.query(`INSERT INTO public.mrm_metric_snapshots (
-             report_id, metric_key, range_key, org_unit_key,
+             report_id, data_month, metric_key, range_key, org_unit_key,
              numerator, denominator, quality_count
-           ) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7)`, [reportId, bucket.metricKey, bucket.rangeKey, bucket.orgUnitKey,
+           ) VALUES ($1::uuid, $2::date, $3, $4, $5, $6, $7, $8)`, [reportId, monthDate(bucket.dataMonth), bucket.metricKey, bucket.rangeKey, bucket.orgUnitKey,
                     bucket.numerator, bucket.denominator, bucket.qualityCount]);
             }
             const nextRevision = expectedRevision + 1;

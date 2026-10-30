@@ -29,6 +29,7 @@ export declare class MrmService {
     private mapColumn;
     private mapRow;
     private applyCalculatedValues;
+    private calculateRollingMonths;
     private parseSaveInput;
     private documentToSave;
     private assertMonth;

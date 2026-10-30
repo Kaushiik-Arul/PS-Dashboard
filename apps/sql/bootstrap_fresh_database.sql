@@ -47,6 +47,7 @@
 \ir account_dashboard_preferences_migration.sql
 \ir dashboard_json_snapshots_migration.sql
 \ir mrm_creation_migration.sql
+\ir mrm_monthly_metric_snapshots_migration.sql
 
 -- Install the latest Overview and Talent Pipeline function definitions last.
 \ir multi_select_dashboard_filters_migration.sql

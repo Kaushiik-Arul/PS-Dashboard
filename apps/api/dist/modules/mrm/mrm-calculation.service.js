@@ -20,30 +20,44 @@ let MrmCalculationService = class MrmCalculationService {
     constructor(repository) {
         this.repository = repository;
     }
-    getSourceStatus(dataMonth) {
-        return this.repository.getSourceStatus(dataMonth);
+    getSourceStatus(dataMonth, executor) {
+        return this.repository.getSourceStatus(dataMonth, executor);
     }
-    async calculate(dataMonth, accountId) {
-        const sourceStatus = await this.repository.getSourceStatus(dataMonth);
+    async calculate(dataMonth, accountId, executor) {
+        const sourceStatus = await this.repository.getSourceStatus(dataMonth, executor);
         if (!sourceStatus.available || !sourceStatus.source) {
             return { sourceStatus, buckets: [] };
         }
+        if (sourceStatus.source === 'snapshot') {
+            return {
+                sourceStatus,
+                buckets: await this.repository.getSnapshotBuckets(dataMonth, accountId, executor),
+            };
+        }
         const [employees, attrition] = await Promise.all([
-            this.repository.getEmployees(dataMonth, accountId, sourceStatus.source),
-            this.repository.getAttrition(dataMonth, accountId),
+            this.repository.getEmployees(dataMonth, accountId, sourceStatus.source, executor),
+            this.repository.getAttrition(dataMonth, accountId, executor),
         ]);
         return {
             sourceStatus,
-            buckets: this.buildBuckets(employees, attrition),
+            buckets: this.buildBuckets(dataMonth, employees, attrition),
         };
     }
-    buildBuckets(employees, attrition) {
+    async archiveMonth(dataMonth, accountId, executor) {
+        const calculation = await this.calculate(dataMonth, accountId, executor);
+        if (!calculation.sourceStatus.available || calculation.sourceStatus.source === 'snapshot') {
+            throw new Error('MRM_SOURCE_MONTH_UNAVAILABLE');
+        }
+        await this.repository.replaceMonthlySnapshot(dataMonth, accountId, calculation.buckets, executor);
+    }
+    buildBuckets(dataMonth, employees, attrition) {
         const buckets = new Map();
         const add = (metricKey, range, orgUnit, numerator = 1, denominator = null, qualityCount = 0) => {
             const rangeKey = (0, attrition_classification_1.normalizedKey)(range);
             const orgUnitKey = (0, attrition_classification_1.normalizedKey)(orgUnit);
             const id = `${metricKey}\0${rangeKey}\0${orgUnitKey}`;
             const bucket = buckets.get(id) ?? {
+                dataMonth,
                 metricKey,
                 rangeKey,
                 orgUnitKey,

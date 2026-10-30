@@ -317,12 +317,18 @@ a test or backup database before production:
 ```powershell
 $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_creation_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_monthly_metric_snapshots_migration.sql"
 ```
 
 The migration creates the report, managed catalog, resolved column, cell,
 metric bucket, attachment, immutable snapshot, and MRM audit tables. It seeds
 the stable row and column keys used by the application. Finalized parent
 triggers reject inserts, updates, and deletes in report-owned tables.
+
+The monthly metric snapshot migration preserves calculated MRM buckets before
+Namelist retention deletes an older detailed month. Both rolling MRM columns
+remain available through scoped snapshots after their source employee rows are
+removed.
 
 The migration is transactional. On failure, correct the reported prerequisite
 or SQL issue and rerun the complete file. Restore the complete pre-migration

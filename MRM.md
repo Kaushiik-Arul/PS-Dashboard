@@ -8,11 +8,17 @@ All authenticated HRBP, Admin, Range Head, Department Head, and Sub-department H
 
 The reporting month is the first day of a calendar month. Its automated data month is the previous month. A report remains editable while it is a draft. Finalization stores the resolved document, metric buckets, checksum, actor, and timestamp before changing the report status. PostgreSQL triggers reject later changes or deletion under a finalized report.
 
-Managed definitions use stable keys and activation months. Active additions appear in drafts; finalized snapshots retain their original definitions. Custom columns and manual values are shared organization-wide. `Actual 2025` remains manual. Calculated values are written only to the latest rolling column.
+Managed definitions use stable keys and activation months. Active additions appear in drafts; finalized snapshots retain their original definitions. Custom columns and manual values are shared organization-wide. `Actual 2025` remains manual. Calculated values are written to both rolling month columns.
 
 ## Sources and calculations
 
 For a data month, MRM uses `employee_namelist` only when the latest confirmed live Namelist import is for that exact month. Otherwise it uses the exact `employee_namelist_monthly.reporting_month`. A missing month is unavailable, not zero. Attrition rows are bounded by `lwd` within the data month.
+
+Before detailed Namelist retention deletes an older monthly dataset, the import
+transaction stores normalized MRM metric buckets for that data month. MRM reads
+those scoped monthly snapshots after detailed employee rows expire. For example,
+a September report continues to show July and August even after an October
+Namelist import retains only August, September, and October employee detail.
 
 Finalization stores atomic normalized Range and Org Unit buckets. Reads aggregate distinct buckets through the viewer's current `master_access` assignments, so finalized reports continue to honor current scope without duplicate counting.
 
@@ -33,7 +39,7 @@ Attachments are stored in PostgreSQL `BYTEA`. The maximum file size is 10 MB. Al
 
 ## Deployment
 
-Back up PostgreSQL first. Apply `apps/sql/mrm_creation_migration.sql` after authentication, Namelist, Namelist monthly history, and Attrition schemas. The migration is additive, transactional, and idempotent for initial creation and catalog seeding.
+Back up PostgreSQL first. Apply `apps/sql/mrm_creation_migration.sql` after authentication, Namelist, Namelist monthly history, and Attrition schemas. Then apply `apps/sql/mrm_monthly_metric_snapshots_migration.sql`. The migrations are additive and transactional.
 
 Deploy in this order:
 
@@ -49,6 +55,7 @@ Apply to a backup or test database with:
 ```powershell
 $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_creation_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_monthly_metric_snapshots_migration.sql"
 ```
 
 If migration application fails, `ON_ERROR_STOP=1` and the transaction roll back the attempt. Correct the reported prerequisite or SQL issue and rerun the whole migration. After deployment, use forward migrations for catalog/schema changes. Do not edit finalized rows or restore selected child tables independently; restore the complete database backup when rollback is required.

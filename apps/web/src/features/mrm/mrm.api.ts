@@ -49,7 +49,8 @@ function nullableString(value: unknown, field: string): string | null {
 
 function sourceStatus(value: unknown, field: string): MrmReportDocument["sourceStatus"] {
   const source = record(value, field);
-  if (source.source !== null && source.source !== "live" && source.source !== "history") {
+  if (source.source !== null && source.source !== "live"
+    && source.source !== "history" && source.source !== "snapshot") {
     throw new Error(`MRM API returned invalid ${field}.source`);
   }
   return { available: boolean(source.available, `${field}.available`), source: source.source };

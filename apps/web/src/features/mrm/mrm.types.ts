@@ -38,7 +38,7 @@ export type MrmReportDocument = {
   status: MrmReportStatus;
   revision: number;
   canManage: boolean;
-  sourceStatus: { available: boolean; source: "live" | "history" | null };
+  sourceStatus: { available: boolean; source: "live" | "history" | "snapshot" | null };
   columns: MrmColumn[];
   rows: MrmRow[];
   attachments: MrmAttachment[];
