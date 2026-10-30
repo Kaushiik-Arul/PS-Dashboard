@@ -71,10 +71,17 @@ function column(value: unknown, field: string): MrmColumn {
 function row(value: unknown, field: string): MrmRow {
   const item = record(value, field);
   if (item.mode !== "manual" && item.mode !== "calculated") throw new Error(`MRM API returned invalid ${field}.mode`);
+  const key = string(item.key, `${field}.key`);
+  const tableKey = item.tableKey === undefined
+    ? key.startsWith("corp-") ? "ps-corp" : "ps-in"
+    : string(item.tableKey, `${field}.tableKey`);
+  const calculationKey = item.calculationKey === undefined
+    ? item.mode === "calculated" ? key.replace(/^corp-/, "") : null
+    : nullableString(item.calculationKey, `${field}.calculationKey`);
   return {
-    key: string(item.key, `${field}.key`),
-    tableKey: string(item.tableKey, `${field}.tableKey`),
-    calculationKey: nullableString(item.calculationKey, `${field}.calculationKey`),
+    key,
+    tableKey,
+    calculationKey,
     title: string(item.title, `${field}.title`),
     description: string(item.description, `${field}.description`), mode: item.mode,
     highlighted: boolean(item.highlighted, `${field}.highlighted`),
