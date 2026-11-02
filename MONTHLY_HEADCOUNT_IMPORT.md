@@ -31,6 +31,9 @@ The migration creates:
 - Only worksheets named as a full or abbreviated English month and two- or
   four-digit year are imported. The space is optional. Examples: `January
   2023`, `Jan 23`, `July23`, and `Aug 2026`.
+- A workbook with exactly one worksheet may instead provide the reporting month
+  in its filename as an English month/year or ISO date, such as
+  `Aug26-Namelist.xlsx` or `PS_Namelist_Cleaned_2026-09-24.xlsx`.
 - Other worksheets are listed as ignored in the preview.
 - The importer scans the first 20 rows for exactly one `Pers.No`, one `Range`,
   and one Org Unit column. Accepted Org Unit headers are `Org Unit`,

@@ -17,11 +17,13 @@ import { RbinCleaningRepository } from './rbin-cleaning.repository';
 import {
   applyDuplicateIssues,
   compareWithBaseline,
+  normalizeLookupKey,
   transformRbinRows,
   validateRbinStagedValues,
 } from './rbin-cleaning.transformer';
 import type {
   ParsedRbinRow,
+  RbinBatchMappingInput,
   RbinBatchSummary,
   RbinExport,
   RbinPreviewPage,
@@ -180,6 +182,52 @@ export class RbinCleaningService {
     }, 'Unable to update RBIN staged row');
   }
 
+  async saveMapping(
+    batchId: string,
+    inputValue: unknown,
+    actorAccountId: string,
+  ): Promise<RbinBatchSummary> {
+    const input = this.validateMappingInput(inputValue);
+    return this.runDatabaseOperation(async () => {
+      const rows = await this.repository.getAllRows(batchId, actorAccountId);
+      if (!rows) throw new NotFoundException('RBIN cleaning batch was not found.');
+      const organizationalUnitKey = normalizeLookupKey(input.organizationalUnit);
+      const matchingRows = rows.filter(
+        (row) => normalizeLookupKey(row.values.organizational_unit) === organizationalUnitKey,
+      );
+      if (!matchingRows.length) {
+        throw new BadRequestException('Organizational Unit was not found in this RBIN batch.');
+      }
+
+      if (input.range) {
+        const missingRows = matchingRows.filter((row) => row.rangeSource === 'missing');
+        if (!missingRows.length) throw new ConflictException('Range mapping is no longer missing for this Organizational Unit.');
+        missingRows.forEach((row) => {
+          row.values.range = input.range!;
+          row.rangeSource = 'mapping';
+        });
+      }
+      if (input.function) {
+        const missingRows = matchingRows.filter((row) => row.functionSource === 'missing');
+        if (!missingRows.length) throw new ConflictException('Function mapping is no longer missing for this Organizational Unit.');
+        missingRows.forEach((row) => {
+          row.values.function = input.function!;
+          row.functionSource = 'mapping';
+        });
+      }
+
+      rows.forEach((row) => {
+        row.issues = validateRbinStagedValues(row.values);
+        Object.assign(row, compareWithBaseline(row.values, row.baselineValues));
+      });
+      applyDuplicateIssues(rows);
+      await this.repository.saveMappingsAndUpdateRows(batchId, actorAccountId, input, rows);
+      const summary = await this.repository.getSummary(batchId, actorAccountId);
+      if (!summary) throw new Error('BATCH_NOT_FOUND');
+      return summary;
+    }, 'Unable to save RBIN mapping');
+  }
+
   async finalize(batchId: string, actorAccountId: string): Promise<RbinBatchSummary> {
     return this.runDatabaseOperation(async () => {
       await this.repository.finalize(batchId, actorAccountId);
@@ -237,6 +285,39 @@ export class RbinCleaningService {
     return values;
   }
 
+  private validateMappingInput(input: unknown): RbinBatchMappingInput {
+    if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+      throw new BadRequestException('Mapping values are required.');
+    }
+    const record = input as Record<string, unknown>;
+    const keys = Object.keys(record);
+    const allowedKeys = ['organizationalUnit', 'range', 'function'];
+    if (keys.some((key) => !allowedKeys.includes(key)) || !keys.includes('organizationalUnit')) {
+      throw new BadRequestException('Mapping may contain only Organizational Unit, Range, and Function.');
+    }
+    if (typeof record.organizationalUnit !== 'string') {
+      throw new BadRequestException('Organizational Unit must be text.');
+    }
+    const organizationalUnit = record.organizationalUnit.trim();
+    const range = typeof record.range === 'string' ? record.range.trim() : '';
+    const mappedFunction = typeof record.function === 'string' ? record.function.trim() : '';
+    if ((record.range !== undefined && typeof record.range !== 'string')
+      || (record.function !== undefined && typeof record.function !== 'string')) {
+      throw new BadRequestException('Range and Function must be text.');
+    }
+    if (!organizationalUnit || (!range && !mappedFunction)) {
+      throw new BadRequestException('Provide an Organizational Unit and at least one mapping value.');
+    }
+    if ([organizationalUnit, range, mappedFunction].some((value) => value.length > 200)) {
+      throw new BadRequestException('Mapping values must not exceed 200 characters.');
+    }
+    return {
+      organizationalUnit,
+      ...(range ? { range } : {}),
+      ...(mappedFunction ? { function: mappedFunction } : {}),
+    };
+  }
+
   private positiveInteger(value: string | undefined, fallback: number, maximum: number): number {
     if (value === undefined) return fallback;
     if (!/^\d+$/.test(value)) throw new BadRequestException('Pagination values must be positive whole numbers.');
@@ -269,6 +350,8 @@ export class RbinCleaningService {
         if (error.message === 'BATCH_NOT_EDITABLE') throw new ConflictException('Only a draft RBIN batch can be edited.');
         if (error.message === 'BATCH_NOT_EXPORTABLE') throw new ConflictException('Save the cleaned dataset before export.');
         if (error.message === 'INVALID_ROWS') throw new ConflictException('Resolve every invalid row before saving the cleaned dataset.');
+        if (error.message === 'RANGE_MAPPING_EXISTS') throw new ConflictException('A Range mapping already exists for this Organizational Unit. Refresh the preview.');
+        if (error.message === 'FUNCTION_MAPPING_EXISTS') throw new ConflictException('A Function mapping already exists for this Organizational Unit. Refresh the preview.');
       }
       this.logger.error(publicMessage);
       throw new InternalServerErrorException(publicMessage);

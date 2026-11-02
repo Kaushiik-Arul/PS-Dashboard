@@ -4,6 +4,7 @@ import type { UploadedHeadcountFile } from './headcount-import.types';
 
 async function workbookFile(
   sheets: Array<{ name: string; rows: Array<Array<string | number>> }>,
+  originalname = 'PS Namelist.xlsx',
 ): Promise<UploadedHeadcountFile> {
   const workbook = new ExcelJS.Workbook();
   for (const source of sheets) {
@@ -11,7 +12,7 @@ async function workbookFile(
     source.rows.forEach((row) => sheet.addRow(row));
   }
   return {
-    originalname: 'PS Namelist.xlsx',
+    originalname,
     buffer: Buffer.from(await workbook.xlsx.writeBuffer()),
   };
 }
@@ -102,6 +103,25 @@ describe('headcount workbook parser', () => {
       '2023-07-01',
       '2026-08-01',
     ]);
+  });
+
+  it('uses a dated filename for a single worksheet with a generic name', async () => {
+    const file = await workbookFile([
+      {
+        name: 'PS Namelist',
+        rows: [['Pers.No', 'Range', 'Org Unit'], [1001, 'G1', 'OU1']],
+      },
+    ], 'PS_Namelist_Cleaned_2026-09-24.xlsx');
+
+    const parsed = await parseHeadcountWorkbook(file);
+
+    expect(parsed.includedSheets).toEqual(['PS Namelist']);
+    expect(parsed.ignoredSheets).toEqual([]);
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.months[0]).toEqual(expect.objectContaining({
+      reportingMonth: '2026-09-01',
+      totalHeadcount: 1,
+    }));
   });
 
   it('recognizes every abbreviated sheet name in the historical workbook', async () => {

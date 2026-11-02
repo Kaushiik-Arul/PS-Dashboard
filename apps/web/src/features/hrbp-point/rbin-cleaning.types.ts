@@ -19,6 +19,12 @@ export type RbinMappingAlert = {
   missingFunction: boolean;
 };
 
+export type RbinBatchMappingInput = {
+  organizationalUnit: string;
+  range?: string;
+  function?: string;
+};
+
 export type RbinPreviewRow = {
   rowNumber: number;
   originalValues: NamelistRowValues;
@@ -64,6 +70,7 @@ export interface RbinCleaningClient {
   createPreview(file: File, reportingMonth: string, pageSize: number): Promise<RbinPreviewPage>;
   getRows(batchId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage>;
   updateRow(batchId: string, row: RbinPreviewRow, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage>;
+  saveMapping(batchId: string, input: RbinBatchMappingInput, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage>;
   finalize(batchId: string, pageSize: number): Promise<RbinPreviewPage>;
   exportBatch(batchId: string): Promise<{ fileName: string; exportedAt: string }>;
 }

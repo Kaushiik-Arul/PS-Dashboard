@@ -118,7 +118,7 @@ export function HeadcountImportPanel() {
             <i className="a-icon boschicon-bosch-ic-upload" aria-hidden="true" />
             <div>
               <strong>Select PS Namelist workbook</strong>
-              <p>XLSX · month/year sheets · 50 MB maximum</p>
+              <p>XLSX · month/year sheets or dated single-sheet file · 50 MB maximum</p>
             </div>
             <input
               ref={fileRef}

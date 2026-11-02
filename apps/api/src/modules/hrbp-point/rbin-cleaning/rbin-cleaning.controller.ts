@@ -64,6 +64,15 @@ export class RbinCleaningController {
     return this.service.updateRow(batchId, rowNumber, input, user.accountId);
   }
 
+  @Post('batches/:batchId/mappings')
+  saveMapping(
+    @Param('batchId') batchId: string,
+    @Body() input: unknown,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.saveMapping(batchId, input, user.accountId);
+  }
+
   @Post('batches/:batchId/finalize')
   finalize(@Param('batchId') batchId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.service.finalize(batchId, user.accountId);

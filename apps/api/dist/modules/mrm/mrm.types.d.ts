@@ -19,6 +19,8 @@ export type MrmAttachment = {
 };
 export type MrmRow = {
     key: string;
+    tableKey: string;
+    calculationKey: string | null;
     title: string;
     description: string;
     mode: MrmValueMode;
@@ -67,6 +69,7 @@ export type MrmSaveColumn = {
 };
 export type MrmSaveRow = {
     key: string;
+    tableKey: string;
     title: string;
     description: string;
     highlighted: boolean;

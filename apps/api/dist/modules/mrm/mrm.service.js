@@ -81,7 +81,7 @@ let MrmService = class MrmService {
                 throw new Error('MRM_SNAPSHOT_INVALID');
             const buckets = await this.repository.getScopedBuckets(report.id, user.accountId);
             return this.applyCalculatedValues({
-                ...snapshot,
+                ...this.normalizeDocument(snapshot),
                 canManage: false,
                 updatedAt: report.updated_at,
                 finalizedAt: report.finalized_at,
@@ -208,6 +208,8 @@ let MrmService = class MrmService {
     mapRow(row, columns, cells) {
         return {
             key: row.row_key,
+            tableKey: row.table_key,
+            calculationKey: row.metric_key,
             title: row.title,
             description: row.description,
             mode: row.value_mode,
@@ -249,7 +251,7 @@ let MrmService = class MrmService {
                 for (const [columnKey, dataMonth] of rollingMonths) {
                     if (!document.columns.some((column) => column.key === columnKey))
                         continue;
-                    const metric = totals.get(`${dataMonth}\0${row.key}`);
+                    const metric = totals.get(`${dataMonth}\0${row.calculationKey ?? row.key}`);
                     cells[columnKey] = !metric
                         ? null
                         : metric.denominator === null
@@ -294,6 +296,7 @@ let MrmService = class MrmService {
                 throw new common_1.BadRequestException('MRM row is invalid.');
             const row = entry;
             if (typeof row.key !== 'string' || !keyPattern.test(row.key)
+                || typeof row.tableKey !== 'string' || !keyPattern.test(row.tableKey)
                 || typeof row.title !== 'string' || !row.title.trim() || row.title.length > 300
                 || typeof row.description !== 'string' || row.description.length > 500
                 || typeof row.highlighted !== 'boolean' || typeof row.muted !== 'boolean'
@@ -302,7 +305,8 @@ let MrmService = class MrmService {
                 throw new common_1.BadRequestException('MRM row is invalid.');
             }
             return {
-                key: row.key, title: row.title, description: row.description,
+                key: row.key, tableKey: row.tableKey,
+                title: row.title, description: row.description,
                 highlighted: row.highlighted, muted: row.muted,
                 emphasized: row.emphasized, managed: row.managed,
                 cells: row.cells,
@@ -321,7 +325,8 @@ let MrmService = class MrmService {
                 key: column.key, label: column.label, type: column.type, managed: column.managed,
             })),
             rows: document.rows.map((row) => ({
-                key: row.key, title: row.title, description: row.description,
+                key: row.key, tableKey: row.tableKey,
+                title: row.title, description: row.description,
                 highlighted: row.highlighted, muted: row.muted,
                 emphasized: row.emphasized, managed: row.managed,
                 cells: row.mode === 'manual' ? row.cells : {},
@@ -337,6 +342,16 @@ let MrmService = class MrmService {
             return false;
         const document = value;
         return document.schemaVersion === 1 && Array.isArray(document.columns) && Array.isArray(document.rows);
+    }
+    normalizeDocument(document) {
+        return {
+            ...document,
+            rows: document.rows.map((row) => ({
+                ...row,
+                tableKey: row.tableKey ?? 'ps-in',
+                calculationKey: row.calculationKey ?? (row.mode === 'calculated' ? row.key : null),
+            })),
+        };
     }
 };
 exports.MrmService = MrmService;

@@ -471,10 +471,13 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 .rbin-mapping-alert h3 { color: #8a0018; font: var(--sem__typography__bold__s); margin: 0; }
 .rbin-mapping-alert p { font-size: 0.75rem; margin: 0; }
 .rbin-mapping-alert ul { display: flex; flex-wrap: wrap; gap: var(--app-space-1); justify-content: flex-end; list-style: none; margin: 0; padding: 0; }
-.rbin-mapping-alert li { align-items: center; background: #fff; border-inline-start: 0.1875rem solid #b00020; display: flex; gap: var(--app-space-1); margin: 0; padding: 0.25rem 0.5rem; }
+.rbin-mapping-alert li { background: #fff; border-inline-start: 0.1875rem solid #b00020; margin: 0; padding: 0; }
 .rbin-mapping-alert li::before { content: none; }
+.rbin-mapping-alert li button { align-items: center; background: transparent; border: 0; cursor: pointer; display: flex; gap: var(--app-space-1); padding: 0.25rem 0.5rem; }
+.rbin-mapping-alert li button:disabled { cursor: default; opacity: 0.55; }
 .rbin-mapping-alert li strong { font-size: 0.75rem; }
 .rbin-mapping-alert li span { color: #8a0018; font-size: 0.6875rem; }
+.rbin-mapping-alert li .a-icon { color: #8a0018; font-size: 0.875rem; }
 
 .namelist-toolbar { align-items: center; display: flex; gap: var(--app-space-4); justify-content: space-between; padding: var(--app-space-2) var(--app-space-4); }
 .namelist-segments { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); display: inline-flex; }
@@ -598,6 +601,7 @@ body:has(.rbin-dialog[open]) { overflow: hidden; }
 .rbin-cell-panel h3 { font: var(--sem__typography__bold__l); margin: 0; }
 .rbin-cell-panel__context, .rbin-cell-panel__previous { display: grid; gap: var(--app-space-1); }
 .rbin-cell-panel__issue { align-items: start; background: #fff4f4; border-inline-start: 0.1875rem solid #b00020; color: #8a0018; display: flex; gap: var(--app-space-2); margin: 0; padding: var(--app-space-2); }
+.rbin-mapping-editor__scope { background: var(--base-major__disabled__fill); margin: 0; padding: var(--app-space-2); }
 .rbin-cell-panel > footer { display: flex; gap: var(--app-space-2); justify-content: flex-end; margin-block-start: auto; }
 .rbin-export-meta { color: var(--base-major__enabled__default__fill); font-size: 0.8125rem; }
 

@@ -164,6 +164,14 @@ function reportingMonth(sheetName: string): string | null {
   return `${year}-${String(month).padStart(2, '0')}-01`;
 }
 
+function reportingMonthFromFileName(fileName: string): string | null {
+  const isoDate = fileName.match(/(?:^|[^0-9])(20\d{2})[-_.](0[1-9]|1[0-2])(?:[-_.](?:0[1-9]|[12]\d|3[01]))?(?:[^0-9]|$)/);
+  if (isoDate) return `${isoDate[1]}-${isoDate[2]}-01`;
+
+  const monthYear = fileName.match(/(?:^|[^a-z])(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)[\s._-]*(\d{2}|\d{4})(?:[^0-9]|$)/i);
+  return monthYear ? reportingMonth(`${monthYear[1]} ${monthYear[2]}`) : null;
+}
+
 function cleanRangeName(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
@@ -391,9 +399,10 @@ export async function parseHeadcountWorkbook(file: UploadedHeadcountFile): Promi
   const issues: HeadcountImportIssue[] = [];
   const calculatedMonths: HeadcountMonthCalculation[] = [];
   const sheetByMonth = new Map<string, string>();
+  const fileMonth = worksheets.length === 1 ? reportingMonthFromFileName(file.originalname) : null;
 
   for (const worksheet of worksheets) {
-    const month = reportingMonth(worksheet.name);
+    const month = reportingMonth(worksheet.name) ?? fileMonth;
     if (!month) {
       ignoredSheets.push(worksheet.name);
       continue;
@@ -418,7 +427,9 @@ export async function parseHeadcountWorkbook(file: UploadedHeadcountFile): Promi
   }
 
   if (!includedSheets.length) {
-    throw new BadRequestException('The workbook does not contain any worksheets named Month YYYY.');
+    throw new BadRequestException(
+      'Use Month YYYY worksheet names, or include Month YYYY or YYYY-MM-DD in the filename of a single-sheet workbook.',
+    );
   }
 
   return {

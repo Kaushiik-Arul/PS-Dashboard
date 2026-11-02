@@ -1,6 +1,7 @@
 import { getCsrfToken } from "@/auth/csrf";
 import type {
   RbinBatchSummary,
+  RbinBatchMappingInput,
   RbinCleaningClient,
   RbinColumnView,
   RbinPreviewPage,
@@ -63,6 +64,14 @@ export const httpRbinCleaningClient: RbinCleaningClient = {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(row.values),
+    });
+    return getRows(batchId, filter, page, pageSize, search, view);
+  },
+  async saveMapping(batchId, input: RbinBatchMappingInput, filter, page, pageSize, search, view) {
+    await request(`/batches/${encodeURIComponent(batchId)}/mappings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
     });
     return getRows(batchId, filter, page, pageSize, search, view);
   },

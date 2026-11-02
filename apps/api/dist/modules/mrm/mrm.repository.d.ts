@@ -11,6 +11,8 @@ export type MrmReportRecord = {
 };
 export type MrmRowDefinitionRecord = {
     row_key: string;
+    table_key: string;
+    metric_key: string | null;
     title: string;
     description: string;
     value_mode: 'manual' | 'calculated';

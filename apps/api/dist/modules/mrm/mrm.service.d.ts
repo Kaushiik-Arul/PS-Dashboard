@@ -34,4 +34,5 @@ export declare class MrmService {
     private documentToSave;
     private assertMonth;
     private isDocument;
+    private normalizeDocument;
 }

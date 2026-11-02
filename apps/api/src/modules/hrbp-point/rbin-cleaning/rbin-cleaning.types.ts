@@ -56,6 +56,12 @@ export type RbinMappingAlert = {
   missingFunction: boolean;
 };
 
+export type RbinBatchMappingInput = {
+  organizationalUnit: string;
+  range?: string;
+  function?: string;
+};
+
 export type RbinBatchSummary = {
   id: string;
   fileName: string;

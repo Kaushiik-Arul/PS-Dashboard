@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "r
 import { formatDirectOrIndirect } from "@/components/formatters/workforce";
 import { namelistColumns, type NamelistColumn } from "./namelist-import.types";
 import { httpRbinCleaningClient } from "./rbin-cleaning.http";
-import type { RbinBatchSummary, RbinColumnView, RbinPreviewPage, RbinPreviewRow, RbinRowFilter } from "./rbin-cleaning.types";
+import type { RbinBatchSummary, RbinColumnView, RbinMappingAlert, RbinPreviewPage, RbinPreviewRow, RbinRowFilter } from "./rbin-cleaning.types";
 
 const pageSizeOptions = [25, 50, 100] as const;
 const filters: readonly RbinRowFilter[] = ["all", "valid", "invalid", "new", "changed", "unchanged"];
@@ -26,6 +26,7 @@ function displayValue(column: NamelistColumn, value: string) {
 }
 
 type EditingCell = { rowNumber: number; column: NamelistColumn; value: string };
+type EditingMapping = RbinMappingAlert & { range: string; function: string };
 
 function formatTimestamp(value: string | null) {
   if (!value) return "Not exported";
@@ -56,6 +57,7 @@ export function RbinNamelistCleaningPanel() {
   const [showSavedDatasets, setShowSavedDatasets] = useState(false);
   const [showAllColumns, setShowAllColumns] = useState(false);
   const [editing, setEditing] = useState<EditingCell | null>(null);
+  const [mappingEditing, setMappingEditing] = useState<EditingMapping | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -92,6 +94,7 @@ export function RbinNamelistCleaningPanel() {
     setSearch(nextPreview.search);
     setPage(nextPreview.page);
     setEditing(null);
+    setMappingEditing(null);
     dialogRef.current?.showModal();
   };
 
@@ -171,6 +174,41 @@ export function RbinNamelistCleaningPanel() {
     finally { setBusy(false); }
   };
 
+  const openMapping = (alert: RbinMappingAlert) => {
+    setEditing(null);
+    setMappingEditing({ ...alert, range: "", function: "" });
+  };
+
+  const saveMapping = async () => {
+    if (!preview || !mappingEditing) return;
+    const range = mappingEditing.range.trim();
+    const mappedFunction = mappingEditing.function.trim();
+    if (!range && !mappedFunction) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      const next = await httpRbinCleaningClient.saveMapping(
+        preview.id,
+        {
+          organizationalUnit: mappingEditing.organizationalUnit,
+          ...(range ? { range } : {}),
+          ...(mappedFunction ? { function: mappedFunction } : {}),
+        },
+        filter,
+        currentPage,
+        pageSize,
+        search,
+        columnView,
+      );
+      setPreview(next);
+      setMappingEditing(null);
+      setBatches(await httpRbinCleaningClient.listBatches());
+      setMessage(`Mapping saved for ${mappingEditing.organizationalUnit}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The mapping could not be saved.");
+    } finally { setBusy(false); }
+  };
+
   const changeColumnView = async (nextView: RbinColumnView) => {
     if (!preview || filter !== "changed") {
       setShowAllColumns(nextView === "all");
@@ -238,7 +276,7 @@ export function RbinNamelistCleaningPanel() {
       </div>
     </section>
 
-    <dialog className="namelist-dialog rbin-dialog" ref={dialogRef} onClose={() => setEditing(null)}>
+    <dialog className="namelist-dialog rbin-dialog" ref={dialogRef} onClose={() => { setEditing(null); setMappingEditing(null); }}>
       {preview && <div className="namelist-dialog__layout">
         <header className="namelist-dialog__header"><div><span>RBIN cleaning preview</span><h2>{preview.fileName}</h2><p>{reportingMonthLabel(preview.reportingMonth)} · {statusLabel(preview.status)} · {preview.totalRawRows} source rows · permanent dataset</p></div><button className="a-button a-button--integrated" type="button" aria-label="Close preview" disabled={busy} onClick={() => dialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
         <div className="rbin-summary" aria-label="Cleaning summary">
@@ -247,7 +285,7 @@ export function RbinNamelistCleaningPanel() {
         </div>
         {preview.mappingAlerts.length > 0 && <section className="rbin-mapping-alert" role="alert" aria-labelledby="mapping-alert-title">
           <i className="a-icon boschicon-bosch-ic-alert-error" aria-hidden="true" />
-          <div className="rbin-mapping-alert__content"><div><h3 id="mapping-alert-title">{preview.mappingAlerts.reduce((total, alert) => total + alert.rowCount, 0)} rows have missing mappings</h3><p>Enter the missing values before saving.</p></div><ul>{preview.mappingAlerts.map((alert) => <li key={alert.organizationalUnit}><strong>{alert.organizationalUnit}</strong><span>{[alert.missingRange && "Range", alert.missingFunction && "Function"].filter(Boolean).join(" + ")}</span></li>)}</ul></div>
+          <div className="rbin-mapping-alert__content"><div><h3 id="mapping-alert-title">{preview.mappingAlerts.reduce((total, alert) => total + alert.rowCount, 0)} rows have missing mappings</h3><p>Add a permanent mapping to resolve every matching row and future upload.</p></div><ul>{preview.mappingAlerts.map((alert) => <li key={alert.organizationalUnit}><button type="button" disabled={!editable || busy} onClick={() => openMapping(alert)}><strong>{alert.organizationalUnit}</strong><span>{[alert.missingRange && "Range", alert.missingFunction && "Function"].filter(Boolean).join(" + ")}</span><i className="a-icon boschicon-bosch-ic-add" aria-hidden="true" /></button></li>)}</ul></div>
         </section>}
         {message && <p className="namelist-dialog__message" role="status">{message}</p>}
         <div className="namelist-toolbar"><div className="namelist-segments rbin-segments" aria-label="Filter staged rows">{filters.map((value) => <button key={value} type="button" disabled={busy} aria-pressed={filter === value} onClick={() => void loadPage(value, 1)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div><div className="namelist-toolbar__view"><form className="rbin-search" role="search" onSubmit={(event) => void searchRows(event)}><input type="search" value={searchInput} disabled={busy} aria-label="Search Pers.No. or Personnel Number" placeholder="Pers.No. or Personnel Number" onChange={(event) => setSearchInput(event.target.value)} /><button className="a-button a-button--integrated -small" type="submit" disabled={busy} aria-label="Search staged rows"><i className="a-icon a-button__icon boschicon-bosch-ic-search" aria-hidden="true" /></button>{search && <button className="a-button a-button--integrated -small" type="button" disabled={busy} aria-label="Clear staged row search" title="Clear search" onClick={() => void clearSearch()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button>}</form><span>{preview.filteredRows} rows</span><label htmlFor="rbin-column-view">View</label><select id="rbin-column-view" value={columnView} disabled={busy} onChange={(event) => void changeColumnView(event.target.value as RbinColumnView)}><option value="key">Review fields</option><option value="all">All 29 fields</option></select></div></div>
@@ -256,10 +294,18 @@ export function RbinNamelistCleaningPanel() {
           const changed = row.changedColumns.includes(column);
           const mappingSource = column === "range" ? row.rangeSource : column === "function" ? row.functionSource : null;
           return <td key={column} className={`${issue ? "has-issue" : ""} ${changed ? "has-change" : ""}`} title={issue?.message}>
-            <button className="rbin-cell-value" type="button" disabled={!editable || busy} aria-label={editable ? `Edit ${labels[column]} for row ${row.rowNumber}` : undefined} onClick={() => editable && setEditing({ rowNumber: row.rowNumber, column, value: row.values[column] })}><span>{displayValue(column, row.values[column]) || "-"}</span>{mappingSource && <small data-source={mappingSource}>{mappingSource}</small>}{changed && row.baselineValues && <small>Was: {displayValue(column, row.baselineValues[column]) || "-"}</small>}{issue && <small>{issue.message}</small>}{editable && <i className="a-icon boschicon-bosch-ic-edit rbin-cell-value__edit" aria-hidden="true" />}</button>
+            <button className="rbin-cell-value" type="button" disabled={!editable || busy} aria-label={editable ? `Edit ${labels[column]} for row ${row.rowNumber}` : undefined} onClick={() => { if (editable) { setMappingEditing(null); setEditing({ rowNumber: row.rowNumber, column, value: row.values[column] }); } }}><span>{displayValue(column, row.values[column]) || "-"}</span>{mappingSource && <small data-source={mappingSource}>{mappingSource}</small>}{changed && row.baselineValues && <small>Was: {displayValue(column, row.baselineValues[column]) || "-"}</small>}{issue && <small>{issue.message}</small>}{editable && <i className="a-icon boschicon-bosch-ic-edit rbin-cell-value__edit" aria-hidden="true" />}</button>
           </td>;
         })}</tr>)}</tbody></table></div>
         <div className="namelist-pagination"><label className="namelist-pagination__size" htmlFor="rbin-page-size"><span>Rows per page</span><select id="rbin-page-size" value={pageSize} disabled={busy} onChange={(event) => void changePageSize(Number(event.target.value))}>{pageSizeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label><button className="a-button a-button--integrated -small" type="button" aria-label="Previous page" disabled={busy || currentPage === 1} onClick={() => void loadPage(filter, currentPage - 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-back-left" aria-hidden="true" /></button><span>Page {currentPage} of {pageCount}</span><button className="a-button a-button--integrated -small" type="button" aria-label="Next page" disabled={busy || currentPage === pageCount} onClick={() => void loadPage(filter, currentPage + 1)}><i className="a-icon a-button__icon boschicon-bosch-ic-forward-right" aria-hidden="true" /></button></div>
+        {mappingEditing && <aside className="rbin-cell-panel" aria-labelledby="rbin-mapping-editor-title">
+          <header><div><span>Permanent mapping</span><h3 id="rbin-mapping-editor-title">Resolve missing mapping</h3></div><button className="a-button a-button--integrated" type="button" aria-label="Close mapping editor" onClick={() => setMappingEditing(null)}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
+          <div className="rbin-cell-panel__context"><span>Organizational Unit</span><strong>{mappingEditing.organizationalUnit}</strong></div>
+          <p className="rbin-mapping-editor__scope">This will update {mappingEditing.rowCount} matching {mappingEditing.rowCount === 1 ? "row" : "rows"} and all future RBIN uploads.</p>
+          {mappingEditing.missingRange && <label className="hrbp-field"><span>Range</span><input autoFocus value={mappingEditing.range} disabled={busy} onChange={(event) => setMappingEditing({ ...mappingEditing, range: event.target.value })} /></label>}
+          {mappingEditing.missingFunction && <label className="hrbp-field"><span>Function</span><input autoFocus={!mappingEditing.missingRange} value={mappingEditing.function} disabled={busy} onChange={(event) => setMappingEditing({ ...mappingEditing, function: event.target.value })} /></label>}
+          <footer><button className="a-button a-button--secondary" type="button" disabled={busy} onClick={() => setMappingEditing(null)}><span className="a-button__label">Cancel</span></button><button className="a-button a-button--primary" type="button" disabled={busy || (!mappingEditing.range.trim() && !mappingEditing.function.trim())} onClick={() => void saveMapping()}><i className="a-icon a-button__icon boschicon-bosch-ic-checkmark" aria-hidden="true" /><span className="a-button__label">Save and apply mapping</span></button></footer>
+        </aside>}
         {editing && editingRow && <aside className="rbin-cell-panel" aria-labelledby="rbin-cell-editor-title">
           <header><div><span>Row {editing.rowNumber}</span><h3 id="rbin-cell-editor-title">Edit {labels[editing.column]}</h3></div><button className="a-button a-button--integrated" type="button" aria-label="Close cell editor" onClick={() => setEditing(null)}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
           <div className="rbin-cell-panel__context"><span>Organizational Unit</span><strong>{editingRow.values.organizational_unit}</strong></div>
