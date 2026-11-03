@@ -9,6 +9,7 @@ export declare class RbinCleaningController {
     listBatches(user: AuthenticatedUser): Promise<import("./rbin-cleaning.types").RbinBatchSummary[]>;
     getRows(batchId: string, filter: string | undefined, page: string | undefined, pageSize: string | undefined, search: string | undefined, view: string | undefined, user: AuthenticatedUser): Promise<import("./rbin-cleaning.types").RbinPreviewPage>;
     updateRow(batchId: string, rowNumber: string, input: unknown, user: AuthenticatedUser): Promise<import("./rbin-cleaning.types").RbinBatchSummary>;
+    saveMapping(batchId: string, input: unknown, user: AuthenticatedUser): Promise<import("./rbin-cleaning.types").RbinBatchSummary>;
     finalize(batchId: string, user: AuthenticatedUser): Promise<import("./rbin-cleaning.types").RbinBatchSummary>;
     export(batchId: string, user: AuthenticatedUser): Promise<StreamableFile>;
 }

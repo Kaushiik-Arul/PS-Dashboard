@@ -333,43 +333,79 @@ let RbinCleaningRepository = class RbinCleaningRepository {
     }
     async updateRows(batchId, actorAccountId, rows) {
         await this.database.transaction(async (client) => {
-            const batch = await client.query(`SELECT 1 FROM public.rbin_staging_batches
-         WHERE batch_id = $1 AND uploaded_by = $2 AND status = 'draft' FOR UPDATE`, [batchId, actorAccountId]);
-            if (!batch.rowCount)
-                throw new Error('BATCH_NOT_EDITABLE');
-            for (let offset = 0; offset < rows.length; offset += 500) {
-                await client.query(`UPDATE public.rbin_staging_rows target
-           SET current_data = source.current_data,
-               validation_issues = source.validation_issues,
-               is_valid = source.is_valid,
-               range_source = source.range_source,
-               function_source = source.function_source,
-               comparison_status = source.comparison_status,
-               baseline_employee_data = source.baseline_employee_data,
-               changed_columns = source.changed_columns,
-               updated_at = CURRENT_TIMESTAMP
-           FROM JSONB_TO_RECORDSET($2::jsonb) AS source(
-             source_row_number integer, current_data jsonb, validation_issues jsonb,
-             is_valid boolean, range_source text, function_source text,
-             comparison_status text, baseline_employee_data jsonb, changed_columns text[]
-           )
-           WHERE target.batch_id = $1 AND target.source_row_number = source.source_row_number`, [batchId, JSON.stringify(rows.slice(offset, offset + 500).map(stagedPayload))]);
-            }
-            await client.query(`UPDATE public.rbin_staging_batches batch SET
-           valid_rows = stats.valid_rows,
-           invalid_rows = batch.staged_rows - stats.valid_rows,
-           new_rows = stats.new_rows,
-           changed_rows = stats.changed_rows,
-           unchanged_rows = stats.unchanged_rows,
-           updated_at = CURRENT_TIMESTAMP
-         FROM (
-           SELECT COUNT(*) FILTER (WHERE is_valid)::integer AS valid_rows,
-             COUNT(*) FILTER (WHERE comparison_status = 'new')::integer AS new_rows,
-             COUNT(*) FILTER (WHERE comparison_status = 'changed')::integer AS changed_rows,
-             COUNT(*) FILTER (WHERE comparison_status = 'unchanged')::integer AS unchanged_rows
-           FROM public.rbin_staging_rows WHERE batch_id = $1
-         ) stats WHERE batch.batch_id = $1`, [batchId]);
+            await this.lockDraftBatch(client, batchId, actorAccountId);
+            await this.persistRows(client, batchId, rows);
         });
+    }
+    async saveMappingsAndUpdateRows(batchId, actorAccountId, input, rows) {
+        await this.database.transaction(async (client) => {
+            await this.lockDraftBatch(client, batchId, actorAccountId);
+            if (input.range) {
+                const result = await client.query(`INSERT INTO public.org_unit_range_mappings
+             (organizational_unit, range_value, source_file_name)
+           VALUES ($1, $2, 'rbin-preview')
+           ON CONFLICT (LOWER(BTRIM(organizational_unit))) DO UPDATE
+           SET range_value = EXCLUDED.range_value,
+               source_file_name = EXCLUDED.source_file_name,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE LOWER(BTRIM(org_unit_range_mappings.range_value)) = LOWER(BTRIM(EXCLUDED.range_value))`, [input.organizationalUnit, input.range]);
+                if (!result.rowCount)
+                    throw new Error('RANGE_MAPPING_EXISTS');
+            }
+            if (input.function) {
+                const result = await client.query(`INSERT INTO public.org_unit_function_mappings
+             (organizational_unit, function_value, source_file_name)
+           VALUES ($1, $2, 'rbin-preview')
+           ON CONFLICT (LOWER(BTRIM(organizational_unit))) DO UPDATE
+           SET function_value = EXCLUDED.function_value,
+               source_file_name = EXCLUDED.source_file_name,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE LOWER(BTRIM(org_unit_function_mappings.function_value)) = LOWER(BTRIM(EXCLUDED.function_value))`, [input.organizationalUnit, input.function]);
+                if (!result.rowCount)
+                    throw new Error('FUNCTION_MAPPING_EXISTS');
+            }
+            await this.persistRows(client, batchId, rows);
+        });
+    }
+    async lockDraftBatch(client, batchId, actorAccountId) {
+        const batch = await client.query(`SELECT 1 FROM public.rbin_staging_batches
+       WHERE batch_id = $1 AND uploaded_by = $2 AND status = 'draft' FOR UPDATE`, [batchId, actorAccountId]);
+        if (!batch.rowCount)
+            throw new Error('BATCH_NOT_EDITABLE');
+    }
+    async persistRows(client, batchId, rows) {
+        for (let offset = 0; offset < rows.length; offset += 500) {
+            await client.query(`UPDATE public.rbin_staging_rows target
+         SET current_data = source.current_data,
+             validation_issues = source.validation_issues,
+             is_valid = source.is_valid,
+             range_source = source.range_source,
+             function_source = source.function_source,
+             comparison_status = source.comparison_status,
+             baseline_employee_data = source.baseline_employee_data,
+             changed_columns = source.changed_columns,
+             updated_at = CURRENT_TIMESTAMP
+         FROM JSONB_TO_RECORDSET($2::jsonb) AS source(
+           source_row_number integer, current_data jsonb, validation_issues jsonb,
+           is_valid boolean, range_source text, function_source text,
+           comparison_status text, baseline_employee_data jsonb, changed_columns text[]
+         )
+         WHERE target.batch_id = $1 AND target.source_row_number = source.source_row_number`, [batchId, JSON.stringify(rows.slice(offset, offset + 500).map(stagedPayload))]);
+        }
+        await client.query(`UPDATE public.rbin_staging_batches batch SET
+         valid_rows = stats.valid_rows,
+         invalid_rows = batch.staged_rows - stats.valid_rows,
+         new_rows = stats.new_rows,
+         changed_rows = stats.changed_rows,
+         unchanged_rows = stats.unchanged_rows,
+         updated_at = CURRENT_TIMESTAMP
+       FROM (
+         SELECT COUNT(*) FILTER (WHERE is_valid)::integer AS valid_rows,
+           COUNT(*) FILTER (WHERE comparison_status = 'new')::integer AS new_rows,
+           COUNT(*) FILTER (WHERE comparison_status = 'changed')::integer AS changed_rows,
+           COUNT(*) FILTER (WHERE comparison_status = 'unchanged')::integer AS unchanged_rows
+         FROM public.rbin_staging_rows WHERE batch_id = $1
+       ) stats WHERE batch.batch_id = $1`, [batchId]);
     }
     async finalize(batchId, actorAccountId) {
         await this.database.transaction(async (client) => {

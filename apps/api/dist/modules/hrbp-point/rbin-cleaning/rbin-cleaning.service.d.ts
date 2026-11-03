@@ -9,9 +9,11 @@ export declare class RbinCleaningService {
     listBatches(actorAccountId: string): Promise<RbinBatchSummary[]>;
     getRows(batchId: string, actorAccountId: string, filterInput: string | undefined, pageInput: string | undefined, pageSizeInput: string | undefined, searchInput: string | undefined, viewInput: string | undefined): Promise<RbinPreviewPage>;
     updateRow(batchId: string, rowNumberInput: string, input: unknown, actorAccountId: string): Promise<RbinBatchSummary>;
+    saveMapping(batchId: string, inputValue: unknown, actorAccountId: string): Promise<RbinBatchSummary>;
     finalize(batchId: string, actorAccountId: string): Promise<RbinBatchSummary>;
     exportBatch(batchId: string, actorAccountId: string): Promise<RbinExport>;
     private validateRowInput;
+    private validateMappingInput;
     private positiveInteger;
     private isPostgresBigInt;
     private runDatabaseOperation;

@@ -36,6 +36,9 @@ let RbinCleaningController = class RbinCleaningController {
     updateRow(batchId, rowNumber, input, user) {
         return this.service.updateRow(batchId, rowNumber, input, user.accountId);
     }
+    saveMapping(batchId, input, user) {
+        return this.service.saveMapping(batchId, input, user.accountId);
+    }
     finalize(batchId, user) {
         return this.service.finalize(batchId, user.accountId);
     }
@@ -91,6 +94,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], RbinCleaningController.prototype, "updateRow", null);
+__decorate([
+    (0, common_1.Post)('batches/:batchId/mappings'),
+    __param(0, (0, common_1.Param)('batchId')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], RbinCleaningController.prototype, "saveMapping", null);
 __decorate([
     (0, common_1.Post)('batches/:batchId/finalize'),
     __param(0, (0, common_1.Param)('batchId')),

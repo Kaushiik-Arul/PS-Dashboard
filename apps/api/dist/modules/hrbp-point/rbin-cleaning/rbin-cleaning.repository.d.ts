@@ -1,6 +1,6 @@
 import { DatabaseService } from '../../../database/database.service';
 import type { NamelistRowValues } from '../namelist-import/namelist-import.types';
-import type { ParsedRbinRow, RbinBaselineValues, RbinBatchSummary, RbinColumnView, RbinExceptionContext, RbinMappingContext, RbinPreviewPage, RbinRowFilter, RbinStagedRow, UploadedRbinFile } from './rbin-cleaning.types';
+import type { ParsedRbinRow, RbinBaselineValues, RbinBatchMappingInput, RbinBatchSummary, RbinColumnView, RbinExceptionContext, RbinMappingContext, RbinPreviewPage, RbinRowFilter, RbinStagedRow, UploadedRbinFile } from './rbin-cleaning.types';
 export declare class RbinCleaningRepository {
     private readonly database;
     constructor(database: DatabaseService);
@@ -15,6 +15,9 @@ export declare class RbinCleaningRepository {
     getRows(batchId: string, actorAccountId: string, filter: RbinRowFilter, page: number, pageSize: number, search: string, view: RbinColumnView): Promise<RbinPreviewPage | null>;
     getAllRows(batchId: string, actorAccountId: string): Promise<RbinStagedRow[] | null>;
     updateRows(batchId: string, actorAccountId: string, rows: RbinStagedRow[]): Promise<void>;
+    saveMappingsAndUpdateRows(batchId: string, actorAccountId: string, input: RbinBatchMappingInput, rows: RbinStagedRow[]): Promise<void>;
+    private lockDraftBatch;
+    private persistRows;
     finalize(batchId: string, actorAccountId: string): Promise<void>;
     private insertCurrentRows;
     getExportRows(batchId: string, actorAccountId: string): Promise<NamelistRowValues[] | null>;
