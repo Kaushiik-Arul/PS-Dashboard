@@ -5,12 +5,14 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Header,
   Param,
   Patch,
   Post,
   Query,
   UploadedFile,
   UseInterceptors,
+  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -25,6 +27,28 @@ import type { UploadedNamelistFile } from './namelist-import.types';
 @RequirePermission('namelist:import')
 export class NamelistImportController {
   constructor(private readonly service: NamelistImportService) {}
+
+  @Get('export-months')
+  @Header('Cache-Control', 'private, no-store')
+  @RequirePermission('namelist:export')
+  listExportMonths() {
+    return this.service.listExportMonths();
+  }
+
+  @Post('export')
+  @Header('Cache-Control', 'private, no-store')
+  @RequirePermission('namelist:export')
+  async exportNamelist(
+    @Body() input: unknown,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const result = await this.service.exportNamelist(input, user.accountId);
+    return new StreamableFile(result.buffer, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      disposition: `attachment; filename="${result.fileName}"`,
+      length: result.buffer.length,
+    });
+  }
 
   @Post('previews')
   @ApiConsumes('multipart/form-data')

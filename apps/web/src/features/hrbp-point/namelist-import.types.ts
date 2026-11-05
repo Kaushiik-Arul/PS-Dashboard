@@ -39,10 +39,18 @@ export type NamelistPreview = {
 
 export type PreviewFilter = "all" | "valid" | "invalid";
 
+export type NamelistExportMonth = {
+  reportingMonth: string;
+  source: "live" | "historical";
+  rowCount: number;
+};
+
 export interface NamelistImportClient {
   createPreview(file: File, reportingMonth: string, importMode: "live" | "historical"): Promise<NamelistPreview>;
   getRows(previewId: string, filter: PreviewFilter, page: number, pageSize: number): Promise<NamelistPreview>;
   updateRow(previewId: string, row: NamelistPreviewRow, filter: PreviewFilter, page: number, pageSize: number): Promise<NamelistPreview>;
   cancel(previewId: string): Promise<void>;
   commit(preview: NamelistPreview, confirmReplacement: boolean): Promise<{ totalRows: number }>;
+  listExportMonths(): Promise<NamelistExportMonth[]>;
+  exportNamelist(reportingMonth: string, columns: readonly NamelistColumn[]): Promise<{ fileName: string }>;
 }

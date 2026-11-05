@@ -1,6 +1,21 @@
 export declare const namelistColumns: readonly ["pers_no", "personnel_number", "employee_group", "lp", "esgrp", "employee_subgroup", "ps_group", "organizational_unit", "range", "function", "organisational_area_pa", "gender_key", "location", "pa", "personnel_area", "psubarea", "personnel_subarea", "nt_id", "global_id", "cost_center", "birth_date", "joining_date", "entry_for_retirement", "designation_text", "hrbp_global_id", "hrbp2_global_id", "official_email", "technical_entry_date", "direct_or_indirect"];
 export type NamelistColumn = (typeof namelistColumns)[number];
 export type NamelistRowValues = Record<NamelistColumn, string>;
+export declare const namelistColumnLabels: Readonly<Record<NamelistColumn, string>>;
+export type NamelistExportMonth = {
+    reportingMonth: string;
+    source: 'live' | 'historical';
+    rowCount: number;
+};
+export type NamelistExportRow = Partial<Record<NamelistColumn, string | number | Date | null>>;
+export type NamelistExportData = {
+    month: NamelistExportMonth;
+    rows: NamelistExportRow[];
+};
+export type NamelistExport = {
+    fileName: string;
+    buffer: Buffer;
+};
 export declare const rbinExceptionColumns: ("function" | "range" | "ps_group" | "gender_key" | "location" | "organizational_unit" | "employee_group" | "lp" | "esgrp" | "employee_subgroup" | "organisational_area_pa" | "pa" | "personnel_area" | "psubarea" | "personnel_subarea" | "nt_id" | "global_id" | "cost_center" | "birth_date" | "joining_date" | "entry_for_retirement" | "designation_text" | "hrbp_global_id" | "hrbp2_global_id" | "official_email" | "technical_entry_date" | "direct_or_indirect")[];
 export type RbinExceptionColumn = (typeof rbinExceptionColumns)[number];
 export type NamelistIssue = {

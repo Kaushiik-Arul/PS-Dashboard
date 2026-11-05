@@ -3,6 +3,9 @@ import { createHash } from 'node:crypto';
 import { DatabaseService } from '../../../database/database.service';
 import { MrmCalculationService } from '../../mrm/mrm-calculation.service';
 import type {
+  NamelistColumn,
+  NamelistExportData,
+  NamelistExportMonth,
   NamelistPreviewPage,
   NamelistPreviewSummary,
   NamelistImportMode,
@@ -42,6 +45,86 @@ export class NamelistImportRepository {
     private readonly database: DatabaseService,
     private readonly mrmCalculations: MrmCalculationService,
   ) {}
+
+  async listExportMonths(): Promise<NamelistExportMonth[]> {
+    return this.listExportMonthsWith(this.database);
+  }
+
+  async getExportRows(reportingMonth: string, columns: readonly NamelistColumn[]): Promise<NamelistExportData | null> {
+    return this.database.transaction(async (client) => {
+      await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('employee_namelist_import'))`);
+      const months = await this.listExportMonthsWith(client);
+      const month = months.find((candidate) => candidate.reportingMonth === reportingMonth);
+      if (!month) return null;
+      const selectedColumns = columns.map((column) => `"${column}"`).join(', ');
+      const table = month.source === 'live'
+        ? 'public.employee_namelist'
+        : 'public.employee_namelist_monthly';
+      const params = month.source === 'historical' ? [`${reportingMonth}-01`] : [];
+      const where = month.source === 'historical' ? ' WHERE reporting_month = $1::date' : '';
+      const result = await client.query(
+        `SELECT ${selectedColumns} FROM ${table}${where} ORDER BY pers_no`,
+        params,
+      );
+      return { month, rows: result.rows };
+    });
+  }
+
+  async recordExport(
+    reportingMonth: string,
+    source: NamelistExportMonth['source'],
+    columns: readonly NamelistColumn[],
+    rowCount: number,
+    fileName: string,
+    fileHash: string,
+    actorAccountId: string,
+  ): Promise<void> {
+    await this.database.query(
+      `INSERT INTO public.namelist_exports (
+         reporting_month, source, selected_columns, row_count,
+         file_name, file_hash, exported_by
+       ) VALUES ($1::date, $2, $3::jsonb, $4, $5, $6, $7::uuid)`,
+      [`${reportingMonth}-01`, source, JSON.stringify(columns), rowCount, fileName, fileHash, actorAccountId],
+    );
+  }
+
+  private async listExportMonthsWith(client: Pick<DatabaseService, 'query'>): Promise<NamelistExportMonth[]> {
+    const result = await client.query<{
+      reporting_month: string;
+      source: NamelistExportMonth['source'];
+      row_count: number | string;
+    }>(
+      `WITH current_live AS (
+         SELECT reporting_month
+         FROM public.namelist_imports
+         WHERE reporting_month_confirmed
+           AND import_mode = 'live' AND status = 'completed'
+         ORDER BY reporting_month DESC, imported_at DESC, id DESC
+         LIMIT 1
+       ), exportable AS (
+         SELECT TO_CHAR(current_live.reporting_month, 'YYYY-MM') AS reporting_month,
+                'live'::text AS source, live_count.row_count
+         FROM current_live
+         CROSS JOIN (SELECT COUNT(*)::integer AS row_count FROM public.employee_namelist) live_count
+         WHERE live_count.row_count > 0
+         UNION ALL
+         SELECT TO_CHAR(monthly.reporting_month, 'YYYY-MM') AS reporting_month,
+                'historical'::text AS source, COUNT(*)::integer AS row_count
+         FROM public.employee_namelist_monthly monthly
+         WHERE monthly.reporting_month <> COALESCE((SELECT reporting_month FROM current_live), 'infinity'::date)
+         GROUP BY monthly.reporting_month
+       )
+       SELECT reporting_month, source, row_count
+       FROM exportable
+       ORDER BY reporting_month DESC
+       LIMIT 3`,
+    );
+    return result.rows.map((row) => ({
+      reportingMonth: row.reporting_month,
+      source: row.source,
+      rowCount: Number(row.row_count),
+    }));
+  }
 
   async createPreview(
     actorAccountId: string,

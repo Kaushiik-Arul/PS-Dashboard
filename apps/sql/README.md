@@ -175,10 +175,16 @@ migration:
 $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_monthly_history_migration.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_reporting_month_confirmation_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_export_audit_migration.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/functions/overview/get_workforce_overview_kpis.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/functions/overview/get_workforce_overview_charts.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/dashboard_json_snapshots_migration.sql"
 ```
+
+`namelist_export_audit_migration.sql` creates the append-only metadata used for
+HRBP Namelist downloads. It stores the retained reporting month, live or
+historical source, selected columns, row count, filename, SHA-256 hash,
+exporting account, and timestamp. Workbook contents are not stored.
 
 Employee JD workbook imports require a reporting month. Apply the reporting
 month migration once so previews, import audit records, assignments, and

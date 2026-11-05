@@ -1,9 +1,11 @@
-import { type NamelistPreviewPage, type NamelistPreviewSummary, type UploadedNamelistFile } from './namelist-import.types';
+import { type NamelistExport, type NamelistExportMonth, type NamelistPreviewPage, type NamelistPreviewSummary, type UploadedNamelistFile } from './namelist-import.types';
 import { NamelistImportRepository } from './namelist-import.repository';
 export declare class NamelistImportService {
     private readonly repository;
     private readonly logger;
     constructor(repository: NamelistImportRepository);
+    listExportMonths(): Promise<NamelistExportMonth[]>;
+    exportNamelist(input: unknown, actorAccountId: string): Promise<NamelistExport>;
     createPreview(file: UploadedNamelistFile | undefined, reportingMonthInput: string | undefined, actorAccountId: string): Promise<NamelistPreviewSummary>;
     createHistoricalPreview(file: UploadedNamelistFile | undefined, reportingMonthInput: string | undefined, actorAccountId: string): Promise<NamelistPreviewSummary>;
     private createPreviewForMode;
@@ -17,6 +19,7 @@ export declare class NamelistImportService {
         totalRows: number;
     }>;
     private validateRowInput;
+    private exportInput;
     private positiveInteger;
     private reportingMonth;
     private runDatabaseOperation;

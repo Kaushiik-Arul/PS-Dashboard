@@ -197,6 +197,46 @@
   min-width: 0.125rem;
 }
 
+.horizontal-chart--wide-labels .horizontal-chart__row {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.horizontal-chart--wide-labels .horizontal-chart__label {
+  grid-column: 1 / -1;
+  line-height: 1.125rem;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.horizontal-chart--wide-labels .horizontal-chart__track,
+.horizontal-chart--wide-labels .horizontal-chart__value {
+  margin-block-start: 0.1875rem;
+}
+
+.horizontal-chart--wide-labels .horizontal-chart__track {
+  grid-column: 1;
+}
+
+.horizontal-chart--wide-labels .horizontal-chart__value {
+  grid-column: 2;
+}
+
+@container (min-width: 32rem) {
+  .horizontal-chart--wide-labels .horizontal-chart__row {
+    grid-template-columns: minmax(10rem, 12rem) minmax(5rem, 12rem) auto;
+    justify-content: start;
+  }
+
+  .horizontal-chart--wide-labels .horizontal-chart__label,
+  .horizontal-chart--wide-labels .horizontal-chart__track,
+  .horizontal-chart--wide-labels .horizontal-chart__value {
+    grid-column: auto;
+  }
+}
+
 .joined-funnel-chart {
   display: grid;
   gap: 0.1875rem;

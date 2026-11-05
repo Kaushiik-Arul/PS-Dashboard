@@ -11,6 +11,56 @@ export const namelistColumns = [
 export type NamelistColumn = (typeof namelistColumns)[number];
 export type NamelistRowValues = Record<NamelistColumn, string>;
 
+export const namelistColumnLabels: Readonly<Record<NamelistColumn, string>> = {
+  pers_no: 'Pers.No.',
+  personnel_number: 'Personnel Number',
+  employee_group: 'Employee Group',
+  lp: 'LP',
+  esgrp: 'ESgrp',
+  employee_subgroup: 'Employee Subgroup',
+  ps_group: 'PS group',
+  organizational_unit: 'Organizational Unit',
+  range: 'Range',
+  function: 'Function',
+  organisational_area_pa: 'Organisational Area(PA)',
+  gender_key: 'Gender Key',
+  location: 'Location',
+  pa: 'PA',
+  personnel_area: 'Personnel Area',
+  psubarea: 'PSubarea',
+  personnel_subarea: 'Personnel Subarea',
+  nt_id: 'NT_ID',
+  global_id: 'Global ID',
+  cost_center: 'Cost Ctr',
+  birth_date: 'Birth date',
+  joining_date: 'Date of Joining',
+  entry_for_retirement: 'Entry for Retirement',
+  designation_text: 'Designation Text',
+  hrbp_global_id: 'Global-Id of HRBP',
+  hrbp2_global_id: 'Global-Id of HRBP2',
+  official_email: 'Email Official',
+  technical_entry_date: 'Technical Entry Date',
+  direct_or_indirect: 'Direct or Indirect',
+};
+
+export type NamelistExportMonth = {
+  reportingMonth: string;
+  source: 'live' | 'historical';
+  rowCount: number;
+};
+
+export type NamelistExportRow = Partial<Record<NamelistColumn, string | number | Date | null>>;
+
+export type NamelistExportData = {
+  month: NamelistExportMonth;
+  rows: NamelistExportRow[];
+};
+
+export type NamelistExport = {
+  fileName: string;
+  buffer: Buffer;
+};
+
 export const rbinExceptionColumns = namelistColumns.filter(
   (column): column is Exclude<NamelistColumn, 'pers_no' | 'personnel_number'> =>
     column !== 'pers_no' && column !== 'personnel_number',

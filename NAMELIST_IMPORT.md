@@ -34,6 +34,7 @@ Full RBIN engineering and operations documentation is available in
 - Requires an explicit reporting month and defaults live uploads to the previous calendar month.
 - Replaces the live namelist atomically rather than appending rows.
 - Retains one live month plus the two newest detailed months at row level.
+- Exports any retained detailed month as an audited XLSX file with a selected subset of columns.
 - Leaves `auth_accounts`, `master_access`, and `employee_status` records untouched.
 
 ## Dependencies
@@ -65,6 +66,7 @@ changes.
 | `public.namelist_imports` | Audit record for import month, uploader, file, row count, timestamp, and outcome. |
 | `public.employee_namelist_monthly` | Detailed rows for the two reporting months preceding live. |
 | `public.dashboard_json_snapshots` | Versioned, checksummed JSON for older HRBP-only Overview months. |
+| `public.namelist_exports` | Audit metadata for each downloaded Namelist workbook, including month, columns, row count, exporter, and SHA-256 hash. |
 
 ### Staging tables
 
@@ -79,6 +81,7 @@ after `auth_creation.sql` and `namelist_creation.sql`:
 ```powershell
 $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_import_staging_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/namelist_export_audit_migration.sql"
 ```
 
 Expired previews can be removed by a scheduled job:
@@ -158,14 +161,22 @@ the `namelist:import` permission.
 | `DELETE /previews/:previewId` | Cancel and delete an uncommitted preview. |
 | `POST /previews/:previewId/commit` | Atomically replace the live namelist after validation and confirmation. |
 | `POST /historical/previews/:previewId/commit` | Replace one historical month and enforce rolling retention. |
+| `GET /export-months` | List populated live and historical months that still contain detailed employee rows. |
+| `POST /export` | Generate and audit an XLSX workbook for one retained month and a non-empty selected column list. |
 
 Supported row query parameters are `filter=all|valid|invalid`, `page`, and
 `pageSize`. The maximum page size is 100.
+
+The export endpoints additionally require `namelist:export`. Export requests
+contain `reportingMonth` in `YYYY-MM` format and a duplicate-free subset of the
+29 canonical column names. Requested column order is preserved. Aggregate-only
+archived months are not listed and cannot be reconstructed as employee rows.
 
 ## Security and data integrity
 
 - Frontend visibility is limited by `manageNamelist`.
 - Backend authorization is authoritative and requires `namelist:import`.
+- Namelist downloads additionally require the HRBP-only `namelist:export` permission.
 - The HRBP role receives the import permission; other roles do not.
 - Mutating requests require the existing session-bound CSRF token.
 - Preview queries include both `preview_id` and `uploaded_by`, preventing one HRBP from accessing another HRBP's staging data.
@@ -175,6 +186,7 @@ Supported row query parameters are `filter=all|valid|invalid`, `page`, and
 - Older detail is deleted only after its active JSON snapshot is inserted and its checksum is read back successfully.
 - Archived Overview discovery and reads require the HRBP-only `dashboard-history:view` permission.
 - SQL inserts list every destination column explicitly and cast staged values to their database types.
+- Every successful export records its month, source, selected columns, row count, filename, exporter, timestamp, and workbook hash before download.
 - Related account, access, and leave-status tables are neither modified nor used to block replacement.
 
 ## User interface
@@ -189,6 +201,9 @@ Namelist Updation shows the reporting month, file constraints, selected file,
 validation counts, filtered rows, pagination, and confirmation state. The
 preview defaults to eight key columns for readability and offers an **All 29
 fields** view. Editing a row opens an in-dialog side panel containing all fields.
+The **Export Namelist** dialog lists only retained populated months, selects all
+29 columns initially, and supports individual selection, Select all, and Clear
+all before downloading XLSX.
 
 ## RBIN cleaning workflow
 

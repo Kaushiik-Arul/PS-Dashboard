@@ -13,6 +13,7 @@
 \ir namelist_import_staging_migration.sql
 \ir namelist_monthly_history_migration.sql
 \ir namelist_reporting_month_confirmation_migration.sql
+\ir namelist_export_audit_migration.sql
 
 -- Fresh RBIN schema. This already contains Career Journey, current/history
 -- snapshots, mappings, employee exceptions, staging, and export tables.

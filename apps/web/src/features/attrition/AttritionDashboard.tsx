@@ -316,7 +316,7 @@ export function AttritionDashboard({
         <div className="dashboard-section__heading"><h2 id="attrition-analysis-title">Attrition analysis</h2><p>Monthly exits and approved reasons for the selected scope</p></div>
         <div className="chart-grid attrition-charts">
           <ChartCard title="Attrition Trend" description="Monthly count and percentage of month headcount"><AttritionTrend trend={data.trend} /></ChartCard>
-          <ChartCard title="Attrition by Reason" description="Most frequent approved separation reasons">{data.reasons.length ? <HorizontalBarChart data={compactReasons(data.reasons)} /> : <p className="attrition-empty-chart">No Attrition reasons match these filters.</p>}</ChartCard>
+          <ChartCard title="Attrition by Reason" description="Most frequent approved separation reasons">{data.reasons.length ? <HorizontalBarChart data={compactReasons(data.reasons)} wideLabels /> : <p className="attrition-empty-chart">No Attrition reasons match these filters.</p>}</ChartCard>
         </div>
       </section>
 

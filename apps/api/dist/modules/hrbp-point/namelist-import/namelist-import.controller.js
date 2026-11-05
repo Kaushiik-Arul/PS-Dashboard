@@ -24,6 +24,17 @@ let NamelistImportController = class NamelistImportController {
     constructor(service) {
         this.service = service;
     }
+    listExportMonths() {
+        return this.service.listExportMonths();
+    }
+    async exportNamelist(input, user) {
+        const result = await this.service.exportNamelist(input, user.accountId);
+        return new common_1.StreamableFile(result.buffer, {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            disposition: `attachment; filename="${result.fileName}"`,
+            length: result.buffer.length,
+        });
+    }
     createPreview(file, reportingMonth, user) {
         return this.service.createPreview(file, reportingMonth, user.accountId);
     }
@@ -47,6 +58,24 @@ let NamelistImportController = class NamelistImportController {
     }
 };
 exports.NamelistImportController = NamelistImportController;
+__decorate([
+    (0, common_1.Get)('export-months'),
+    (0, common_1.Header)('Cache-Control', 'private, no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('namelist:export'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], NamelistImportController.prototype, "listExportMonths", null);
+__decorate([
+    (0, common_1.Post)('export'),
+    (0, common_1.Header)('Cache-Control', 'private, no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('namelist:export'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], NamelistImportController.prototype, "exportNamelist", null);
 __decorate([
     (0, common_1.Post)('previews'),
     (0, swagger_1.ApiConsumes)('multipart/form-data'),

@@ -1,9 +1,12 @@
+import { StreamableFile } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../auth/auth.types';
 import { NamelistImportService } from './namelist-import.service';
 import type { UploadedNamelistFile } from './namelist-import.types';
 export declare class NamelistImportController {
     private readonly service;
     constructor(service: NamelistImportService);
+    listExportMonths(): Promise<import("./namelist-import.types").NamelistExportMonth[]>;
+    exportNamelist(input: unknown, user: AuthenticatedUser): Promise<StreamableFile>;
     createPreview(file: UploadedNamelistFile | undefined, reportingMonth: string | undefined, user: AuthenticatedUser): Promise<import("./namelist-import.types").NamelistPreviewSummary>;
     createHistoricalPreview(file: UploadedNamelistFile | undefined, reportingMonth: string | undefined, user: AuthenticatedUser): Promise<import("./namelist-import.types").NamelistPreviewSummary>;
     getRows(previewId: string, filter: string | undefined, page: string | undefined, pageSize: string | undefined, user: AuthenticatedUser): Promise<import("./namelist-import.types").NamelistPreviewPage>;

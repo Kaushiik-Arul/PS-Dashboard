@@ -7,7 +7,21 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { namelistColumns, type NamelistPreviewPage, type NamelistPreviewSummary, type NamelistRowValues, type ParsedNamelistRow, type PreviewFilter, type UploadedNamelistFile } from './namelist-import.types';
+import { createHash } from 'node:crypto';
+import ExcelJS from 'exceljs';
+import {
+  namelistColumnLabels,
+  namelistColumns,
+  type NamelistColumn,
+  type NamelistExport,
+  type NamelistExportMonth,
+  type NamelistPreviewPage,
+  type NamelistPreviewSummary,
+  type NamelistRowValues,
+  type ParsedNamelistRow,
+  type PreviewFilter,
+  type UploadedNamelistFile,
+} from './namelist-import.types';
 import { parseNamelistFile, validateNamelistRow } from './namelist-import.parser';
 import { NamelistImportRepository } from './namelist-import.repository';
 
@@ -16,6 +30,73 @@ export class NamelistImportService {
   private readonly logger = new Logger(NamelistImportService.name);
 
   constructor(private readonly repository: NamelistImportRepository) {}
+
+  listExportMonths(): Promise<NamelistExportMonth[]> {
+    return this.runDatabaseOperation(
+      () => this.repository.listExportMonths(),
+      'Unable to load exportable Namelist months',
+    );
+  }
+
+  async exportNamelist(input: unknown, actorAccountId: string): Promise<NamelistExport> {
+    const { reportingMonth, columns } = this.exportInput(input);
+    return this.runDatabaseOperation(async () => {
+      const data = await this.repository.getExportRows(reportingMonth, columns);
+      if (!data) throw new Error('EXPORT_MONTH_NOT_FOUND');
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'PS Dashboard';
+      workbook.created = new Date();
+      const sheet = workbook.addWorksheet('PS Namelist', {
+        views: [{ state: 'frozen', ySplit: 1 }],
+      });
+      sheet.columns = columns.map((column) => ({
+        header: namelistColumnLabels[column],
+        key: column,
+        width: Math.max(14, namelistColumnLabels[column].length + 2),
+      }));
+      sheet.getRow(1).font = { bold: true };
+      const dateColumns = new Set<NamelistColumn>([
+        'birth_date',
+        'joining_date',
+        'entry_for_retirement',
+        'technical_entry_date',
+      ]);
+      const textColumns = new Set<NamelistColumn>([
+        'pers_no',
+        'global_id',
+        'hrbp_global_id',
+        'hrbp2_global_id',
+      ]);
+      data.rows.forEach((source) => {
+        const row = sheet.addRow(columns.map((column) => {
+          const value = source[column];
+          if (dateColumns.has(column) && typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            return new Date(`${value}T00:00:00Z`);
+          }
+          return value;
+        }));
+        columns.forEach((column, index) => {
+          const cell = row.getCell(index + 1);
+          if (dateColumns.has(column) && cell.value) cell.numFmt = 'dd mmm yyyy';
+          if (textColumns.has(column)) cell.numFmt = '@';
+        });
+      });
+      sheet.autoFilter = { from: 'A1', to: `${sheet.getColumn(columns.length).letter}1` };
+      const excelBuffer = await workbook.xlsx.writeBuffer();
+      const buffer = Buffer.from(excelBuffer);
+      const fileName = `PS_Namelist_${reportingMonth}.xlsx`;
+      await this.repository.recordExport(
+        reportingMonth,
+        data.month.source,
+        columns,
+        data.rows.length,
+        fileName,
+        createHash('sha256').update(buffer).digest('hex'),
+        actorAccountId,
+      );
+      return { fileName, buffer };
+    }, 'Unable to export employee Namelist');
+  }
 
   async createPreview(
     file: UploadedNamelistFile | undefined,
@@ -132,6 +213,30 @@ export class NamelistImportService {
     return values;
   }
 
+  private exportInput(input: unknown): { reportingMonth: string; columns: NamelistColumn[] } {
+    if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+      throw new BadRequestException('Export month and columns are required.');
+    }
+    const record = input as Record<string, unknown>;
+    if (Object.keys(record).length !== 2 || !('reportingMonth' in record) || !('columns' in record)) {
+      throw new BadRequestException('Export must contain exactly reportingMonth and columns.');
+    }
+    if (typeof record.reportingMonth !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(record.reportingMonth)) {
+      throw new BadRequestException('Export reporting month must use YYYY-MM format.');
+    }
+    if (!Array.isArray(record.columns) || record.columns.length === 0) {
+      throw new BadRequestException('Select at least one Namelist column.');
+    }
+    if (record.columns.some((column) => typeof column !== 'string' || !namelistColumns.includes(column as NamelistColumn))) {
+      throw new BadRequestException('Export columns contain an unsupported Namelist column.');
+    }
+    const columns = record.columns as NamelistColumn[];
+    if (new Set(columns).size !== columns.length) {
+      throw new BadRequestException('Export columns must not contain duplicates.');
+    }
+    return { reportingMonth: record.reportingMonth, columns };
+  }
+
   private positiveInteger(value: string | undefined, fallback: number, maximum: number): number {
     if (value === undefined) return fallback;
     if (!/^\d+$/.test(value)) throw new BadRequestException('Pagination values must be positive whole numbers.');
@@ -164,6 +269,7 @@ export class NamelistImportService {
         if (error.message === 'LIVE_MONTH_OUT_OF_SEQUENCE') throw new ConflictException('Live reporting months must be imported in chronological order. Use historical import to correct an older month.');
         if (error.message === 'HISTORICAL_MONTH_NOT_BEFORE_LIVE') throw new ConflictException('A historical reporting month must be earlier than the current live reporting month.');
         if (error.message === 'SNAPSHOT_VERIFICATION_FAILED') throw new ConflictException('The older reporting month could not be archived. No Namelist data was changed.');
+        if (error.message === 'EXPORT_MONTH_NOT_FOUND') throw new NotFoundException('The selected Namelist month is no longer available for detailed export.');
       }
       this.logger.error(publicMessage);
       throw new InternalServerErrorException(publicMessage);

@@ -9,6 +9,7 @@ import { httpRbinMappingsClient } from "./rbin-mappings.http";
 import {
   namelistColumns,
   type NamelistColumn,
+  type NamelistExportMonth,
   type NamelistPreview,
   type NamelistPreviewRow,
   type PreviewFilter,
@@ -50,6 +51,7 @@ function formatReportingMonth(value: string) {
 export function NamelistImportPanel() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const processDialogRef = useRef<HTMLDialogElement>(null);
+  const exportDialogRef = useRef<HTMLDialogElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<NamelistPreview | null>(null);
@@ -62,6 +64,12 @@ export function NamelistImportPanel() {
   const [confirmReplacement, setConfirmReplacement] = useState(false);
   const [importMode, setImportMode] = useState<"live" | "historical">("live");
   const [reportingMonthValue, setReportingMonthValue] = useState(latestHistoricalMonth);
+  const [exportMonths, setExportMonths] = useState<NamelistExportMonth[]>([]);
+  const [exportMonth, setExportMonth] = useState("");
+  const [selectedExportColumns, setSelectedExportColumns] = useState<NamelistColumn[]>([...namelistColumns]);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const pageCount = Math.max(1, Math.ceil((preview?.filteredRows ?? 0) / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -178,6 +186,45 @@ export function NamelistImportPanel() {
     }
   };
 
+  const openExportDialog = async () => {
+    setExportMonths([]);
+    setExportMonth("");
+    setSelectedExportColumns([...namelistColumns]);
+    setExportError("");
+    setExportLoading(true);
+    exportDialogRef.current?.showModal();
+    try {
+      const months = await httpNamelistImportClient.listExportMonths();
+      setExportMonths(months);
+      setExportMonth(months[0]?.reportingMonth ?? "");
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Exportable months could not be loaded.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const toggleExportColumn = (column: NamelistColumn) => {
+    setSelectedExportColumns((current) => current.includes(column)
+      ? current.filter((value) => value !== column)
+      : namelistColumns.filter((value) => value === column || current.includes(value)));
+  };
+
+  const exportNamelist = async () => {
+    if (!exportMonth || selectedExportColumns.length === 0) return;
+    setExportBusy(true);
+    setExportError("");
+    try {
+      const result = await httpNamelistImportClient.exportNamelist(exportMonth, selectedExportColumns);
+      exportDialogRef.current?.close();
+      setMessage(`${result.fileName} downloaded.`);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "The Namelist could not be exported.");
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
   const reportingMonth = reportingMonthValue ? formatReportingMonth(reportingMonthValue) : "Select reporting month";
 
   return <section className="namelist-area" aria-label="Namelist operations">
@@ -230,7 +277,7 @@ export function NamelistImportPanel() {
             <label className="a-button a-button--secondary" htmlFor="namelist-file"><span className="a-button__label">Choose file</span></label>
           </div>
           {file && <div className="namelist-file"><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB</small></span><button className="a-button a-button--primary" type="button" disabled={busy || !reportingMonthValue} onClick={upload}><span className="a-button__label">{busy ? "Preparing..." : "Upload and preview"}</span></button></div>}
-          <p className="namelist-panel__notice">{importMode === "historical" ? "Historical imports do not change the current live Namelist." : "Live data changes only after validation and confirmation."}</p>
+          <div className="namelist-panel__export-action"><button className="a-button a-button--secondary namelist-panel__export-button" type="button" aria-label="Export Namelist" disabled={busy} onClick={() => void openExportDialog()}><i className="a-icon a-button__icon boschicon-bosch-ic-download" aria-hidden="true" /><span className="a-button__label">Export</span></button></div>
           {message && <p className="namelist-panel__message" role="status">{message}</p>}
         </div>
       </section>
@@ -242,6 +289,23 @@ export function NamelistImportPanel() {
       <div><header className="hrbp-dialog__header"><div><span>HRBP workflow</span><h2>RBIN to PS process</h2></div><button className="a-button a-button--integrated" type="button" aria-label="Close process guide" title="Close" onClick={() => processDialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
         <div className="hrbp-dialog__body"><section className="hrbp-process-prerequisites"><h3>Before you start</h3><ul><li>Verify Organizational Unit to Range and Function mappings.</li><li>Review employee exceptions and add any required fixed column values.</li></ul></section><ol className="hrbp-process-steps"><li><span>1</span><div><strong>Clean RBIN to PS Namelist</strong><p>Upload the mixed employee file, review mappings and exceptions, correct invalid rows, then export the cleaned PS file.</p></div></li><li><span>2</span><div><strong>Update the PS Namelist</strong><p>Upload the cleaned PS Namelist, validate every row, and confirm the monthly replacement.</p></div></li><li><span>3</span><div><strong>Add employee leave status when needed</strong><p>After the Namelist is current, maintain maternity, sabbatical, CRL, or absconding records.</p></div></li></ol></div>
         <footer className="hrbp-dialog__footer"><button className="a-button a-button--primary" type="button" onClick={() => processDialogRef.current?.close()}><span className="a-button__label">Got it</span></button></footer>
+      </div>
+    </dialog>
+
+    <dialog className="hrbp-dialog namelist-export-dialog" ref={exportDialogRef} onCancel={(event) => { if (exportBusy) event.preventDefault(); }} onClose={() => setExportError("")}>
+      <div>
+        <header className="hrbp-dialog__header"><div><span>Namelist history</span><h2>Export Namelist</h2></div><button className="a-button a-button--integrated" type="button" aria-label="Close Namelist export" title="Close" disabled={exportBusy} onClick={() => exportDialogRef.current?.close()}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button></header>
+        <div className="hrbp-dialog__body">
+          {exportLoading ? <p className="namelist-export-dialog__status" role="status">Loading stored months...</p> : exportMonths.length === 0 ? <p className="namelist-export-dialog__status">No detailed Namelist months are available.</p> : <>
+            <label className="hrbp-field" htmlFor="namelist-export-month"><span>Reporting month</span><select id="namelist-export-month" value={exportMonth} disabled={exportBusy} onChange={(event) => setExportMonth(event.target.value)}>{exportMonths.map((month) => <option key={month.reportingMonth} value={month.reportingMonth}>{formatReportingMonth(month.reportingMonth)} · {month.source === "live" ? "Current" : "Historical"} · {month.rowCount.toLocaleString("en-US")} rows</option>)}</select></label>
+            <section className="namelist-export-columns" aria-labelledby="namelist-export-columns-title">
+              <header><div><h3 id="namelist-export-columns-title">Columns</h3><span>{selectedExportColumns.length} of {namelistColumns.length} selected</span></div><div><button className="a-button a-button--integrated -small" type="button" disabled={exportBusy || selectedExportColumns.length === namelistColumns.length} onClick={() => setSelectedExportColumns([...namelistColumns])}><span className="a-button__label">Select all</span></button><button className="a-button a-button--integrated -small" type="button" disabled={exportBusy || selectedExportColumns.length === 0} onClick={() => setSelectedExportColumns([])}><span className="a-button__label">Clear all</span></button></div></header>
+              <div className="namelist-export-columns__grid">{namelistColumns.map((column) => <label key={column}><input type="checkbox" checked={selectedExportColumns.includes(column)} disabled={exportBusy} onChange={() => toggleExportColumn(column)} /><span>{labels[column]}</span></label>)}</div>
+            </section>
+          </>}
+          {exportError && <p className="hrbp-dialog__error" role="alert">{exportError}</p>}
+        </div>
+        <footer className="hrbp-dialog__footer"><button className="a-button a-button--secondary" type="button" disabled={exportBusy} onClick={() => exportDialogRef.current?.close()}><span className="a-button__label">Cancel</span></button><button className="a-button a-button--primary" type="button" disabled={exportLoading || exportBusy || !exportMonth || selectedExportColumns.length === 0} onClick={() => void exportNamelist()}><i className="a-icon a-button__icon boschicon-bosch-ic-download" aria-hidden="true" /><span className="a-button__label">{exportBusy ? "Preparing..." : "Export XLSX"}</span></button></footer>
       </div>
     </dialog>
 

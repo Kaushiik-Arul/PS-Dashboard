@@ -1,10 +1,14 @@
 import { DatabaseService } from '../../../database/database.service';
 import { MrmCalculationService } from '../../mrm/mrm-calculation.service';
-import type { NamelistPreviewPage, NamelistPreviewSummary, ParsedNamelistRow, PreviewFilter, UploadedNamelistFile } from './namelist-import.types';
+import type { NamelistColumn, NamelistExportData, NamelistExportMonth, NamelistPreviewPage, NamelistPreviewSummary, ParsedNamelistRow, PreviewFilter, UploadedNamelistFile } from './namelist-import.types';
 export declare class NamelistImportRepository {
     private readonly database;
     private readonly mrmCalculations;
     constructor(database: DatabaseService, mrmCalculations: MrmCalculationService);
+    listExportMonths(): Promise<NamelistExportMonth[]>;
+    getExportRows(reportingMonth: string, columns: readonly NamelistColumn[]): Promise<NamelistExportData | null>;
+    recordExport(reportingMonth: string, source: NamelistExportMonth['source'], columns: readonly NamelistColumn[], rowCount: number, fileName: string, fileHash: string, actorAccountId: string): Promise<void>;
+    private listExportMonthsWith;
     createPreview(actorAccountId: string, file: UploadedNamelistFile, rows: ParsedNamelistRow[], reportingMonth: string): Promise<string>;
     createHistoricalPreview(actorAccountId: string, file: UploadedNamelistFile, rows: ParsedNamelistRow[], reportingMonth: string): Promise<string>;
     private createPreviewForMonth;

@@ -133,4 +133,16 @@ export const mockNamelistImportClient: NamelistImportClient = {
     if (preview.hasExistingMonthImport && !confirmReplacement) throw new Error("Confirm replacement of this month's import.");
     return { totalRows: preview.totalRows };
   },
+  async listExportMonths() {
+    await wait();
+    return [
+      { reportingMonth: "2026-10", source: "live", rowCount: 18 },
+      { reportingMonth: "2026-09", source: "historical", rowCount: 17 },
+      { reportingMonth: "2026-08", source: "historical", rowCount: 19 },
+    ];
+  },
+  async exportNamelist(reportingMonth) {
+    await wait();
+    return { fileName: `PS_Namelist_${reportingMonth}.xlsx` };
+  },
 };

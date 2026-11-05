@@ -196,20 +196,22 @@ export function ChartCard({
 export function HorizontalBarChart({
   data,
   maximum: maximumProp,
+  wideLabels = false,
 }: {
   data: ChartDatum[];
   maximum?: number;
+  wideLabels?: boolean;
 }) {
   const maximum = maximumProp ?? Math.max(...data.map((item) => item.value));
 
   return (
-    <div className="horizontal-chart" role="group" aria-label="Horizontal bar chart">
+    <div className={`horizontal-chart${wideLabels ? " horizontal-chart--wide-labels" : ""}`} role="group" aria-label="Horizontal bar chart">
       {data.map((item, index) => {
         const relativePercentage = maximum > 0 ? (item.value / maximum) * 100 : 0;
         const detail = `${item.label}: ${item.displayValue ?? item.value.toLocaleString()}. ${relativePercentage.toFixed(1)}% of the chart scale.`;
 
         return <div className="horizontal-chart__row chart-data-point" key={item.label} tabIndex={0} data-tooltip={detail} aria-label={detail} onPointerMove={positionChartTooltip}>
-          <span className="horizontal-chart__label">{item.label}</span>
+          <span className="horizontal-chart__label" title={item.label}>{item.label}</span>
           <div className="horizontal-chart__track">
             <span className="horizontal-chart__bar" style={{ backgroundColor: `var(--data-visualization-${index % 2 === 0 ? 1 : 2})`, width: `${relativePercentage}%` }} />
           </div>
