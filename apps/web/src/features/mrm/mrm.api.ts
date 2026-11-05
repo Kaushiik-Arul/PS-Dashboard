@@ -71,23 +71,22 @@ function column(value: unknown, field: string): MrmColumn {
 function row(value: unknown, field: string): MrmRow {
   const item = record(value, field);
   if (item.mode !== "manual" && item.mode !== "calculated") throw new Error(`MRM API returned invalid ${field}.mode`);
-  const key = string(item.key, `${field}.key`);
-  const tableKey = item.tableKey === undefined
-    ? key.startsWith("corp-") ? "ps-corp" : "ps-in"
-    : string(item.tableKey, `${field}.tableKey`);
-  const calculationKey = item.calculationKey === undefined
-    ? item.mode === "calculated" ? key.replace(/^corp-/, "") : null
-    : nullableString(item.calculationKey, `${field}.calculationKey`);
+  const overrideColumns = item.overrideColumns ?? [];
+  if (!Array.isArray(overrideColumns)
+    || overrideColumns.some((column) => typeof column !== "string")) {
+    throw new Error(`MRM API returned invalid ${field}.overrideColumns`);
+  }
   return {
-    key,
-    tableKey,
-    calculationKey,
+    key: string(item.key, `${field}.key`),
+    tableKey: string(item.tableKey, `${field}.tableKey`),
+    calculationKey: nullableString(item.calculationKey, `${field}.calculationKey`),
     title: string(item.title, `${field}.title`),
     description: string(item.description, `${field}.description`), mode: item.mode,
     highlighted: boolean(item.highlighted, `${field}.highlighted`),
     muted: boolean(item.muted, `${field}.muted`),
     emphasized: boolean(item.emphasized, `${field}.emphasized`),
     managed: boolean(item.managed, `${field}.managed`),
+    overrideColumns,
     cells: record(item.cells, `${field}.cells`),
   };
 }

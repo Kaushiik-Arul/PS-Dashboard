@@ -1,7 +1,8 @@
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { MrmCalculationService } from './mrm-calculation.service';
 import { MrmRepository } from './mrm.repository';
-import type { MrmReportDocument, MrmUploadedFile } from './mrm.types';
+import type { MrmMetricBucket, MrmReportDocument, MrmUploadedFile } from './mrm.types';
+export declare function formatMrmMetricValue(metric: MrmMetricBucket): string;
 export declare class MrmService {
     private readonly repository;
     private readonly calculations;

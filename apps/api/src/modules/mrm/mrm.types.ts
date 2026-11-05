@@ -31,6 +31,7 @@ export type MrmRow = {
   muted: boolean;
   emphasized: boolean;
   managed: boolean;
+  overrideColumns: string[];
   cells: Record<string, unknown>;
 };
 
@@ -85,6 +86,7 @@ export type MrmSaveRow = {
   muted: boolean;
   emphasized: boolean;
   managed: boolean;
+  overrideColumns: string[];
   cells: Record<string, unknown>;
 };
 

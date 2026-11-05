@@ -59,6 +59,7 @@ export default async function OverviewPage({ searchParams }: Props) {
       succession={succession}
       preference={preference}
       activeFilters={filters}
+      canViewSensitiveCareerDates={user.roles.includes("hrbp")}
     />
   );
 }

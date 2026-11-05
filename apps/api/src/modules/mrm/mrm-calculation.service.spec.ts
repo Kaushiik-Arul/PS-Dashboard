@@ -4,7 +4,8 @@ import { MrmCalculationService } from './mrm-calculation.service';
 describe('MrmCalculationService', () => {
   let repository: jest.Mocked<Pick<
     MrmCalculationRepository,
-    'getSourceStatus' | 'getEmployees' | 'getAttrition' | 'getSnapshotBuckets'
+    'getSourceStatus' | 'getEmployees' | 'getAttrition'
+    | 'getSnapshotBuckets' | 'replaceMonthlySnapshot'
   >>;
   let service: MrmCalculationService;
 
@@ -14,6 +15,7 @@ describe('MrmCalculationService', () => {
       getEmployees: jest.fn(),
       getAttrition: jest.fn(),
       getSnapshotBuckets: jest.fn(),
+      replaceMonthlySnapshot: jest.fn(),
     };
     service = new MrmCalculationService(repository as MrmCalculationRepository);
   });
@@ -28,67 +30,82 @@ describe('MrmCalculationService', () => {
     expect(repository.getEmployees).not.toHaveBeenCalled();
   });
 
-  it('uses archived scoped buckets after detailed Namelist rows expire', async () => {
+  it('reads preserved buckets after detailed source retention', async () => {
     repository.getSourceStatus.mockResolvedValue({ available: true, source: 'snapshot' });
     repository.getSnapshotBuckets.mockResolvedValue([{
-      dataMonth: '2026-07',
-      metricKey: 'total-mss',
-      rangeKey: '',
-      orgUnitKey: '',
-      numerator: 42,
-      denominator: null,
-      qualityCount: 0,
+      dataMonth: '2026-01', metricKey: 'total-mss', rangeKey: '', orgUnitKey: '',
+      numerator: 10, denominator: null, qualityCount: 0,
     }]);
 
-    await expect(service.calculate('2026-07', 'account')).resolves.toEqual({
-      sourceStatus: { available: true, source: 'snapshot' },
-      buckets: [expect.objectContaining({ dataMonth: '2026-07', numerator: 42 })],
-    });
-    expect(repository.getSnapshotBuckets).toHaveBeenCalledWith(
-      '2026-07',
-      'account',
-      undefined,
-    );
+    const result = await service.calculate('2026-01', 'account');
+
+    expect(result.buckets).toHaveLength(1);
+    expect(repository.getSnapshotBuckets).toHaveBeenCalledWith('2026-01', 'account', undefined);
     expect(repository.getEmployees).not.toHaveBeenCalled();
-    expect(repository.getAttrition).not.toHaveBeenCalled();
+  });
+
+  it('archives calculated buckets before detailed source deletion', async () => {
+    const executor = { query: jest.fn() };
+    repository.getSourceStatus.mockResolvedValue({ available: true, source: 'history' });
+    repository.getEmployees.mockResolvedValue([]);
+    repository.getAttrition.mockResolvedValue([]);
+
+    await service.archiveMonth('2026-01', 'account', executor as never);
+
+    expect(repository.replaceMonthlySnapshot).toHaveBeenCalledWith(
+      '2026-01', 'account', [], executor,
+    );
   });
 
   it('creates normalized dimensional buckets for workforce and attrition metrics', async () => {
     repository.getSourceStatus.mockResolvedValue({ available: true, source: 'history' });
     repository.getEmployees.mockResolvedValue([
       {
-        range: ' bidp ', org_unit: 'Unit  A', direct_or_indirect: 'I',
+        range: ' PS/NE-IN ', org_unit: 'Unit  A', direct_or_indirect: 'I',
         employee_group: 'INBOUND', ps_group: 'SL2', gender_key: 'Female', joined_in_month: true,
       },
       {
-        range: 'BIDP', org_unit: 'Unit A', direct_or_indirect: 'D',
+        range: 'PS/NE-IN', org_unit: 'Unit A', direct_or_indirect: 'D',
         employee_group: '', ps_group: 'GROUP1', gender_key: 'Male', joined_in_month: true,
       },
       {
-        range: 'BIDP', org_unit: 'Unit A', direct_or_indirect: 'D',
+        range: 'PS/NE-IN', org_unit: 'Unit A', direct_or_indirect: 'D',
         employee_group: '', ps_group: '', gender_key: '', joined_in_month: true,
+      },
+      {
+        range: 'BidP', org_unit: 'Plant', direct_or_indirect: 'I',
+        employee_group: 'INBOUND', ps_group: 'SL2', gender_key: 'Female', joined_in_month: true,
       },
     ]);
     repository.getAttrition.mockResolvedValue([
-      { range: 'BIDP', org_unit: 'Unit A', filter_value: 'Exit', reason_for_action: 'Resignation' },
-      { range: 'BIDP', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'TRANSFER INTRA BOSCH' },
-      { range: 'BIDP', org_unit: 'Unit A', filter_value: '', reason_for_action: 'INTERNAL' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Exit', reason_for_action: 'Resignation' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'TRANSFER INTRA BOSCH' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: '', reason_for_action: 'INTERNAL' },
+      { range: 'GanP', org_unit: 'Plant', filter_value: 'Exit', reason_for_action: 'Resignation' },
     ]);
 
     const result = await service.calculate('2026-01', 'account');
-    const buckets = new Map(result.buckets.map((bucket) => [bucket.metricKey, bucket]));
+    const total = (metricKey: string) => result.buckets
+      .filter((bucket) => bucket.metricKey === metricKey)
+      .reduce((sum, bucket) => ({
+        numerator: sum.numerator + bucket.numerator,
+        denominator: sum.denominator + (bucket.denominator ?? 0),
+        qualityCount: sum.qualityCount + bucket.qualityCount,
+      }), { numerator: 0, denominator: 0, qualityCount: 0 });
+    const indirect = result.buckets.find((bucket) => bucket.metricKey === 'indirect-mss');
 
-    expect(buckets.get('total-mss')?.dataMonth).toBe('2026-01');
-    expect(buckets.get('indirect-mss')).toMatchObject({ rangeKey: 'BIDP', orgUnitKey: 'UNIT A', numerator: 1 });
-    expect(buckets.get('direct-mss')?.numerator).toBe(2);
-    expect(buckets.get('total-mss')?.numerator).toBe(3);
-    expect(buckets.get('expat')?.numerator).toBe(1);
-    expect(buckets.get('sul')?.numerator).toBe(2);
-    expect(buckets.get('women-slx')?.numerator).toBe(1);
-    expect(buckets.get('women-hc')).toMatchObject({ numerator: 1, denominator: 3 });
-    expect(buckets.get('gender-hiring')).toMatchObject({ numerator: 1, denominator: 2, qualityCount: 1 });
-    expect(buckets.get('attrition')?.numerator).toBe(1);
-    expect(buckets.get('rotation')?.numerator).toBe(1);
-    expect(buckets.get('transfer')?.numerator).toBe(1);
+    expect(indirect).toMatchObject({
+      dataMonth: '2026-01', rangeKey: 'BIDP', orgUnitKey: 'PLANT', numerator: 1,
+    });
+    expect(total('direct-mss').numerator).toBe(2);
+    expect(total('total-mss').numerator).toBe(4);
+    expect(total('expat').numerator).toBe(2);
+    expect(total('sul').numerator).toBe(3);
+    expect(total('women-slx').numerator).toBe(2);
+    expect(total('women-hc')).toMatchObject({ numerator: 2, denominator: 4 });
+    expect(total('gender-hiring')).toEqual({ numerator: 2, denominator: 3, qualityCount: 1 });
+    expect(total('attrition').numerator).toBe(2);
+    expect(total('rotation').numerator).toBe(1);
+    expect(total('transfer').numerator).toBe(1);
   });
 });

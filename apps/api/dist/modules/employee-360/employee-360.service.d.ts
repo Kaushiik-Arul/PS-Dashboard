@@ -1,5 +1,5 @@
 import type { AuthenticatedUser } from '../auth/auth.types';
-import type { Employee360QueryDto, Employee360ResponseDto } from './dto/employee-360.dto';
+import type { Employee360QueryDto, Employee360ResponseDto, Employee360RowDto } from './dto/employee-360.dto';
 import { Employee360Repository } from './employee-360.repository';
 import { CareerJourneyRepository } from './career-journey.repository';
 import type { CareerJourneyEvent } from './career-journey.types';
@@ -10,7 +10,7 @@ export declare class Employee360Service {
     constructor(repository: Employee360Repository, careerJourneyRepository: CareerJourneyRepository);
     getEmployees(input: Employee360QueryDto, user: AuthenticatedUser): Promise<Employee360ResponseDto>;
     getProfile(persNoInput: string, user: AuthenticatedUser): Promise<{
-        employee: import("./dto/employee-360.dto").Employee360RowDto;
+        employee: Employee360RowDto;
         careerJourney: CareerJourneyEvent[];
         pppHistory: import("./dto/employee-360.dto").EmployeePppHistoryDto[];
         stepOverview: import("./dto/employee-360.dto").EmployeeStepOverviewDto;
@@ -19,6 +19,7 @@ export declare class Employee360Service {
         developmentPortfolio: import("./dto/employee-360.dto").EmployeeDevelopmentPortfolioDto | null;
         successionPortfolio: import("./dto/employee-360.dto").EmployeeSuccessionPortfolioDto;
     }>;
+    private protectCareerDates;
     createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
     updateCareerEvent(persNoInput: string, idInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent>;
     deleteCareerEvent(persNoInput: string, idInput: string, user: AuthenticatedUser): Promise<void>;

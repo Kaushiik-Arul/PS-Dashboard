@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import type { AuthenticatedUser } from '../auth/auth.types';
+import type { AuthenticatedUser, UserRole } from '../auth/auth.types';
 import { CareerJourneyRepository } from './career-journey.repository';
 import { Employee360Repository } from './employee-360.repository';
 import { Employee360Service } from './employee-360.service';
@@ -7,7 +7,18 @@ import { Employee360Service } from './employee-360.service';
 const user = {
   accountId: 'ea599947-cedc-453c-99ba-20cdef44933b',
   persNo: '12345',
+  role: 'hrbp',
+  roles: ['hrbp'],
 } as AuthenticatedUser;
+
+const employeeWithCareerDates = {
+  persNo: '67890',
+  personnelNumber: '67890',
+  birthDate: '1990-05-14',
+  joiningDate: '2020-02-03',
+  entryForRetirement: '2050-05-14',
+  technicalEntryDate: '2020-01-15',
+} as never;
 
 describe('Employee360Service', () => {
   let repository: jest.Mocked<Employee360Repository>;
@@ -78,6 +89,67 @@ describe('Employee360Service', () => {
       user.accountId,
       user.persNo,
     );
+  });
+
+  it('preserves career dates for an HRBP user', async () => {
+    getEmployees.mockResolvedValue({ employees: [employeeWithCareerDates], filterOptions: {} as never });
+
+    const result = await service.getEmployees({}, user);
+
+    expect(result.employees[0]).toMatchObject({
+      birthDate: '1990-05-14',
+      joiningDate: '2020-02-03',
+      entryForRetirement: '2050-05-14',
+      technicalEntryDate: '2020-01-15',
+    });
+  });
+
+  it.each<UserRole>(['admin', 'range_head', 'department_head', 'sub_department_head'])(
+    'redacts career dates for the %s role',
+    async (role) => {
+      getEmployees.mockResolvedValue({ employees: [employeeWithCareerDates], filterOptions: {} as never });
+
+      const result = await service.getEmployees({}, { ...user, role, roles: [role] });
+
+      expect(result.employees[0]).toMatchObject({
+        persNo: '67890',
+        personnelNumber: '67890',
+        birthDate: null,
+        joiningDate: null,
+        entryForRetirement: null,
+        technicalEntryDate: null,
+      });
+    },
+  );
+
+  it('preserves career dates when HRBP is one of multiple roles', async () => {
+    getEmployees.mockResolvedValue({ employees: [employeeWithCareerDates], filterOptions: {} as never });
+
+    const result = await service.getEmployees({}, {
+      ...user,
+      role: 'range_head',
+      roles: ['range_head', 'hrbp'],
+    });
+
+    expect(result.employees[0].birthDate).toBe('1990-05-14');
+  });
+
+  it('redacts career dates in a non-HRBP employee profile', async () => {
+    getEmployees.mockResolvedValue({ employees: [employeeWithCareerDates], filterOptions: {} as never });
+
+    const result = await service.getProfile('67890', {
+      ...user,
+      role: 'admin',
+      roles: ['admin'],
+    });
+
+    expect(result.employee).toMatchObject({
+      persNo: '67890',
+      birthDate: null,
+      joiningDate: null,
+      entryForRetirement: null,
+      technicalEntryDate: null,
+    });
   });
 
   it('rejects invalid search input', () => {

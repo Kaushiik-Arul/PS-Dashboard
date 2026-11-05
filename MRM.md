@@ -2,44 +2,27 @@
 
 MRM reports are shared PostgreSQL documents. Browser `localStorage` is not a data source and the retired `ps-dashboard:mrm-prototype:v1` key is deleted by the client.
 
-## Report structure
-
-Each reporting month contains two independent KPI tables:
-
-- **PS Corp Performance Dashboard:** PUL and the Corp performance KPIs.
-- **PS-IN Performance Dashboard:** Performance KPIs followed by the workforce/PUL breakdown. The two PS-IN reference screenshots are the upper and lower continuation of this one logical table.
-
-The tables share column definitions, including Actual, Target, rolling months, YTD status, and Attachments. Their rows have independent keys, manual values, statuses, attachments, display order, and highlighting. Duplicate calculated KPIs can reuse the same normalized calculation metric without sharing stored cells between tables.
-
-Custom KPI rows are created inside a selected table and can only be reordered within that table. Copy and Excel export preserve both table headings and the separation between the two tables.
-
 ## Access and lifecycle
 
 All authenticated HRBP, Admin, Range Head, Department Head, and Sub-department Head roles can view MRM. Only HRBP can save drafts, upload or delete attachments, and finalize reports. Draft saves use an expected revision; a stale revision returns HTTP 409 and must not overwrite local edits.
 
 The reporting month is the first day of a calendar month. Its automated data month is the previous month. A report remains editable while it is a draft. Finalization stores the resolved document, metric buckets, checksum, actor, and timestamp before changing the report status. PostgreSQL triggers reject later changes or deletion under a finalized report.
 
-Managed definitions use stable keys and activation months. Active additions appear in drafts; finalized snapshots retain their original definitions. Custom columns and manual values are shared organization-wide. `Actual 2025` remains manual. Calculated values are written to both rolling month columns.
+Managed definitions use stable keys and activation months. Active additions appear in drafts; finalized snapshots retain their original definitions. Custom columns and manual values are shared organization-wide. `Actual 2025` remains manual. Draft-managing HRBPs may override any calculated value cell; untouched cells continue to refresh from Namelist, and saved overrides take precedence until cleared or the report is finalized.
 
 ## Sources and calculations
 
 For a data month, MRM uses `employee_namelist` only when the latest confirmed live Namelist import is for that exact month. Otherwise it uses the exact `employee_namelist_monthly.reporting_month`. A missing month is unavailable, not zero. Attrition rows are bounded by `lwd` within the data month.
 
-Before detailed Namelist retention deletes an older monthly dataset, the import
-transaction stores normalized MRM metric buckets for that data month. MRM reads
-those scoped monthly snapshots after detailed employee rows expire. For example,
-a September report continues to show July and August even after an October
-Namelist import retains only August, September, and October employee detail.
-
-Finalization stores atomic normalized Range and Org Unit buckets. Reads aggregate distinct buckets through the viewer's current `master_access` assignments, so finalized reports continue to honor current scope without duplicate counting.
+Finalization stores atomic normalized Range and Org Unit buckets. Reads apply the viewer's current `master_access` assignments, so finalized reports continue to honor current scope without duplicate counting. The report renders separate PS Corp and PS-IN tables. PS Corp calculated KPIs exclude the plant ranges NaP, GanP, JaP, and BidP; PS-IN calculations use the full scoped population.
 
 Calculated rows are:
 
-- Direct M&SS, Total M&SS, and indirect blue collar for BIDP/NAP/JAP/GANP.
+- Direct M&SS and Total M&SS across PS-IN; Indirect M&SS includes indirect employees in BidP, NaP, JaP, and GanP.
 - Expat (`employee_group = INBOUND`).
 - SUL and Women in SLx for GROUP1/GROUP2/SL2/SL3/SL4.
 - Women in overall M&SS, including denominator.
-- Gender diversity hiring from Namelist `joining_date`, including unrecognized/missing gender quality count.
+- Gender diversity hiring from Namelist `joining_date`, displayed as separate Female and Male counts and percentages; unrecognized/missing gender is tracked as a quality count.
 - Attrition for Resignation, Retirement, or exact `TRANSFER INTRA ENTITY`.
 - Job Rotation for exact `TRANSFER INTRA BOSCH`.
 - Internal transfer for exact `INTERNAL`.
@@ -50,7 +33,7 @@ Attachments are stored in PostgreSQL `BYTEA`. The maximum file size is 10 MB. Al
 
 ## Deployment
 
-Back up PostgreSQL first. Apply `apps/sql/mrm_creation_migration.sql` after authentication, Namelist, Namelist monthly history, and Attrition schemas. Then apply `apps/sql/mrm_monthly_metric_snapshots_migration.sql` and `apps/sql/mrm_table_sections_migration.sql`. The migrations are additive and transactional.
+Back up PostgreSQL first. Apply `apps/sql/mrm_creation_migration.sql` after authentication, Namelist, Namelist monthly history, and Attrition schemas. The migration is additive, transactional, and idempotent for initial creation and catalog seeding.
 
 Deploy in this order:
 
@@ -66,8 +49,6 @@ Apply to a backup or test database with:
 ```powershell
 $db=((Get-Content apps/api/.env | Where-Object { $_ -match '^\s*DATABASE_URL=' } | Select-Object -First 1) -split '=',2)[1].Trim().Trim('"').Trim("'")
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_creation_migration.sql"
-& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_monthly_metric_snapshots_migration.sql"
-& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/mrm_table_sections_migration.sql"
 ```
 
 If migration application fails, `ON_ERROR_STOP=1` and the transaction roll back the attempt. Correct the reported prerequisite or SQL issue and rerun the whole migration. After deployment, use forward migrations for catalog/schema changes. Do not edit finalized rows or restore selected child tables independently; restore the complete database backup when rollback is required.

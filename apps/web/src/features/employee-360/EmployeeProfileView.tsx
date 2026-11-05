@@ -43,6 +43,7 @@ export function EmployeeProfileView({
   developmentPortfolio,
   successionPortfolio,
   canEditCareerJourney,
+  canViewSensitiveCareerDates,
 }: {
   employee: Employee360Row;
   returnTo: string;
@@ -54,6 +55,7 @@ export function EmployeeProfileView({
   developmentPortfolio: EmployeeDevelopmentPortfolio | null;
   successionPortfolio: EmployeeSuccessionPortfolio;
   canEditCareerJourney: boolean;
+  canViewSensitiveCareerDates: boolean;
 }) {
   const router = useRouter();
   const jdDialogRef = useRef<HTMLDialogElement>(null);
@@ -180,10 +182,10 @@ export function EmployeeProfileView({
         <section className="employee-profile__overview-section">
           <header><i className="a-icon boschicon-bosch-ic-calendar" aria-hidden="true" /><h2>Career information</h2></header>
           <dl>
-            <Detail label="Date of joining" value={formatEmployeeDate(employee.joiningDate)} />
-            <Detail label="Technical entry date" value={formatEmployeeDate(employee.technicalEntryDate)} />
-            <Detail label="Entry for retirement" value={formatEmployeeDate(employee.entryForRetirement)} />
-            <Detail label="Birth date" value={formatEmployeeDate(employee.birthDate)} />
+            {canViewSensitiveCareerDates && <Detail label="Date of joining" value={formatEmployeeDate(employee.joiningDate)} />}
+            {canViewSensitiveCareerDates && <Detail label="Technical entry date" value={formatEmployeeDate(employee.technicalEntryDate)} />}
+            {canViewSensitiveCareerDates && <Detail label="Entry for retirement" value={formatEmployeeDate(employee.entryForRetirement)} />}
+            {canViewSensitiveCareerDates && <Detail label="Birth date" value={formatEmployeeDate(employee.birthDate)} />}
             <Detail label="Designation" value={employee.designationText} />
             <Detail label="Gender key" value={employee.gender} />
           </dl>

@@ -13,6 +13,7 @@ import {
   type OverviewDetailsFilterDto,
   type OverviewFilterDto,
 } from './dto/overview-filter.dto';
+import type { AuthenticatedUser } from '../auth/auth.types';
 import type { OverviewEmployeeDetailDto } from './dto/overview-response.dto';
 import { OverviewRepository } from './overview.repository';
 
@@ -80,7 +81,7 @@ export class OverviewService {
 
   async getOverviewDetails(
     filters: OverviewDetailsFilterDto,
-    accountId: string,
+    user: AuthenticatedUser,
   ): Promise<OverviewEmployeeDetailDto[]> {
     if (!overviewDetailMetrics.includes(filters.metric as OverviewDetailMetric)) {
       throw new BadRequestException('Overview KPI metric is invalid');
@@ -88,11 +89,18 @@ export class OverviewService {
     const normalizedFilters = this.normalizeFilters(filters);
 
     try {
-      return await this.repository.getOverviewDetails(
+      const details = await this.repository.getOverviewDetails(
         filters.metric as OverviewDetailMetric,
         normalizedFilters,
-        accountId,
+        user.accountId,
       );
+      if (user.roles.includes('hrbp')) return details;
+      return details.map((employee) => ({
+        ...employee,
+        ageYears: null,
+        tenureYears: null,
+        retirementDate: null,
+      }));
     } catch (error) {
       this.logger.error(
         'Overview detail query failed',

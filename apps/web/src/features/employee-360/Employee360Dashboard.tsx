@@ -65,6 +65,13 @@ const employeeColumns: DataTableColumn<Employee360TableRow>[] = [
   { key: "directOrIndirect", label: "Direct or Indirect", group: "Employment", filterable: true, format: formatDirectOrIndirect },
 ];
 
+const sensitiveCareerDateKeys = new Set<keyof Employee360TableRow>([
+  "birthDate",
+  "joiningDate",
+  "entryForRetirement",
+  "technicalEntryDate",
+]);
+
 function toDashboardFilters(query: Employee360Query, options: Employee360Response["filterOptions"]): DashboardFilters {
   return {
     ...emptyDashboardFilters,
@@ -95,9 +102,11 @@ function toSearchParams(filters: DashboardFilters, search: string, options: Empl
 export function Employee360Dashboard({
   data,
   activeQuery,
+  canViewSensitiveCareerDates,
 }: {
   data: Employee360Response;
   activeQuery: Employee360Query;
+  canViewSensitiveCareerDates: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -141,7 +150,7 @@ export function Employee360Dashboard({
         </Link>
       ),
     },
-    ...employeeColumns,
+    ...employeeColumns.filter((column) => canViewSensitiveCareerDates || !sensitiveCareerDateKeys.has(column.key)),
   ];
 
   useEffect(() => {

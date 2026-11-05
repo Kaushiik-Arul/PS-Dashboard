@@ -184,11 +184,13 @@ export function CustomOverviewDashboard({
   succession,
   preference,
   activeFilters,
+  canViewSensitiveCareerDates,
 }: {
   demographics: OverviewResponse;
   succession: SuccessionPlanningResponse;
   preference: CustomOverviewPreference;
   activeFilters: OverviewQueryFilters;
+  canViewSensitiveCareerDates: boolean;
 }) {
   const router = useRouter();
   const [savedWidgetIds, setSavedWidgetIds] = useState(preference.widgetIds);
@@ -620,9 +622,9 @@ export function CustomOverviewDashboard({
             : detailError ? <p className="custom-overview-detail__empty" role="alert">{detailError}</p>
             : detailSelection?.source === "Demographics" ? (visibleEmployeeDetails.length ? <div className="custom-overview-detail__table-wrap">
               <table>
-                <thead><tr><th scope="col">Employee No.</th><th scope="col">Function</th><th scope="col">Org unit</th><th scope="col">Range</th><th scope="col">Location</th><th scope="col">Gender</th><th scope="col">Type</th><th scope="col">Age</th><th scope="col">Tenure</th><th scope="col">Retirement date</th></tr></thead>
+                <thead><tr><th scope="col">Employee No.</th><th scope="col">Function</th><th scope="col">Org unit</th><th scope="col">Range</th><th scope="col">Location</th><th scope="col">Gender</th><th scope="col">Type</th>{canViewSensitiveCareerDates && <th scope="col">Age</th>}{canViewSensitiveCareerDates && <th scope="col">Tenure</th>}{canViewSensitiveCareerDates && <th scope="col">Retirement date</th>}</tr></thead>
                 <tbody>{visibleEmployeeDetails.map((row) => <tr key={row.personnelNumber}>
-                  <td>{row.personnelNumber}</td><td>{row.functionName ?? "-"}</td><td>{row.orgUnit ?? "-"}</td><td>{row.range ?? "-"}</td><td>{row.location ?? "-"}</td><td>{row.gender ?? "-"}</td><td>{row.directOrIndirect ?? "-"}</td><td>{row.ageYears ?? "-"}</td><td>{row.tenureYears ?? "-"}</td><td>{row.retirementDate ?? "-"}</td>
+                  <td>{row.personnelNumber}</td><td>{row.functionName ?? "-"}</td><td>{row.orgUnit ?? "-"}</td><td>{row.range ?? "-"}</td><td>{row.location ?? "-"}</td><td>{row.gender ?? "-"}</td><td>{row.directOrIndirect ?? "-"}</td>{canViewSensitiveCareerDates && <td>{row.ageYears ?? "-"}</td>}{canViewSensitiveCareerDates && <td>{row.tenureYears ?? "-"}</td>}{canViewSensitiveCareerDates && <td>{row.retirementDate ?? "-"}</td>}
                 </tr>)}</tbody>
               </table>
             </div> : <p className="custom-overview-detail__empty">No matching employees.</p>)

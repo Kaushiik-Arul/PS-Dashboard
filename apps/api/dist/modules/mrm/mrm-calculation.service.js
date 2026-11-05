@@ -13,7 +13,7 @@ exports.MrmCalculationService = void 0;
 const common_1 = require("@nestjs/common");
 const attrition_classification_1 = require("../attrition/attrition-classification");
 const mrm_calculation_repository_1 = require("./mrm-calculation.repository");
-const indirectRanges = new Set(['BIDP', 'NAP', 'JAP', 'GANP']);
+const plantRanges = new Set(['BIDP', 'NAP', 'JAP', 'GANP']);
 const sulGrades = new Set(['GROUP1', 'GROUP2', 'SL2', 'SL3', 'SL4']);
 let MrmCalculationService = class MrmCalculationService {
     repository;
@@ -81,7 +81,7 @@ let MrmCalculationService = class MrmCalculationService {
                 add('direct-mss', employee.range, employee.org_unit);
             if (isMss)
                 add('total-mss', employee.range, employee.org_unit);
-            if (direct === 'I' && indirectRanges.has(range)) {
+            if (direct === 'I' && plantRanges.has(range)) {
                 add('indirect-mss', employee.range, employee.org_unit);
             }
             if ((0, attrition_classification_1.normalizedKey)(employee.employee_group) === 'INBOUND') {

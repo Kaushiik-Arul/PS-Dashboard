@@ -145,16 +145,18 @@ export class MrmCalculationRepository {
     executor: MrmQueryExecutor = this.database,
   ): Promise<MrmMetricBucket[]> {
     const result = await executor.query<{
+      data_month: string;
       metric_key: string;
+      range_key: string;
+      org_unit_key: string;
       numerator: string;
       denominator: string | null;
       quality_count: string;
     }>(
-      `SELECT bucket.metric_key,
-              SUM(bucket.numerator)::text AS numerator,
-              CASE WHEN BOOL_OR(bucket.denominator IS NOT NULL)
-                THEN SUM(COALESCE(bucket.denominator, 0))::text END AS denominator,
-              SUM(bucket.quality_count)::text AS quality_count
+            `SELECT TO_CHAR(bucket.data_month, 'YYYY-MM') AS data_month,
+              bucket.metric_key, bucket.range_key, bucket.org_unit_key,
+              bucket.numerator::text, bucket.denominator::text,
+              bucket.quality_count::text
        FROM public.mrm_monthly_metric_snapshots bucket
        WHERE bucket.data_month = $1::date
          AND EXISTS (
@@ -169,14 +171,14 @@ export class MrmCalculationRepository {
                  AND bucket.org_unit_key = UPPER(REGEXP_REPLACE(BTRIM(access.assigned_org_unit), '[[:space:]]+', ' ', 'g')))
              )
          )
-       GROUP BY bucket.metric_key ORDER BY bucket.metric_key`,
+      ORDER BY bucket.metric_key, bucket.range_key, bucket.org_unit_key`,
       [monthDate(dataMonth), accountId],
     );
     return result.rows.map((row) => ({
-      dataMonth,
+      dataMonth: row.data_month,
       metricKey: row.metric_key,
-      rangeKey: '',
-      orgUnitKey: '',
+      rangeKey: row.range_key,
+      orgUnitKey: row.org_unit_key,
       numerator: Number(row.numerator),
       denominator: row.denominator === null ? null : Number(row.denominator),
       qualityCount: Number(row.quality_count),

@@ -36,7 +36,6 @@ export type MrmCellRecord = {
 export declare class MrmRepository {
     private readonly database;
     constructor(database: DatabaseService);
-    listAvailableDataMonths(): Promise<string[]>;
     listReports(): Promise<Array<{
         reportingMonth: string;
         dataMonth: string;

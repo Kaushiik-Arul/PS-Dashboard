@@ -65,13 +65,21 @@ let OverviewService = OverviewService_1 = class OverviewService {
             throw new common_1.InternalServerErrorException('Unable to load the workforce overview');
         }
     }
-    async getOverviewDetails(filters, accountId) {
+    async getOverviewDetails(filters, user) {
         if (!overview_filter_dto_1.overviewDetailMetrics.includes(filters.metric)) {
             throw new common_1.BadRequestException('Overview KPI metric is invalid');
         }
         const normalizedFilters = this.normalizeFilters(filters);
         try {
-            return await this.repository.getOverviewDetails(filters.metric, normalizedFilters, accountId);
+            const details = await this.repository.getOverviewDetails(filters.metric, normalizedFilters, user.accountId);
+            if (user.roles.includes('hrbp'))
+                return details;
+            return details.map((employee) => ({
+                ...employee,
+                ageYears: null,
+                tenureYears: null,
+                retirementDate: null,
+            }));
         }
         catch (error) {
             this.logger.error('Overview detail query failed', error instanceof Error ? error.stack : String(error));

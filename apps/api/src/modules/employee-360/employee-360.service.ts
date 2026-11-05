@@ -3,6 +3,7 @@ import type { AuthenticatedUser } from '../auth/auth.types';
 import type {
   Employee360QueryDto,
   Employee360ResponseDto,
+  Employee360RowDto,
   NormalizedEmployee360Query,
 } from './dto/employee-360.dto';
 import { Employee360Repository } from './employee-360.repository';
@@ -21,11 +22,15 @@ export class Employee360Service {
     input: Employee360QueryDto,
     user: AuthenticatedUser,
   ): Promise<Employee360ResponseDto> {
+    const normalized = this.normalize(input);
     return this.repository.getEmployees(
-      this.normalize(input),
+      normalized,
       user.accountId,
       user.persNo,
-    );
+    ).then((result) => ({
+      ...result,
+      employees: result.employees.map((employee) => this.protectCareerDates(employee, user)),
+    }));
   }
 
   async getProfile(persNoInput: string, user: AuthenticatedUser) {
@@ -42,7 +47,18 @@ export class Employee360Service {
       this.repository.getDevelopmentPortfolio(persNo),
       this.repository.getSuccessionPortfolio(persNo),
     ]);
-    return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio };
+    return { employee: this.protectCareerDates(employee, user), careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio };
+  }
+
+  private protectCareerDates(employee: Employee360RowDto, user: AuthenticatedUser): Employee360RowDto {
+    if (user.roles.includes('hrbp')) return employee;
+    return {
+      ...employee,
+      birthDate: null,
+      joiningDate: null,
+      entryForRetirement: null,
+      technicalEntryDate: null,
+    };
   }
 
   async createCareerEvent(persNoInput: string, body: unknown, user: AuthenticatedUser): Promise<CareerJourneyEvent> {

@@ -23,7 +23,11 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
         this.careerJourneyRepository = careerJourneyRepository;
     }
     getEmployees(input, user) {
-        return this.repository.getEmployees(this.normalize(input), user.accountId, user.persNo);
+        const normalized = this.normalize(input);
+        return this.repository.getEmployees(normalized, user.accountId, user.persNo).then((result) => ({
+            ...result,
+            employees: result.employees.map((employee) => this.protectCareerDates(employee, user)),
+        }));
     }
     async getProfile(persNoInput, user) {
         const persNo = this.persNo(persNoInput);
@@ -40,7 +44,18 @@ let Employee360Service = Employee360Service_1 = class Employee360Service {
             this.repository.getDevelopmentPortfolio(persNo),
             this.repository.getSuccessionPortfolio(persNo),
         ]);
-        return { employee, careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio };
+        return { employee: this.protectCareerDates(employee, user), careerJourney, pppHistory, stepOverview, idpStatus, talentPortfolio, developmentPortfolio, successionPortfolio };
+    }
+    protectCareerDates(employee, user) {
+        if (user.roles.includes('hrbp'))
+            return employee;
+        return {
+            ...employee,
+            birthDate: null,
+            joiningDate: null,
+            entryForRetirement: null,
+            technicalEntryDate: null,
+        };
     }
     async createCareerEvent(persNoInput, body, user) {
         const persNo = await this.assertScopedEmployee(persNoInput, user);

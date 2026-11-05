@@ -17,7 +17,7 @@ type MutableBucket = Omit<MrmMetricBucket, 'numerator' | 'denominator' | 'qualit
   qualityCount: number;
 };
 
-const indirectRanges = new Set(['BIDP', 'NAP', 'JAP', 'GANP']);
+const plantRanges = new Set(['BIDP', 'NAP', 'JAP', 'GANP']);
 const sulGrades = new Set(['GROUP1', 'GROUP2', 'SL2', 'SL3', 'SL4']);
 
 @Injectable()
@@ -110,7 +110,7 @@ export class MrmCalculationService {
       const isMss = direct === 'D' || direct === 'I';
       if (direct === 'D') add('direct-mss', employee.range, employee.org_unit);
       if (isMss) add('total-mss', employee.range, employee.org_unit);
-      if (direct === 'I' && indirectRanges.has(range)) {
+      if (direct === 'I' && plantRanges.has(range)) {
         add('indirect-mss', employee.range, employee.org_unit);
       }
       if (normalizedKey(employee.employee_group) === 'INBOUND') {

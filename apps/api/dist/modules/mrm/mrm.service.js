@@ -10,6 +10,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MrmService = void 0;
+exports.formatMrmMetricValue = formatMrmMetricValue;
 const common_1 = require("@nestjs/common");
 const node_crypto_1 = require("node:crypto");
 const mrm_calculation_service_1 = require("./mrm-calculation.service");
@@ -23,6 +24,7 @@ const allowedMimeTypes = new Set([
     'image/png',
     'image/jpeg',
 ]);
+const excludedCorporateRanges = new Set(['BIDP', 'NAP', 'JAP', 'GANP']);
 function shiftMonth(month, offset) {
     const [year, monthNumber] = month.split('-').map(Number);
     const date = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
@@ -36,6 +38,18 @@ function monthLabel(month) {
     const [year, monthNumber] = month.split('-').map(Number);
     return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][monthNumber - 1]}'${String(year).slice(-2)}`;
 }
+function formatMrmMetricValue(metric) {
+    if (metric.denominator === null)
+        return String(metric.numerator);
+    const percentage = (value) => (metric.denominator && metric.denominator > 0
+        ? ((value / metric.denominator) * 100).toFixed(1)
+        : '0.0');
+    if (metric.metricKey === 'gender-hiring') {
+        const maleHires = Math.max(metric.denominator - metric.numerator, 0);
+        return `F: ${metric.numerator} (${percentage(metric.numerator)}%) | M: ${maleHires} (${percentage(maleHires)}%)`;
+    }
+    return `${metric.numerator} (${percentage(metric.numerator)}%)`;
+}
 let MrmService = class MrmService {
     repository;
     calculations;
@@ -45,27 +59,10 @@ let MrmService = class MrmService {
     }
     async listMonths() {
         const generatedMonth = currentMonth();
-        const [reports, availableDataMonths] = await Promise.all([
-            this.repository.listReports(),
-            this.repository.listAvailableDataMonths(),
-        ]);
-        const monthsByReportingMonth = new Map(reports.map((report) => [report.reportingMonth, report]));
-        monthsByReportingMonth.set(generatedMonth, monthsByReportingMonth.get(generatedMonth) ?? {
-            reportingMonth: generatedMonth,
-            dataMonth: shiftMonth(generatedMonth, -1),
-            status: 'draft',
-        });
-        for (const dataMonth of availableDataMonths) {
-            const reportingMonth = shiftMonth(dataMonth, 1);
-            if (reportingMonth > generatedMonth || monthsByReportingMonth.has(reportingMonth))
-                continue;
-            monthsByReportingMonth.set(reportingMonth, {
-                reportingMonth,
-                dataMonth,
-                status: 'draft',
-            });
-        }
-        const months = [...monthsByReportingMonth.values()].sort((left, right) => (right.reportingMonth.localeCompare(left.reportingMonth)));
+        const reports = await this.repository.listReports();
+        const months = reports.some((report) => report.reportingMonth === generatedMonth)
+            ? reports
+            : [{ reportingMonth: generatedMonth, dataMonth: shiftMonth(generatedMonth, -1), status: 'draft' }, ...reports];
         const statuses = await Promise.all(months.map(async (month) => ({
             ...month,
             sourceStatus: await this.calculations.getSourceStatus(month.dataMonth),
@@ -217,6 +214,11 @@ let MrmService = class MrmService {
             muted: row.muted,
             emphasized: row.emphasized,
             managed: row.managed,
+            overrideColumns: row.value_mode === 'calculated'
+                ? columns
+                    .filter((column) => cells.has(`${row.row_key}\0${column.column_key}`))
+                    .map((column) => column.column_key)
+                : [],
             cells: Object.fromEntries(columns.flatMap((column) => {
                 const value = cells.get(`${row.row_key}\0${column.column_key}`);
                 return value === undefined ? [] : [[column.column_key, value]];
@@ -230,17 +232,22 @@ let MrmService = class MrmService {
         ]);
         const totals = new Map();
         for (const bucket of buckets) {
-            const key = `${bucket.dataMonth}\0${bucket.metricKey}`;
-            const total = totals.get(key);
-            if (!total) {
-                totals.set(key, { ...bucket });
-                continue;
+            const tableKeys = excludedCorporateRanges.has(bucket.rangeKey)
+                ? ['ps-in']
+                : ['ps-in', 'ps-corp'];
+            for (const tableKey of tableKeys) {
+                const key = `${tableKey}\0${bucket.dataMonth}\0${bucket.metricKey}`;
+                const total = totals.get(key);
+                if (!total) {
+                    totals.set(key, { ...bucket });
+                    continue;
+                }
+                total.numerator += bucket.numerator;
+                if (bucket.denominator !== null) {
+                    total.denominator = (total.denominator ?? 0) + bucket.denominator;
+                }
+                total.qualityCount += bucket.qualityCount;
             }
-            total.numerator += bucket.numerator;
-            if (bucket.denominator !== null) {
-                total.denominator = (total.denominator ?? 0) + bucket.denominator;
-            }
-            total.qualityCount += bucket.qualityCount;
         }
         return {
             ...document,
@@ -251,12 +258,12 @@ let MrmService = class MrmService {
                 for (const [columnKey, dataMonth] of rollingMonths) {
                     if (!document.columns.some((column) => column.key === columnKey))
                         continue;
-                    const metric = totals.get(`${dataMonth}\0${row.calculationKey ?? row.key}`);
+                    if (row.overrideColumns.includes(columnKey))
+                        continue;
+                    const metric = totals.get(`${row.tableKey}\0${dataMonth}\0${row.calculationKey ?? row.key}`);
                     cells[columnKey] = !metric
                         ? null
-                        : metric.denominator === null
-                            ? String(metric.numerator)
-                            : `${metric.numerator} (${metric.denominator > 0 ? ((metric.numerator / metric.denominator) * 100).toFixed(1) : '0.0'}%)`;
+                        : formatMrmMetricValue(metric);
                 }
                 return { ...row, cells };
             }),
@@ -301,6 +308,8 @@ let MrmService = class MrmService {
                 || typeof row.description !== 'string' || row.description.length > 500
                 || typeof row.highlighted !== 'boolean' || typeof row.muted !== 'boolean'
                 || typeof row.emphasized !== 'boolean' || typeof row.managed !== 'boolean'
+                || !Array.isArray(row.overrideColumns)
+                || row.overrideColumns.some((column) => typeof column !== 'string' || !keyPattern.test(column))
                 || !row.cells || typeof row.cells !== 'object' || Array.isArray(row.cells)) {
                 throw new common_1.BadRequestException('MRM row is invalid.');
             }
@@ -309,6 +318,7 @@ let MrmService = class MrmService {
                 title: row.title, description: row.description,
                 highlighted: row.highlighted, muted: row.muted,
                 emphasized: row.emphasized, managed: row.managed,
+                overrideColumns: row.overrideColumns,
                 cells: row.cells,
             };
         });
@@ -329,7 +339,12 @@ let MrmService = class MrmService {
                 title: row.title, description: row.description,
                 highlighted: row.highlighted, muted: row.muted,
                 emphasized: row.emphasized, managed: row.managed,
-                cells: row.mode === 'manual' ? row.cells : {},
+                overrideColumns: row.overrideColumns,
+                cells: row.mode === 'manual'
+                    ? row.cells
+                    : Object.fromEntries(row.overrideColumns.flatMap((columnKey) => (Object.prototype.hasOwnProperty.call(row.cells, columnKey)
+                        ? [[columnKey, row.cells[columnKey]]]
+                        : []))),
             })),
         };
     }
@@ -350,6 +365,7 @@ let MrmService = class MrmService {
                 ...row,
                 tableKey: row.tableKey ?? 'ps-in',
                 calculationKey: row.calculationKey ?? (row.mode === 'calculated' ? row.key : null),
+                overrideColumns: row.overrideColumns ?? [],
             })),
         };
     }

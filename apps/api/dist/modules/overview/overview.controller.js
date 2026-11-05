@@ -35,7 +35,7 @@ let OverviewController = class OverviewController {
         return this.service.getArchivedOverview(reportingMonth);
     }
     getOverviewDetails(filters, user) {
-        return this.service.getOverviewDetails(filters, user.accountId);
+        return this.service.getOverviewDetails(filters, user);
     }
     getOverview(filters, user) {
         return this.service.getOverview(filters, user.accountId);

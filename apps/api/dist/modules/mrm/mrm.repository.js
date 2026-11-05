@@ -21,27 +21,6 @@ let MrmRepository = class MrmRepository {
     constructor(database) {
         this.database = database;
     }
-    async listAvailableDataMonths() {
-        const result = await this.database.query(`WITH current_live AS (
-         SELECT reporting_month AS data_month
-         FROM public.namelist_imports
-         WHERE reporting_month_confirmed
-           AND import_mode = 'live' AND status = 'completed'
-         ORDER BY reporting_month DESC, imported_at DESC, id DESC
-         LIMIT 1
-       ), available AS (
-         SELECT data_month FROM current_live
-         UNION
-         SELECT DISTINCT reporting_month
-         FROM public.employee_namelist_monthly
-         UNION
-         SELECT DISTINCT data_month
-         FROM public.mrm_monthly_snapshots
-       )
-       SELECT TO_CHAR(data_month, 'YYYY-MM') AS data_month
-       FROM available ORDER BY data_month DESC`);
-        return result.rows.map((row) => row.data_month);
-    }
     async listReports() {
         const result = await this.database.query(`SELECT TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month,
               TO_CHAR(data_month, 'YYYY-MM') AS data_month,
@@ -69,8 +48,8 @@ let MrmRepository = class MrmRepository {
                     return payload.rows;
             }
         }
-        const result = await this.database.query(`SELECT row_key, table_key, metric_key, title, description, value_mode,
-              highlighted, muted, emphasized, managed
+        const result = await this.database.query(`SELECT row_key, table_key, metric_key, title, description, value_mode, highlighted, muted,
+              emphasized, managed
        FROM public.mrm_row_definitions
        WHERE active_from_month <= $1::date
          AND (active_to_month IS NULL OR active_to_month >= $1::date)
@@ -134,11 +113,9 @@ let MrmRepository = class MrmRepository {
     }
     async getScopedBuckets(reportId, accountId) {
         const result = await this.database.query(`SELECT TO_CHAR(bucket.data_month, 'YYYY-MM') AS data_month,
-              bucket.metric_key,
-              SUM(bucket.numerator)::text AS numerator,
-              CASE WHEN BOOL_OR(bucket.denominator IS NOT NULL)
-                THEN SUM(COALESCE(bucket.denominator, 0))::text END AS denominator,
-              SUM(bucket.quality_count)::text AS quality_count
+                    bucket.metric_key, bucket.range_key, bucket.org_unit_key,
+                    bucket.numerator::text, bucket.denominator::text,
+                    bucket.quality_count::text
        FROM public.mrm_metric_snapshots bucket
        WHERE bucket.report_id = $1::uuid
          AND EXISTS (
@@ -153,13 +130,12 @@ let MrmRepository = class MrmRepository {
                  AND bucket.org_unit_key = UPPER(REGEXP_REPLACE(BTRIM(access.assigned_org_unit), '[[:space:]]+', ' ', 'g')))
              )
          )
-      GROUP BY bucket.data_month, bucket.metric_key
-      ORDER BY bucket.data_month, bucket.metric_key`, [reportId, accountId]);
+      ORDER BY bucket.data_month, bucket.metric_key, bucket.range_key, bucket.org_unit_key`, [reportId, accountId]);
         return result.rows.map((row) => ({
             dataMonth: row.data_month,
             metricKey: row.metric_key,
-            rangeKey: '',
-            orgUnitKey: '',
+            rangeKey: row.range_key,
+            orgUnitKey: row.org_unit_key,
             numerator: Number(row.numerator),
             denominator: row.denominator === null ? null : Number(row.denominator),
             qualityCount: Number(row.quality_count),
@@ -226,19 +202,21 @@ let MrmRepository = class MrmRepository {
         await client.query(`DELETE FROM public.mrm_report_columns
        WHERE report_id = $1::uuid AND NOT managed
          AND NOT (column_key = ANY($2::text[]))`, [reportId, retainedColumns]);
-        await client.query(`DELETE FROM public.mrm_cells cells
-       USING public.mrm_row_definitions rows
-       WHERE cells.report_id = $1::uuid AND cells.row_key = rows.row_key
-         AND rows.value_mode = 'manual'`, [reportId]);
-        const columnByKey = await client.query(`SELECT id::text, column_key FROM public.mrm_report_columns WHERE report_id = $1::uuid`, [reportId]);
+        await client.query(`DELETE FROM public.mrm_cells WHERE report_id = $1::uuid`, [reportId]);
+        const columnByKey = await client.query(`SELECT id::text, column_key, column_type
+       FROM public.mrm_report_columns WHERE report_id = $1::uuid`, [reportId]);
         const columnIds = new Map(columnByKey.rows.map((column) => [column.column_key, column.id]));
+        const valueColumns = new Set(columnByKey.rows
+            .filter((column) => column.column_type === 'value')
+            .map((column) => column.column_key));
         const rowModes = await client.query(`SELECT row_key, value_mode FROM public.mrm_row_definitions
        WHERE row_key = ANY($1::text[])`, [input.rows.map((row) => row.key)]);
         const manualRows = new Set(rowModes.rows.filter((row) => row.value_mode === 'manual').map((row) => row.row_key));
         for (const row of input.rows) {
-            if (!manualRows.has(row.key))
-                continue;
             for (const [columnKey, value] of Object.entries(row.cells)) {
+                if (!manualRows.has(row.key)
+                    && (!row.overrideColumns.includes(columnKey) || !valueColumns.has(columnKey)))
+                    continue;
                 const columnId = columnIds.get(columnKey);
                 if (!columnId || value === undefined || value === null || value === '')
                     continue;

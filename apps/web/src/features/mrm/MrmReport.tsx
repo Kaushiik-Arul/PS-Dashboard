@@ -35,6 +35,24 @@ function cellText(row: MrmRow, column: MrmColumn) {
   return value;
 }
 
+function calculatedCellValue(row: MrmRow, column: MrmColumn) {
+  const value = String(row.cells[column.key] ?? "");
+  if (row.calculationKey !== "gender-hiring") {
+    return <span className="mrm-calculated-value">{value}</span>;
+  }
+  const values = value.split(" | ").filter(Boolean);
+  return (
+    <span className="mrm-calculated-value is-gender-hiring">
+      {values.map((item) => <span key={item}>{item}</span>)}
+    </span>
+  );
+}
+
+function calculatedInputValue(row: MrmRow, column: MrmColumn) {
+  const value = String(row.cells[column.key] ?? "");
+  return row.calculationKey === "gender-hiring" ? value.replaceAll(" | ", "\n") : value;
+}
+
 function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -52,10 +70,14 @@ function savePayload(source: MrmReportDocument): MrmSavePayload {
   return {
     expectedRevision: source.revision,
     columns: source.columns.map(({ key, label, type, managed }) => ({ key, label, type, managed })),
-    rows: source.rows.map(({ mode, calculationKey: _calculationKey, ...row }) => ({
-      ...row,
-      cells: mode === "manual" ? row.cells : {},
-    })),
+    rows: source.rows.map(({ mode, calculationKey: _calculationKey, ...row }) => {
+      const cells = mode === "manual"
+        ? row.cells
+        : Object.fromEntries(row.overrideColumns.flatMap((columnKey) => (
+          Object.hasOwn(row.cells, columnKey) ? [[columnKey, row.cells[columnKey]]] : []
+        )));
+      return { ...row, cells };
+    }),
   };
 }
 
@@ -127,7 +149,13 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     mutateDocument((current) => ({
       ...current,
       rows: current.rows.map((row) => row.key === rowId
-        ? { ...row, cells: { ...row.cells, [columnId]: value } }
+        ? {
+          ...row,
+          overrideColumns: row.mode === "calculated"
+            ? [...new Set([...row.overrideColumns, columnId])]
+            : row.overrideColumns,
+          cells: { ...row.cells, [columnId]: value },
+        }
         : row),
     }));
   };
@@ -153,7 +181,11 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     const key = newId("row");
     mutateDocument((current) => ({
       ...current,
-      rows: [...current.rows, { key, tableKey, calculationKey: null, title: "New KPI", description: "", mode: "manual", highlighted: false, muted: false, emphasized: true, managed: false, cells: {} }],
+      rows: [...current.rows, {
+        key, tableKey, calculationKey: null, title: "New KPI", description: "",
+        mode: "manual", highlighted: false, muted: false, emphasized: true,
+        managed: false, overrideColumns: [], cells: {},
+      }],
     }));
     setMessage("KPI row added.");
   };
@@ -224,8 +256,8 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     setMessage("Report finalized.");
   };
 
-  const reportMatrix = () => reportTables(document.rows).flatMap((table, tableIndex) => [
-    ...(tableIndex > 0 ? [[""]] : []),
+  const reportMatrix = () => reportTables(document.rows).flatMap((table, index) => [
+    ...(index > 0 ? [[""]] : []),
     [table.title],
     ["KPI", ...document.columns.map((column) => column.label.replaceAll("\n", " "))],
     ...table.rows.map((row) => [
@@ -253,8 +285,8 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         }).join("");
         return `<tr><th style="background:${background};border:1px solid #252525;font-size:15px;height:42px;padding:6px;text-align:center;vertical-align:middle;white-space:normal;width:250px">${kpi}</th>${cells}</tr>`;
       }).join("");
-      return `<h2 style="color:#008ecf;font-family:Arial,sans-serif;font-size:22px;margin:18px 0 6px">${htmlValue(table.title)}</h2><table cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-family:Arial,sans-serif;table-layout:fixed;width:${250 + (document.columns.length * 145)}px"><colgroup><col style="width:250px">${document.columns.map(() => '<col style="width:145px">').join("")}</colgroup><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
-    }).join("");
+      return `<h2 style="font-family:Arial,sans-serif">${htmlValue(table.title)}</h2><table cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-family:Arial,sans-serif;table-layout:fixed;width:${250 + (document.columns.length * 145)}px"><colgroup><col style="width:250px">${document.columns.map(() => '<col style="width:145px">').join("")}</colgroup><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+    }).join("<br>");
   };
 
   const copyReport = async () => {
@@ -268,7 +300,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
       } else {
         await navigator.clipboard.writeText(plainText);
       }
-      setMessage("Tables copied. Paste them into Excel or PowerPoint.");
+      setMessage("Table copied. Paste it into Excel or PowerPoint.");
     } catch {
       setMessage("The browser blocked clipboard access.");
     }
@@ -282,7 +314,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     link.download = `MRM-${document.reportingMonth}.xls`;
     link.click();
     URL.revokeObjectURL(url);
-    setMessage("Formatted Excel tables exported.");
+    setMessage("Formatted Excel table exported.");
   };
 
   return (
@@ -291,12 +323,12 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         <div>
           <p className="mrm-header__eyebrow">Monthly reporting</p>
           <h1>Management Review Meeting</h1>
-          <p className="mrm-header__description">Prepare the PS Corp and PS-IN KPI tables, complete manual values, and share them with the monthly review.</p>
+          <p className="mrm-header__description">Prepare the rolling KPI table, complete manual values, and share it with the monthly review.</p>
         </div>
         <div className="mrm-header__actions">
           <button className="a-button a-button--secondary -small" type="button" onClick={() => void copyReport()}>
             <i className="a-icon a-button__icon boschicon-bosch-ic-copy" aria-hidden="true" />
-            <span className="a-button__label">Copy tables</span>
+            <span className="a-button__label">Copy table</span>
           </button>
           <button className="a-button a-button--secondary -small" type="button" onClick={exportExcel}>
             <i className="a-icon a-button__icon boschicon-bosch-ic-download" aria-hidden="true" />
@@ -336,7 +368,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         <section className="mrm-layout-tools" aria-label="Layout tools">
           <div>
             <strong>Layout mode</strong>
-            <span>Edit shared headings, highlight rows, or change their order within each table.</span>
+            <span>Edit headings, highlight rows, or change their order.</span>
           </div>
           <label className="mrm-field" htmlFor="mrm-new-column-type">
             <span>New column type</span>
@@ -415,7 +447,29 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                   </th>
                   {document.columns.map((column) => (
                     <td key={column.id} className={`mrm-cell mrm-cell--${column.type}`}>
-                      {column.type === "value" && <input aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}`} readOnly={!canEdit || row.mode === "calculated"} value={String(row.cells[column.key] ?? "")} placeholder={!document.sourceStatus.available && row.mode === "calculated" ? "Unavailable" : undefined} onChange={(event) => updateCell(row.key, column.key, event.target.value)} />}
+                      {column.type === "value" && row.mode === "calculated" && canEdit && (
+                        <textarea
+                          className="mrm-calculated-input"
+                          aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}`}
+                          rows={row.calculationKey === "gender-hiring" ? 2 : 1}
+                          value={calculatedInputValue(row, column)}
+                          onChange={(event) => updateCell(
+                            row.key,
+                            column.key,
+                            row.calculationKey === "gender-hiring"
+                              ? event.target.value.split("\n").map((part) => part.trim()).filter(Boolean).join(" | ")
+                              : event.target.value,
+                          )}
+                        />
+                      )}
+                      {column.type === "value" && row.mode === "calculated" && !canEdit && (
+                        <div aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}`}>
+                          {row.cells[column.key] == null && !document.sourceStatus.available
+                            ? <span className="mrm-calculated-value">Unavailable</span>
+                            : calculatedCellValue(row, column)}
+                        </div>
+                      )}
+                      {column.type === "value" && row.mode === "manual" && <input aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}`} readOnly={!canEdit} value={String(row.cells[column.key] ?? "")} onChange={(event) => updateCell(row.key, column.key, event.target.value)} />}
                       {column.type === "status" && <button type="button" disabled={!canEdit || row.mode === "calculated"} className="mrm-status-button" aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}: ${String(row.cells[column.key] || "not set")}. Select to change.`} title="Select to change status" onClick={() => cycleStatus(row, column)}>{row.cells[column.key] ? <i className={`mrm-status-dot is-${String(row.cells[column.key])}`} /> : <span>Set</span>}</button>}
                       {column.type === "attachment" && (() => {
                         const attachments = document.attachments.filter((item) => item.rowKey === row.key && item.columnId === column.key);

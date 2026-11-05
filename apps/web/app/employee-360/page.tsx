@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { getServerAuthUser } from "@/auth/server-session";
 import { getEmployee360 } from "@/features/employee-360/employee-360.api";
 import { Employee360Dashboard } from "@/features/employee-360/Employee360Dashboard";
 import type { Employee360Query } from "@/features/employee-360/employee-360.types";
@@ -23,7 +24,7 @@ export default async function Employee360Page({ searchParams }: Employee360PageP
     const values = (Array.isArray(value) ? value : value ? [value] : []).filter(Boolean);
     if (values.length) query[key] = values;
   });
-  const data = await getEmployee360(query);
+  const [data, user] = await Promise.all([getEmployee360(query), getServerAuthUser()]);
   const viewKey = [query.search ?? "", ...queryKeys.map((key) => query[key]?.join(",") ?? "")].join("|");
-  return <Employee360Dashboard key={viewKey} data={data} activeQuery={query} />;
+  return <Employee360Dashboard key={viewKey} data={data} activeQuery={query} canViewSensitiveCareerDates={user?.roles.includes("hrbp") ?? false} />;
 }

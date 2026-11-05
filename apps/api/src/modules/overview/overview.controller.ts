@@ -49,7 +49,7 @@ export class OverviewController {
     @Query() filters: OverviewDetailsFilterDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<OverviewEmployeeDetailDto[]> {
-    return this.service.getOverviewDetails(filters, user.accountId);
+    return this.service.getOverviewDetails(filters, user);
   }
 
   @Get()
