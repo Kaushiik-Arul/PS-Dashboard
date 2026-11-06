@@ -23,7 +23,7 @@ Calculated rows are:
 - SUL and Women in SLx for GROUP1/GROUP2/SL2/SL3/SL4.
 - Women in overall M&SS, including denominator.
 - Gender diversity hiring from Namelist `joining_date`, displayed as separate Female and Male counts and percentages; unrecognized/missing gender is tracked as a quality count.
-- Attrition for Resignation, Retirement, or exact `TRANSFER INTRA ENTITY`.
+- Attrition for Separation Type Resignation or Retirement; Transfer is included only when Detailed Reason Approved (the Attrition by Reason label) is exactly `Out of PS within RBIN` after normalization.
 - Job Rotation for exact `TRANSFER INTRA BOSCH`.
 - Internal transfer for exact `INTERNAL`.
 

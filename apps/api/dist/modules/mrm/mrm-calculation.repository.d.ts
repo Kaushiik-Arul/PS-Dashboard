@@ -15,6 +15,7 @@ export type MrmAttritionSourceRow = {
     org_unit: string;
     filter_value: string;
     reason_for_action: string;
+    detailed_reason_approved: string;
 };
 export declare class MrmCalculationRepository {
     private readonly database;

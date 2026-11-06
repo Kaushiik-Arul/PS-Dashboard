@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCsrfToken } from "@/auth/csrf";
 import type { MrmColumn, MrmColumnType, MrmMonth, MrmReportDocument, MrmRow, MrmSavePayload } from "./mrm.types";
@@ -89,6 +89,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
   const [message, setMessage] = useState("");
   const [saveState, setSaveState] = useState<"saved" | "unsaved" | "saving" | "error" | "conflict">("saved");
   const canEdit = document.canManage && document.status === "draft";
+  const visibleColumns = document.columns.filter((column) => column.type !== "attachment");
 
   useEffect(() => {
     window.localStorage.removeItem("ps-dashboard:mrm-prototype:v1");
@@ -211,33 +212,6 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     updateCell(row.key, column.key, statuses[(statuses.indexOf(current) + 1) % statuses.length]);
   };
 
-  const chooseAttachment = async (rowId: string, columnId: string, event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    const saved = saveState === "saved" ? document : await saveNow(document);
-    if (!saved) return;
-    const form = new FormData();
-    form.set("rowKey", rowId); form.set("columnKey", columnId); form.set("file", file);
-    const csrf = getCsrfToken();
-    const response = await fetch(`/api/mrm/reports/${encodeURIComponent(saved.reportingMonth)}/attachments`, {
-      method: "POST", headers: csrf ? { "X-CSRF-Token": csrf } : {}, body: form,
-    });
-    if (!response.ok) { setMessage("The attachment could not be uploaded."); return; }
-    setDocument(await response.json() as MrmReportDocument);
-    setMessage("Attachment uploaded.");
-  };
-
-  const deleteAttachment = async (attachmentId: string) => {
-    const csrf = getCsrfToken();
-    const response = await fetch(`/api/mrm/reports/${encodeURIComponent(document.reportingMonth)}/attachments/${encodeURIComponent(attachmentId)}`, {
-      method: "DELETE", headers: csrf ? { "X-CSRF-Token": csrf } : {},
-    });
-    if (!response.ok) { setMessage("The attachment could not be deleted."); return; }
-    setDocument((current) => ({ ...current, attachments: current.attachments.filter((item) => item.id !== attachmentId) }));
-    setMessage("Attachment deleted.");
-  };
-
   const finalizeReport = async () => {
     if (!window.confirm(`Finalize ${document.reportingMonth}? Finalized reports cannot be changed.`)) return;
     const saved = saveState === "saved" ? document : await saveNow(document);
@@ -259,15 +233,15 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
   const reportMatrix = () => reportTables(document.rows).flatMap((table, index) => [
     ...(index > 0 ? [[""]] : []),
     [table.title],
-    ["KPI", ...document.columns.map((column) => column.label.replaceAll("\n", " "))],
+    ["KPI", ...visibleColumns.map((column) => column.label.replaceAll("\n", " "))],
     ...table.rows.map((row) => [
       row.description ? `${row.title} (${row.description})` : row.title,
-      ...document.columns.map((column) => cellText(row, column)),
+      ...visibleColumns.map((column) => cellText(row, column)),
     ]),
   ]);
 
   const reportHtml = () => {
-    const headers = ["KPI", ...document.columns.map((column) => column.label)]
+    const headers = ["KPI", ...visibleColumns.map((column) => column.label)]
       .map((label, index) => `<th style="background:#ffffff;border:1px solid #008ecf;border-bottom:2px solid #252525;font-size:16px;font-weight:700;height:58px;padding:6px;text-align:center;vertical-align:middle;white-space:normal;width:${index === 0 ? "250px" : "145px"}">${htmlValue(label).replaceAll("\n", "<br>")}</th>`)
       .join("");
     return reportTables(document.rows).map((table) => {
@@ -275,7 +249,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         const background = row.highlighted ? "#bfe5f7" : row.muted ? "#c9c9c9" : "#ffffff";
         const title = htmlValue(row.title);
         const kpi = `${row.emphasized === false ? title : `<strong>${title}</strong>`}${row.description ? `<br><small>${htmlValue(row.description)}</small>` : ""}`;
-        const cells = document.columns.map((column) => {
+        const cells = visibleColumns.map((column) => {
           const value = cellText(row, column);
           const statusSymbols: Record<string, string> = { Green: "🟢", Amber: "🟠", Red: "🔴" };
           const content = column.type === "status" && statusSymbols[value]
@@ -285,7 +259,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         }).join("");
         return `<tr><th style="background:${background};border:1px solid #252525;font-size:15px;height:42px;padding:6px;text-align:center;vertical-align:middle;white-space:normal;width:250px">${kpi}</th>${cells}</tr>`;
       }).join("");
-      return `<h2 style="font-family:Arial,sans-serif">${htmlValue(table.title)}</h2><table cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-family:Arial,sans-serif;table-layout:fixed;width:${250 + (document.columns.length * 145)}px"><colgroup><col style="width:250px">${document.columns.map(() => '<col style="width:145px">').join("")}</colgroup><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+      return `<h2 style="font-family:Arial,sans-serif">${htmlValue(table.title)}</h2><table cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-family:Arial,sans-serif;table-layout:fixed;width:${250 + (visibleColumns.length * 145)}px"><colgroup><col style="width:250px">${visibleColumns.map(() => '<col style="width:145px">').join("")}</colgroup><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
     }).join("<br>");
   };
 
@@ -375,7 +349,6 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
             <select id="mrm-new-column-type" value={newColumnType} onChange={(event) => setNewColumnType(event.target.value as MrmColumnType)}>
               <option value="value">Editable value</option>
               <option value="status">Status</option>
-              <option value="attachment">Attachment</option>
             </select>
           </label>
           <button className="a-button a-button--secondary -small" type="button" onClick={addColumn}>
@@ -407,7 +380,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
             <thead>
               <tr>
                 <th scope="col" className="mrm-table__kpi-column">KPI</th>
-                {document.columns.map((column, columnIndex) => (
+                {visibleColumns.map((column, columnIndex) => (
                   <th scope="col" key={column.id}>
                     {isEditingLayout && !column.managed ? (
                       <textarea aria-label={`Column ${columnIndex + 1} heading`} rows={2} value={column.label} onChange={(event) => mutateDocument((current) => ({
@@ -418,7 +391,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                     {isEditingLayout && (
                       <div className="mrm-column-actions">
                         <button type="button" aria-label={`Move ${column.label} left`} disabled={columnIndex === 0} onClick={() => mutateDocument((current) => ({ ...current, columns: moveItem(current.columns, columnIndex, -1) }))}><i className="a-icon boschicon-bosch-ic-arrow-left" aria-hidden="true" /></button>
-                        <button type="button" aria-label={`Move ${column.label} right`} disabled={columnIndex === document.columns.length - 1} onClick={() => mutateDocument((current) => ({ ...current, columns: moveItem(current.columns, columnIndex, 1) }))}><i className="a-icon boschicon-bosch-ic-arrow-right" aria-hidden="true" /></button>
+                        <button type="button" aria-label={`Move ${column.label} right`} disabled={columnIndex === visibleColumns.length - 1} onClick={() => mutateDocument((current) => ({ ...current, columns: moveItem(current.columns, columnIndex, 1) }))}><i className="a-icon boschicon-bosch-ic-arrow-right" aria-hidden="true" /></button>
                         {!column.managed && <button type="button" aria-label={`Remove ${column.label}`} onClick={() => mutateDocument((current) => ({ ...current, columns: current.columns.filter((item) => item.id !== column.id) }))}><i className="a-icon boschicon-bosch-ic-delete" aria-hidden="true" /></button>}
                       </div>
                     )}
@@ -445,7 +418,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                       <>{row.emphasized === false ? <span>{row.title}</span> : <strong>{row.title}</strong>}{row.description && <small>{row.description}</small>}</>
                     )}
                   </th>
-                  {document.columns.map((column) => (
+                  {visibleColumns.map((column) => (
                     <td key={column.id} className={`mrm-cell mrm-cell--${column.type}`}>
                       {column.type === "value" && row.mode === "calculated" && canEdit && (
                         <textarea
@@ -471,13 +444,6 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                       )}
                       {column.type === "value" && row.mode === "manual" && <input aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}`} readOnly={!canEdit} value={String(row.cells[column.key] ?? "")} onChange={(event) => updateCell(row.key, column.key, event.target.value)} />}
                       {column.type === "status" && <button type="button" disabled={!canEdit || row.mode === "calculated"} className="mrm-status-button" aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}: ${String(row.cells[column.key] || "not set")}. Select to change.`} title="Select to change status" onClick={() => cycleStatus(row, column)}>{row.cells[column.key] ? <i className={`mrm-status-dot is-${String(row.cells[column.key])}`} /> : <span>Set</span>}</button>}
-                      {column.type === "attachment" && (() => {
-                        const attachments = document.attachments.filter((item) => item.rowKey === row.key && item.columnId === column.key);
-                        return <div className="mrm-attachment-list">
-                          {attachments.map((attachment) => <div className="mrm-attachment" key={attachment.id}><i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" /><a href={`/api/mrm/reports/${encodeURIComponent(document.reportingMonth)}/attachments/${encodeURIComponent(attachment.id)}`} title={attachment.filename}>{attachment.filename}</a>{canEdit && <button type="button" aria-label={`Delete attachment ${attachment.filename}`} onClick={() => void deleteAttachment(attachment.id)}><i className="a-icon boschicon-bosch-ic-close" aria-hidden="true" /></button>}</div>)}
-                          {canEdit && <label className="mrm-attachment-picker" title="Upload attachment"><input type="file" accept=".pdf,.xlsx,.docx,.png,.jpg,.jpeg" onChange={(event) => void chooseAttachment(row.key, column.key, event)} /><i className="a-icon boschicon-bosch-ic-upload" aria-hidden="true" /><span>Add</span></label>}
-                        </div>;
-                      })()}
                     </td>
                   ))}
                 </tr>

@@ -78,10 +78,12 @@ describe('MrmCalculationService', () => {
       },
     ]);
     repository.getAttrition.mockResolvedValue([
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Exit', reason_for_action: 'Resignation' },
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'TRANSFER INTRA BOSCH' },
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: '', reason_for_action: 'INTERNAL' },
-      { range: 'GanP', org_unit: 'Plant', filter_value: 'Exit', reason_for_action: 'Resignation' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Exit', reason_for_action: 'Resignation', detailed_reason_approved: '' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'TRANSFER INTRA BOSCH', detailed_reason_approved: 'Within PS (Within Corp)' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'Transfer', detailed_reason_approved: ' out of ps within rbin ' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'Transfer', detailed_reason_approved: 'Within PS (Into Corp)' },
+      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: '', reason_for_action: 'INTERNAL', detailed_reason_approved: '' },
+      { range: 'GanP', org_unit: 'Plant', filter_value: 'Exit', reason_for_action: 'Resignation', detailed_reason_approved: '' },
     ]);
 
     const result = await service.calculate('2026-01', 'account');
@@ -104,7 +106,7 @@ describe('MrmCalculationService', () => {
     expect(total('women-slx').numerator).toBe(2);
     expect(total('women-hc')).toMatchObject({ numerator: 2, denominator: 4 });
     expect(total('gender-hiring')).toEqual({ numerator: 2, denominator: 3, qualityCount: 1 });
-    expect(total('attrition').numerator).toBe(2);
+    expect(total('attrition').numerator).toBe(3);
     expect(total('rotation').numerator).toBe(1);
     expect(total('transfer').numerator).toBe(1);
   });

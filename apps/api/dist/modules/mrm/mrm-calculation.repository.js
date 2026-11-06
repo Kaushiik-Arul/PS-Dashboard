@@ -82,7 +82,8 @@ let MrmCalculationRepository = class MrmCalculationRepository {
         const result = await executor.query(`SELECT COALESCE(row.range, '') AS range,
               COALESCE(row.org_unit, '') AS org_unit,
               COALESCE(row.filter_value, '') AS filter_value,
-              COALESCE(row.reason_for_action, '') AS reason_for_action
+              COALESCE(row.reason_for_action, '') AS reason_for_action,
+              COALESCE(row.detailed_reason_approved, '') AS detailed_reason_approved
        FROM public.attrition_rows row
        WHERE row.lwd >= $1::date
          AND row.lwd < ($1::date + INTERVAL '1 month')

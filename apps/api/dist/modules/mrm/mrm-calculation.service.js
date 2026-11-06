@@ -103,9 +103,10 @@ let MrmCalculationService = class MrmCalculationService {
         attrition.forEach((row) => {
             const separation = (0, attrition_classification_1.classifySeparation)(row);
             const reason = (0, attrition_classification_1.normalizedKey)(row.reason_for_action);
+            const approvedReason = (0, attrition_classification_1.normalizedKey)(row.detailed_reason_approved);
             if (separation === 'Resignation'
                 || separation === 'Retirement'
-                || reason === 'TRANSFER INTRA ENTITY')
+                || (separation === 'Transfer' && approvedReason === 'OUT OF PS WITHIN RBIN'))
                 add('attrition', row.range, row.org_unit);
             if (reason === 'TRANSFER INTRA BOSCH') {
                 add('rotation', row.range, row.org_unit);
