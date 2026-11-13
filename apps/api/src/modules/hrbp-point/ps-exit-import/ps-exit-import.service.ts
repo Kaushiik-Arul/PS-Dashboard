@@ -5,7 +5,9 @@ import { DatabaseService } from '../../../database/database.service';
 import { cleanAttritionStoredValues, cleanAttritionValues } from '../attrition-import/attrition-import.parser';
 import type { AttritionFile, AttritionStoredValues } from '../attrition-import/attrition-import.types';
 import { parsePsExitFile, validatePsExitRows } from './ps-exit-import.parser';
+import { isPsExitRowSelected, psExitPeriod, psExitSelectablePeriods } from './ps-exit-period';
 import type { PsExitPreviewFilter, PsExitRow } from './ps-exit-import.types';
+import { reconcilePendingAttrition } from '../attrition-reconciliation.repository';
 
 type PreviewLock = { file_name: string; file_hash: string };
 type ExistingEvent = { pers_no: string; event_month: Date | string; source: string; transfer_type: string | null };
@@ -75,6 +77,25 @@ export class PsExitImportService {
     return rows;
   }
 
+  private reconciliationRows(rows: readonly PsExitRow[], period: string): PsExitRow[] {
+    const selected = rows
+      .filter((row) => isPsExitRowSelected(row, period))
+      .map((row) => ({ ...row, issues: [...row.issues] }));
+    const counts = new Map<string, number>();
+    for (const row of selected) counts.set(row.values.pers_no, (counts.get(row.values.pers_no) ?? 0) + 1);
+    for (const row of selected) {
+      const count = counts.get(row.values.pers_no) ?? 0;
+      if (row.values.pers_no && count > 1) row.issues.push({
+        column: 'pers_no',
+        code: 'reconciliation_duplicate',
+        severity: 'error',
+        message: `This employee has ${count} rows in the selected reconciliation scope.`,
+        occurrences: count,
+      });
+    }
+    return selected;
+  }
+
   async upload(actor: string, file?: AttritionFile) {
     if (!file) throw new BadRequestException('Choose a PS Exit XLSX workbook.');
     if (file.buffer.length > 50 * 1024 * 1024) throw new BadRequestException('File exceeds 50 MB.');
@@ -100,23 +121,27 @@ export class PsExitImportService {
 
   async preview(actor: string, id: string, filterInput = 'all', periodInput = '', pageInput = '1') {
     if (!['all', 'warnings', 'errors'].includes(filterInput)) throw new BadRequestException('Invalid preview filter.');
-    if (periodInput && !/^\d{4}-(0[1-9]|1[0-2])$/.test(periodInput)) throw new BadRequestException('Invalid LWD period filter.');
+    if (periodInput && !psExitPeriod(periodInput)) throw new BadRequestException('Invalid LWD period filter.');
     if (!/^[1-9]\d{0,4}$/.test(pageInput)) throw new BadRequestException('Invalid preview page.');
     const filter = filterInput as PsExitPreviewFilter;
     return this.database.transaction(async (client) => {
       const preview = await this.previewLock(client, actor, id);
       const rows = await this.validatedRows(client, id);
-      const periodRows = periodInput ? rows.filter((row) => row.lwd.startsWith(periodInput)) : rows;
+      const periodRows = periodInput ? this.reconciliationRows(rows, periodInput) : rows;
       const warningRows = periodRows.filter((row) => row.issues.some((issue) => issue.severity === 'warning')).length;
       const errorRows = periodRows.filter((row) => row.issues.some((issue) => issue.severity === 'error')).length;
       const selected = filter === 'all' ? periodRows : periodRows.filter((row) => row.issues.some((issue) => issue.severity === filter.slice(0, -1)));
       const page = Math.min(Number(pageInput), Math.max(1, Math.ceil(selected.length / 25)));
       const validDates = rows.map((row) => row.lwd).filter(Boolean).sort();
-      const periods = [...new Set(validDates.map((date) => date.slice(0, 7)))];
+      const periods = psExitSelectablePeriods(rows);
+      const selection = periodInput ? psExitPeriod(periodInput) : null;
       return {
         id, fileName: preview.file_name, totalRows: periodRows.length, warningRows, errorRows,
         minimumLwd: validDates[0] ?? null, maximumLwd: validDates.at(-1) ?? null,
         retainedPeriod: validDates.at(-1)?.slice(0, 7) ?? null, periods, period: periodInput,
+        carryoverDate: selection?.carryoverDate ?? null,
+        excludedMonthEndDate: selection?.excludedMonthEndDate ?? null,
+        carryoverRows: selection ? periodRows.filter((row) => row.lwd === selection.carryoverDate).length : 0,
         filteredRows: selected.length, page, rows: selected.slice((page - 1) * 25, page * 25),
       };
     });
@@ -163,52 +188,34 @@ export class PsExitImportService {
 
   async commit(actor: string, id: string, confirmed: unknown, periodInput: unknown) {
     if (confirmed !== true) throw new BadRequestException('Confirm the PS Exit import.');
-    if (typeof periodInput !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(periodInput)) {
+    if (typeof periodInput !== 'string' || !psExitPeriod(periodInput)) {
       throw new BadRequestException('Select one LWD month before saving.');
     }
     return this.database.transaction(async (client) => {
       await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('ps-exit-import'))`);
       const preview = await this.previewLock(client, actor, id);
-      const rows = (await this.validatedRows(client, id)).filter((row) => row.lwd.startsWith(periodInput));
+      const selection = psExitPeriod(periodInput)!;
+      const rows = this.reconciliationRows(await this.validatedRows(client, id), periodInput);
       if (!rows.length) throw new ConflictException('The preview does not contain any rows.');
       if (rows.some((row) => row.issues.some((issue) => issue.severity === 'error'))) {
         throw new ConflictException('Resolve every blocking error before import.');
       }
       const dates = rows.map((row) => row.lwd).sort();
       const maximumLwd = dates.at(-1)!;
-      const retainedPeriod = periodInput;
+      const retainedPeriod = maximumLwd.slice(0, 7);
       const imported = await client.query<{ import_id: string }>(
         `INSERT INTO public.ps_exit_imports
-           (file_name, file_hash, row_count, minimum_lwd, maximum_lwd, retained_month, imported_by_account_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING import_id`,
-        [preview.file_name, preview.file_hash, rows.length, dates[0], maximumLwd, `${retainedPeriod}-01`, actor],
+           (file_name, file_hash, row_count, minimum_lwd, maximum_lwd, retained_month,
+            reconciliation_month, imported_by_account_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING import_id`,
+        [preview.file_name, preview.file_hash, rows.length, dates[0], maximumLwd,
+          `${retainedPeriod}-01`, selection.periodStart, actor],
       );
       const importId = imported.rows[0].import_id;
       const payload = rows.map((row) => ({
         row_number: row.rowNumber, ...row.values, initiated_date: row.initiatedDate || null,
         lwd: row.lwd, classification: row.classification,
       }));
-      const eligible = await client.query<{ pers_no: string }>(
-        `WITH input AS (
-           SELECT * FROM JSONB_TO_RECORDSET($1::jsonb) AS item(pers_no text, lwd date)
-         )
-         SELECT DISTINCT input.pers_no
-         FROM input
-         WHERE EXISTS (
-           SELECT 1 FROM public.attrition_departure_candidates candidate
-           WHERE candidate.pers_no = input.pers_no::bigint
-             AND candidate.source = 'rbin' AND candidate.status = 'pending'
-         ) OR EXISTS (
-           SELECT 1 FROM public.employee_attrition_events event
-           WHERE event.pers_no = input.pers_no::bigint
-             AND event.event_month = DATE_TRUNC('month', input.lwd)::date
-             AND event.source = 'ps_exit' AND event.deleted_at IS NULL
-         )`,
-        [JSON.stringify(payload)],
-      );
-      const eligiblePersNos = new Set(eligible.rows.map((row) => row.pers_no));
-      const matchedPayload = payload.filter((row) => eligiblePersNos.has(row.pers_no));
-      const unmatchedPayload = payload.filter((row) => !eligiblePersNos.has(row.pers_no));
       await client.query('DELETE FROM public.ps_exit_rows');
       await client.query(
         `INSERT INTO public.ps_exit_rows (
@@ -226,64 +233,8 @@ export class PsExitImportService {
            filter_value text, reason_for_action text, detailed_reason_approved text, org_unit text,
            range text, initiated_date date, lwd date, e_separation_request_no text, to_org_unit text,
            classification text
-         ) WHERE DATE_TRUNC('month', item.lwd) = $3::date`,
-        [importId, JSON.stringify(payload), `${retainedPeriod}-01`],
-      );
-      const updated = await client.query<{ event_id: string }>(
-        `WITH input AS (
-           SELECT * FROM JSONB_TO_RECORDSET($2::jsonb) AS item(
-             pers_no text, reason_for_action text, detailed_reason_approved text, org_unit text,
-             range text, lwd date, to_org_unit text, classification text
-           )
-         )
-         UPDATE public.employee_attrition_events event SET
-           event_type = CASE WHEN input.classification = 'out_of_ps_transfer' THEN 'transfer' ELSE input.classification END,
-           transfer_type = CASE WHEN input.classification = 'out_of_ps_transfer' THEN 'out_of_ps_out_of_rbin' ELSE NULL END,
-           within_ps_type = NULL, counts_as_ps_attrition = TRUE, classification_status = 'confirmed',
-           source = 'ps_exit', old_organisational_area_pa = 'PS', new_organisational_area_pa = NULL,
-           old_organizational_unit = NULLIF(input.org_unit, ''),
-           new_organizational_unit = CASE WHEN input.classification = 'out_of_ps_transfer' THEN NULLIF(input.to_org_unit, '') ELSE NULL END,
-           old_range = NULLIF(input.range, ''), new_range = NULL,
-           old_range_type = CASE WHEN NULLIF(BTRIM(input.range), '') IS NULL THEN NULL WHEN UPPER(BTRIM(input.range)) IN ('BIDP', 'NAP', 'JAP', 'GANP') THEN 'plant' ELSE 'corporate' END,
-           new_range_type = NULL, ps_exit_import_id = $1, exit_lwd = input.lwd,
-           exit_reason = input.reason_for_action, notes = NULLIF(input.detailed_reason_approved, ''),
-           updated_by_account_id = $3, updated_at = CURRENT_TIMESTAMP
-         FROM input
-         WHERE event.deleted_at IS NULL AND event.pers_no = input.pers_no::bigint
-           AND event.event_month = DATE_TRUNC('month', input.lwd)::date
-           AND (event.source = 'ps_exit' OR (event.source = 'rbin' AND event.transfer_type = 'out_of_ps_within_rbin'))
-         RETURNING event.event_id`,
-        [importId, JSON.stringify(matchedPayload), actor],
-      );
-      const inserted = await client.query<{ event_id: string }>(
-        `WITH input AS (
-           SELECT * FROM JSONB_TO_RECORDSET($2::jsonb) AS item(
-             pers_no text, reason_for_action text, detailed_reason_approved text, org_unit text,
-             range text, lwd date, to_org_unit text, classification text
-           )
-         )
-         INSERT INTO public.employee_attrition_events (
-           pers_no, event_month, event_type, transfer_type, within_ps_type,
-           counts_as_ps_attrition, classification_status, source,
-           old_organisational_area_pa, old_organizational_unit, new_organizational_unit,
-           old_range, old_range_type, ps_exit_import_id, exit_lwd, exit_reason, notes,
-           created_by_account_id, updated_by_account_id
-         )
-         SELECT input.pers_no::bigint, DATE_TRUNC('month', input.lwd)::date,
-           CASE WHEN input.classification = 'out_of_ps_transfer' THEN 'transfer' ELSE input.classification END,
-           CASE WHEN input.classification = 'out_of_ps_transfer' THEN 'out_of_ps_out_of_rbin' ELSE NULL END,
-           NULL, TRUE, 'confirmed', 'ps_exit', 'PS', NULLIF(input.org_unit, ''),
-           CASE WHEN input.classification = 'out_of_ps_transfer' THEN NULLIF(input.to_org_unit, '') ELSE NULL END,
-           NULLIF(input.range, ''),
-           CASE WHEN NULLIF(BTRIM(input.range), '') IS NULL THEN NULL WHEN UPPER(BTRIM(input.range)) IN ('BIDP', 'NAP', 'JAP', 'GANP') THEN 'plant' ELSE 'corporate' END,
-           $1, input.lwd, input.reason_for_action, NULLIF(input.detailed_reason_approved, ''), $3, $3
-         FROM input
-         WHERE NOT EXISTS (
-           SELECT 1 FROM public.employee_attrition_events event
-           WHERE event.pers_no = input.pers_no::bigint
-             AND event.event_month = DATE_TRUNC('month', input.lwd)::date AND event.deleted_at IS NULL
-         ) RETURNING event_id`,
-        [importId, JSON.stringify(matchedPayload), actor],
+         )`,
+        [importId, JSON.stringify(payload)],
       );
       const pending = await client.query<{ candidate_id: string }>(
         `WITH input AS (
@@ -298,7 +249,7 @@ export class PsExitImportService {
            source, ps_exit_import_id, exit_lwd, exit_reason,
            resolution_note, created_by_account_id
          )
-         SELECT input.pers_no::bigint, DATE_TRUNC('month', input.lwd)::date, 'PS',
+         SELECT input.pers_no::bigint, $4::date, 'PS',
            NULLIF(input.org_unit, ''), NULLIF(input.range, ''),
            CASE WHEN NULLIF(BTRIM(input.range), '') IS NULL THEN NULL
              WHEN UPPER(BTRIM(input.range)) IN ('BIDP', 'NAP', 'JAP', 'GANP') THEN 'plant'
@@ -306,39 +257,33 @@ export class PsExitImportService {
            'ps_exit', $1, input.lwd, input.reason_for_action,
            NULLIF(input.detailed_reason_approved, ''), $3
          FROM input
-         ON CONFLICT (pers_no, detected_month) DO NOTHING
+         ON CONFLICT (source, pers_no, detected_month) DO UPDATE SET
+           ps_exit_import_id = EXCLUDED.ps_exit_import_id,
+           exit_lwd = EXCLUDED.exit_lwd,
+           exit_reason = EXCLUDED.exit_reason,
+           previous_organizational_unit = EXCLUDED.previous_organizational_unit,
+           previous_range = EXCLUDED.previous_range,
+           previous_range_type = EXCLUDED.previous_range_type,
+           resolution_note = EXCLUDED.resolution_note,
+           created_by_account_id = EXCLUDED.created_by_account_id,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE attrition_departure_candidates.status = 'pending'
          RETURNING candidate_id`,
-        [importId, JSON.stringify(unmatchedPayload), actor],
+        [importId, JSON.stringify(payload), actor, selection.periodStart],
       );
-      const matched = await client.query<{ candidate_id: string }>(
-        `WITH matches AS (
-           SELECT candidate.candidate_id, event.event_id
-           FROM public.employee_attrition_events event
-           JOIN LATERAL (
-             SELECT pending.candidate_id
-             FROM public.attrition_departure_candidates pending
-             WHERE pending.pers_no = event.pers_no
-               AND pending.source = 'rbin' AND pending.status = 'pending'
-             ORDER BY pending.detected_month DESC, pending.created_at DESC
-             LIMIT 1
-           ) candidate ON TRUE
-           WHERE event.source = 'ps_exit' AND event.ps_exit_import_id = $1
-             AND event.deleted_at IS NULL
-         )
-         UPDATE public.attrition_departure_candidates candidate SET
-           status = 'matched', linked_event_id = matches.event_id,
-           resolution_note = 'Matched automatically from PS Exit data.',
-           resolved_by_account_id = $2, resolved_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-         FROM matches WHERE candidate.candidate_id = matches.candidate_id
-         RETURNING candidate.candidate_id`,
-        [importId, actor],
+      const matchedCandidates = await reconcilePendingAttrition(client, actor);
+      const remaining = await client.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count
+         FROM public.attrition_departure_candidates
+         WHERE source = 'ps_exit' AND status = 'pending' AND ps_exit_import_id = $1`,
+        [importId],
       );
       await client.query('DELETE FROM public.ps_exit_previews WHERE preview_id = $1', [id]);
       return {
         importedRows: rows.length, retainedRows: rows.length,
-        retainedPeriod, insertedEvents: inserted.rowCount ?? inserted.rows.length,
-        updatedEvents: updated.rowCount ?? updated.rows.length, matchedCandidates: matched.rowCount ?? matched.rows.length,
-        pendingPsExit: pending.rowCount ?? pending.rows.length,
+        retainedPeriod, carryoverRows: rows.filter((row) => row.lwd === selection.carryoverDate).length,
+        insertedEvents: matchedCandidates, updatedEvents: 0, matchedCandidates,
+        pendingPsExit: Number(remaining.rows[0]?.count ?? pending.rowCount ?? 0),
       };
     });
   }

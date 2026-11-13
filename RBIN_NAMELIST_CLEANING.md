@@ -123,16 +123,19 @@ Previous PS employees absent from current raw RBIN are stored only as unresolved
 Attrition dashboard or MRM.
 
 HRBP Point provides an Attrition movements table over this permanent tracking
-data. It combines confirmed events and departure candidates, exposes
+data. It combines confirmed events and unresolved departure candidates, while
+matched, dismissed, and reappeared candidate audit rows remain stored but hidden. It exposes
 counted views for all records, PS attrition, within-PS transfers, and pending
 departures, and supports employee search, year/month filters, and pagination.
 Its PS Exit upload action accepts historical or monthly XLSX data through a
-validation preview and saves only the selected LWD month. An exact Pers.No and
-match with the newest pending RBIN disappearance creates a permanent resignation,
-retirement, or out-of-PS transfer event using PS Exit LWD as its month. Unmatched
-records from either source remain pending; HRBP can dismiss false positives with an audited action. Import
-metadata and events remain permanent, while raw PS Exit rows retain the selected
-LWD month from the newest save. Existing Attrition and MRM sources remain unchanged.
+validation preview. Selecting month M saves employees whose LWD is the final
+calendar day of M-1 plus LWD rows in M before M's final day. The final day of M
+belongs only to M+1. These rows use M as their RBIN detection month, while actual
+LWD remains the confirmed event month. Matching RBIN and PS
+Exit candidates reconcile by Pers.No and detection month after either import
+path. Unmatched records remain pending with visible source provenance; HRBP can
+dismiss false positives with an audited action. Existing Attrition and MRM
+sources remain unchanged.
 
 Staging rows use `(batch_id, source_row_number)`. They retain both
 `original_data` and editable `current_data`. They are not expired or deleted by

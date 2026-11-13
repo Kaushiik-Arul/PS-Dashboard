@@ -810,14 +810,14 @@ An employee may intentionally appear in both Talent and Development pools.
 
 ### 12.14.1 Attrition Movement Review
 
-- Review permanent RBIN-derived movements, PS Exit events, and departure candidates in one table.
+- Review permanent RBIN-derived movements, PS Exit events, and unresolved departure candidates in one table; resolved candidate audit rows remain hidden.
 - Switch between All records, PS attrition, Within-PS transfers, and Pending departures with live counts.
 - Search by employee or assignment and filter across reporting year and month.
 - Compare previous and current Area, Organizational Unit, Range, and Plant/Corporate classification.
-- Upload a historical or monthly PS Exit XLSX from the table heading, validate and correct a preview, then save one selected LWD month atomically.
-- Confirm resignation, retirement, or out-of-PS transfer when PS Exit matches the newest pending RBIN record by Pers.No; use PS Exit LWD as the event month.
+- Upload a historical or monthly PS Exit XLSX from the table heading, validate and correct a preview, then save the prior month’s final-calendar-day carryover plus current-month rows before the current final day.
+- Confirm resignation, retirement, or out-of-PS transfer when PS Exit and RBIN pending records match by Pers.No and detection month; use PS Exit LWD as the event month and reconcile in either import order.
 - Keep unmatched records from either source pending and let HRBP dismiss audited false positives.
-- Keep permanent events and import metadata while retaining raw PS Exit rows for the selected LWD month.
+- Keep permanent events and import metadata while retaining raw PS Exit rows for the selected scope.
 - Keep the review and import independent of the existing Attrition import and MRM workflows.
 
 ### 12.15 RBIN Namelist Cleaning

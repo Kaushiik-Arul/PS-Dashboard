@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import { detectAttrition } from './rbin-attrition-detector';
 import type { AttritionCleanedRow } from './rbin-attrition.types';
 import type { ParsedRbinRow, RbinSourceValues } from './rbin-cleaning.types';
+import { reconcilePendingAttrition } from '../attrition-reconciliation.repository';
 
 export type RbinAttritionTrackingContext = {
   actorAccountId: string;
@@ -23,7 +24,7 @@ export class RbinAttritionRepository {
       this.getCleanedRows(client, context.currentBatchId),
       client.query<{ pers_no: string }>(
         `SELECT pers_no::TEXT FROM public.attrition_departure_candidates
-         WHERE status = 'pending' FOR UPDATE`,
+         WHERE source = 'rbin' AND status = 'pending' FOR UPDATE`,
       ),
     ]);
     const result = detectAttrition(
@@ -84,7 +85,7 @@ export class RbinAttritionRepository {
          SET status = 'reappeared', resolved_by_account_id = $2,
              resolved_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
              resolution_note = COALESCE(resolution_note, 'Employee reappeared in a finalized RBIN snapshot.')
-         WHERE status = 'pending' AND pers_no = ANY($1::bigint[])`,
+         WHERE source = 'rbin' AND status = 'pending' AND pers_no = ANY($1::bigint[])`,
         [result.reappearedPersNos, context.actorAccountId],
       );
     }
@@ -153,7 +154,7 @@ export class RbinAttritionRepository {
            previous_organizational_unit text, previous_range text,
            previous_range_type text
          )
-         ON CONFLICT (pers_no, detected_month) DO UPDATE SET
+         ON CONFLICT (source, pers_no, detected_month) DO UPDATE SET
            run_id = EXCLUDED.run_id,
            previous_organisational_area_pa = EXCLUDED.previous_organisational_area_pa,
            previous_organizational_unit = EXCLUDED.previous_organizational_unit,
@@ -180,6 +181,7 @@ export class RbinAttritionRepository {
         ],
       );
     }
+    await reconcilePendingAttrition(client, context.actorAccountId);
   }
 
   private async getCleanedRows(client: PoolClient, batchId: string | null): Promise<AttritionCleanedRow[]> {

@@ -25,7 +25,8 @@ function categoryLabel(item: AttritionMovementItem): string {
   if (item.transferType === 'out_of_ps_out_of_rbin') return 'Out-of-PS transfer';
   if (item.category === 'ps_attrition') return 'PS attrition';
   if (item.category === 'within_ps') return 'Within PS';
-  return item.status === 'pending' ? 'Pending departure' : 'Departure candidate';
+  if (item.status === 'pending') return item.source === 'ps_exit' ? 'Pending - PS Exit' : 'Pending - RBIN';
+  return 'Departure candidate';
 }
 
 function Assignment({ area, unit, range, rangeType, missing = false }: { area: string | null; unit: string | null; range: string | null; rangeType: string | null; missing?: boolean }) {

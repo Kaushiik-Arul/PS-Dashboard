@@ -15,6 +15,9 @@ export declare class PsExitImportController {
         retainedPeriod: string | null;
         periods: string[];
         period: string;
+        carryoverDate: string | null;
+        excludedMonthEndDate: string | null;
+        carryoverRows: number;
         filteredRows: number;
         page: number;
         rows: import("./ps-exit-import.types").PsExitRow[];
@@ -30,6 +33,9 @@ export declare class PsExitImportController {
         retainedPeriod: string | null;
         periods: string[];
         period: string;
+        carryoverDate: string | null;
+        excludedMonthEndDate: string | null;
+        carryoverRows: number;
         filteredRows: number;
         page: number;
         rows: import("./ps-exit-import.types").PsExitRow[];
@@ -41,6 +47,7 @@ export declare class PsExitImportController {
         importedRows: number;
         retainedRows: number;
         retainedPeriod: string;
+        carryoverRows: number;
         insertedEvents: number;
         updatedEvents: number;
         matchedCandidates: number;

@@ -32,6 +32,7 @@ const recordsCte = `WITH movement_records AS (
     candidate.previous_organizational_unit, NULL::text,
     candidate.previous_range, NULL::text, candidate.previous_range_type, NULL::text
   FROM public.attrition_departure_candidates candidate
+  WHERE candidate.status = 'pending'
 ), filtered_records AS (
   SELECT * FROM movement_records record
   WHERE ($1::text = '' OR CONCAT_WS(' ', record.pers_no, record.category, record.event_type,
@@ -111,7 +112,7 @@ let AttritionMovementsRepository = class AttritionMovementsRepository {
             this.database.query(`SELECT DISTINCT TO_CHAR(record_month, 'YYYY-MM') AS period
          FROM (
            SELECT event_month AS record_month FROM public.employee_attrition_events WHERE deleted_at IS NULL
-           UNION SELECT detected_month FROM public.attrition_departure_candidates
+           UNION SELECT detected_month FROM public.attrition_departure_candidates WHERE status = 'pending'
          ) periods
          ORDER BY period DESC`),
         ]);

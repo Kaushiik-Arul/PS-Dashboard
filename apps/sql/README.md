@@ -409,15 +409,19 @@ import without requiring an RBIN run:
 ```powershell
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_import_migration.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_pending_reconciliation_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_month_end_reconciliation_migration.sql"
 ```
 
 The follow-up reconciliation migration lets unmatched PS Exit rows use the
 same pending departure queue as RBIN disappearances while retaining source,
-LWD, reason, and import provenance.
+LWD, reason, and import provenance. The month-end follow-up gives RBIN and PS
+Exit separate candidate identity for the same employee/month and records the
+selected reconciliation month.
 
 Apply and validate all additive migrations in `PS_DEV` first. For production,
 back up `PS`, apply `attrition_tracking_migration.sql` followed by
-`ps_exit_import_migration.sql` and `ps_exit_pending_reconciliation_migration.sql`,
+`ps_exit_import_migration.sql`, `ps_exit_pending_reconciliation_migration.sql`,
+and `ps_exit_month_end_reconciliation_migration.sql`,
 verify their tables and constraints, and only
 then deploy the matching API code. Do not restore or clone `PS_DEV` over `PS`.
 
@@ -437,9 +441,9 @@ The RBIN tables have separate retention semantics:
 | `employee_career_journey` | Permanent monthly PS-entry and internal PS-change history, including reviewed edits and soft-deleted tombstones. |
 | `attrition_tracking_runs` | Permanent audit record for each finalized monthly RBIN comparison; same-month reruns supersede the earlier active run. |
 | `employee_attrition_events` | Permanent automatic transfer history with frozen old/new organization and Range values. Within-PS transfers do not count as PS attrition. |
-| `attrition_departure_candidates` | Unmatched RBIN disappearances and PS Exit records, retained with source provenance until Pers.No reconciliation or audited dismissal. |
-| `ps_exit_imports` | Permanent audit metadata for every committed PS Exit workbook, including its LWD span and retained raw month. |
-| `ps_exit_rows` | Raw normalized rows for the explicitly selected LWD month; replaced on each successful save. |
+| `attrition_departure_candidates` | Unmatched RBIN disappearances and PS Exit records, retained independently by source until employee/detection-month reconciliation or audited dismissal. |
+| `ps_exit_imports` | Permanent audit metadata for every committed PS Exit workbook, including its LWD span, reconciliation month, and retained raw month. |
+| `ps_exit_rows` | Raw rows for the prior month’s final day plus selected-month rows before its final day; the selected month’s final day belongs to the following reconciliation month. |
 | `ps_exit_previews` / `ps_exit_preview_rows` | Account-owned validation previews that expire after 24 hours and are removed after save or cancellation. |
 
 Career detection runs when Save cleaned dataset finalizes a valid batch. It
@@ -457,10 +461,13 @@ PS to non-PS employees still present
 in RBIN become confirmed out-of-PS transfers. PS employees whose Organizational
 Unit changed become within-PS transfers. Missing previous PS employees become
 departure candidates only; they are not classified as resignation, retirement,
-or out-of-RBIN transfer until PS Exit reconciliation finds the same Pers.No in
-the pending RBIN queue. The newest pending RBIN candidate for that Pers.No is
-matched, and PS Exit LWD supplies the confirmed event month. Unmatched records
-from either source remain pending. HRBP
+or out-of-RBIN transfer until PS Exit reconciliation finds the same Pers.No and
+detection month in the opposite-source pending queue. Selecting month M includes
+the final calendar day of M-1 plus LWD rows in M before M's final day. M's final
+day belongs to M+1. The selected rows use M as their RBIN detection month, while
+PS Exit LWD supplies the confirmed event month.
+Reconciliation runs after both import paths, so either source may arrive first.
+Unmatched records from either source remain pending. HRBP
 can dismiss a pending record as a false positive; the row is retained with an
 audited dismissed status.
 The current Attrition dashboard and MRM continue reading the legacy Attrition

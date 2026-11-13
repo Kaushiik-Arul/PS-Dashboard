@@ -9,13 +9,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RbinAttritionRepository = void 0;
 const common_1 = require("@nestjs/common");
 const rbin_attrition_detector_1 = require("./rbin-attrition-detector");
+const attrition_reconciliation_repository_1 = require("../attrition-reconciliation.repository");
 let RbinAttritionRepository = class RbinAttritionRepository {
     async track(client, context) {
         const [previousCleanedRows, currentCleanedRows, pendingCandidates] = await Promise.all([
             this.getCleanedRows(client, context.previousBatchId),
             this.getCleanedRows(client, context.currentBatchId),
             client.query(`SELECT pers_no::TEXT FROM public.attrition_departure_candidates
-         WHERE status = 'pending' FOR UPDATE`),
+         WHERE source = 'rbin' AND status = 'pending' FOR UPDATE`),
         ]);
         const result = (0, rbin_attrition_detector_1.detectAttrition)(context.previousRawRows, context.currentRawRows, previousCleanedRows, currentCleanedRows, pendingCandidates.rows.map((row) => row.pers_no));
         const hasPreviousSnapshot = context.previousImportId !== null && context.previousBatchId !== null;
@@ -57,7 +58,7 @@ let RbinAttritionRepository = class RbinAttritionRepository {
          SET status = 'reappeared', resolved_by_account_id = $2,
              resolved_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
              resolution_note = COALESCE(resolution_note, 'Employee reappeared in a finalized RBIN snapshot.')
-         WHERE status = 'pending' AND pers_no = ANY($1::bigint[])`, [result.reappearedPersNos, context.actorAccountId]);
+         WHERE source = 'rbin' AND status = 'pending' AND pers_no = ANY($1::bigint[])`, [result.reappearedPersNos, context.actorAccountId]);
         }
         if (result.events.length) {
             await client.query(`INSERT INTO public.employee_attrition_events (
@@ -118,7 +119,7 @@ let RbinAttritionRepository = class RbinAttritionRepository {
            previous_organizational_unit text, previous_range text,
            previous_range_type text
          )
-         ON CONFLICT (pers_no, detected_month) DO UPDATE SET
+         ON CONFLICT (source, pers_no, detected_month) DO UPDATE SET
            run_id = EXCLUDED.run_id,
            previous_organisational_area_pa = EXCLUDED.previous_organisational_area_pa,
            previous_organizational_unit = EXCLUDED.previous_organizational_unit,
@@ -143,6 +144,7 @@ let RbinAttritionRepository = class RbinAttritionRepository {
                 }))),
             ]);
         }
+        await (0, attrition_reconciliation_repository_1.reconcilePendingAttrition)(client, context.actorAccountId);
     }
     async getCleanedRows(client, batchId) {
         if (!batchId)

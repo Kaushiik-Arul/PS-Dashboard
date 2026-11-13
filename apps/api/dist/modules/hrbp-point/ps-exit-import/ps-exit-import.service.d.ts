@@ -9,6 +9,7 @@ export declare class PsExitImportService {
     private previewLock;
     private dateKey;
     private validatedRows;
+    private reconciliationRows;
     upload(actor: string, file?: AttritionFile): Promise<{
         id: string;
         fileName: string;
@@ -20,6 +21,9 @@ export declare class PsExitImportService {
         retainedPeriod: string | null;
         periods: string[];
         period: string;
+        carryoverDate: string | null;
+        excludedMonthEndDate: string | null;
+        carryoverRows: number;
         filteredRows: number;
         page: number;
         rows: PsExitRow[];
@@ -35,6 +39,9 @@ export declare class PsExitImportService {
         retainedPeriod: string | null;
         periods: string[];
         period: string;
+        carryoverDate: string | null;
+        excludedMonthEndDate: string | null;
+        carryoverRows: number;
         filteredRows: number;
         page: number;
         rows: PsExitRow[];
@@ -45,6 +52,7 @@ export declare class PsExitImportService {
         importedRows: number;
         retainedRows: number;
         retainedPeriod: string;
+        carryoverRows: number;
         insertedEvents: number;
         updatedEvents: number;
         matchedCandidates: number;

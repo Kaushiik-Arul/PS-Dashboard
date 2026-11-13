@@ -2,7 +2,7 @@ import type { AttritionIssue, AttritionRow, AttritionStoredValues } from '../att
 
 export type PsExitClassification = 'resignation' | 'retirement' | 'out_of_ps_transfer';
 export type PsExitIssue = Omit<AttritionIssue, 'code'> & {
-  code: AttritionIssue['code'] | 'unknown_reason' | 'event_conflict';
+  code: AttritionIssue['code'] | 'unknown_reason' | 'event_conflict' | 'reconciliation_duplicate';
 };
 export type PsExitRow = Omit<AttritionRow, 'issues'> & {
   issues: PsExitIssue[];
