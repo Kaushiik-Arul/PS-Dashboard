@@ -9,6 +9,7 @@ exports.permissions = [
     'succession-planning:import',
     'attrition:view',
     'attrition:import',
+    'attrition:export',
     'mrm:view',
     'mrm:manage',
     'hrbp-point:view',

@@ -22,6 +22,7 @@
 \ir ps_exit_import_migration.sql
 \ir ps_exit_pending_reconciliation_migration.sql
 \ir ps_exit_month_end_reconciliation_migration.sql
+\ir attrition_movement_export_audit_migration.sql
 
 -- Reference data and operational imports.
 \ir org_structure_migration.sql

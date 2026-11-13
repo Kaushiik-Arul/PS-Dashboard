@@ -817,6 +817,8 @@ An employee may intentionally appear in both Talent and Development pools.
 - Upload a historical or monthly PS Exit XLSX from the table heading, validate and correct a preview, then save the prior month’s final-calendar-day carryover plus current-month rows before the current final day.
 - Confirm resignation, retirement, or out-of-PS transfer when PS Exit and RBIN pending records match by Pers.No and detection month; use PS Exit LWD as the event month and reconcile in either import order.
 - Keep unmatched records from either source pending and let HRBP dismiss audited false positives.
+- Export all historical active confirmed movements to an HRBP-only XLSX with Summary and Confirmed Movements worksheets; the export excludes candidates and is recorded with a SHA-256 audit hash.
+- Use Pers.No as the authoritative exported employee identifier because historical names are not frozen with movement events.
 - Keep permanent events and import metadata while retaining raw PS Exit rows for the selected scope.
 - Keep the review and import independent of the existing Attrition import and MRM workflows.
 

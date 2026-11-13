@@ -26,6 +26,14 @@ let AttritionMovementsController = class AttritionMovementsController {
     list(view, search, year, month, page, pageSize) {
         return this.service.list(view, search, year, month, page, pageSize);
     }
+    async exportConfirmedHistory(actor) {
+        const result = await this.service.exportConfirmedHistory(actor.accountId);
+        return new common_1.StreamableFile(result.buffer, {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            disposition: `attachment; filename="${result.fileName}"`,
+            length: result.buffer.length,
+        });
+    }
     dismissCandidate(candidateId, actor) {
         return this.service.dismissCandidate(candidateId, actor.accountId);
     }
@@ -44,6 +52,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], AttritionMovementsController.prototype, "list", null);
+__decorate([
+    (0, common_1.Post)('export'),
+    (0, common_1.Header)('Cache-Control', 'private, no-store'),
+    (0, require_permission_decorator_1.RequirePermission)('attrition:export'),
+    __param(0, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AttritionMovementsController.prototype, "exportConfirmedHistory", null);
 __decorate([
     (0, common_1.Delete)('candidates/:candidateId'),
     (0, common_1.HttpCode)(204),

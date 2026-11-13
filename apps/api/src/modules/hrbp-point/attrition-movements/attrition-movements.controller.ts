@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, HttpCode, Param, Query } from '@nestjs/common';
+import { Controller, Delete, Get, Header, HttpCode, Param, Post, Query, StreamableFile } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../common/authorization/require-permission.decorator';
 import { CurrentUser } from '../../auth/auth.decorators';
@@ -22,6 +22,18 @@ export class AttritionMovementsController {
     @Query('pageSize') pageSize?: string,
   ) {
     return this.service.list(view, search, year, month, page, pageSize);
+  }
+
+  @Post('export')
+  @Header('Cache-Control', 'private, no-store')
+  @RequirePermission('attrition:export')
+  async exportConfirmedHistory(@CurrentUser() actor: AuthenticatedUser) {
+    const result = await this.service.exportConfirmedHistory(actor.accountId);
+    return new StreamableFile(result.buffer, {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      disposition: `attachment; filename="${result.fileName}"`,
+      length: result.buffer.length,
+    });
   }
 
   @Delete('candidates/:candidateId')

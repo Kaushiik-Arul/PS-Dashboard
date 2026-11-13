@@ -410,18 +410,22 @@ import without requiring an RBIN run:
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_import_migration.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_pending_reconciliation_migration.sql"
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_month_end_reconciliation_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/attrition_movement_export_audit_migration.sql"
 ```
 
 The follow-up reconciliation migration lets unmatched PS Exit rows use the
 same pending departure queue as RBIN disappearances while retaining source,
 LWD, reason, and import provenance. The month-end follow-up gives RBIN and PS
 Exit separate candidate identity for the same employee/month and records the
-selected reconciliation month.
+selected reconciliation month. The export audit migration records every
+all-history confirmed-movement XLSX download with its actor, row count,
+filename, and SHA-256 hash.
 
 Apply and validate all additive migrations in `PS_DEV` first. For production,
 back up `PS`, apply `attrition_tracking_migration.sql` followed by
 `ps_exit_import_migration.sql`, `ps_exit_pending_reconciliation_migration.sql`,
 and `ps_exit_month_end_reconciliation_migration.sql`,
+followed by `attrition_movement_export_audit_migration.sql`,
 verify their tables and constraints, and only
 then deploy the matching API code. Do not restore or clone `PS_DEV` over `PS`.
 
@@ -445,6 +449,7 @@ The RBIN tables have separate retention semantics:
 | `ps_exit_imports` | Permanent audit metadata for every committed PS Exit workbook, including its LWD span, reconciliation month, and retained raw month. |
 | `ps_exit_rows` | Raw rows for the prior month’s final day plus selected-month rows before its final day; the selected month’s final day belongs to the following reconciliation month. |
 | `ps_exit_previews` / `ps_exit_preview_rows` | Account-owned validation previews that expire after 24 hours and are removed after save or cancellation. |
+| `attrition_movement_exports` | Permanent HRBP export audit containing actor, confirmed row count, filename, and SHA-256 hash. |
 
 Career detection runs when Save cleaned dataset finalizes a valid batch. It
 compares raw RBIN values by Pers.No before mappings, exceptions, or PS staging

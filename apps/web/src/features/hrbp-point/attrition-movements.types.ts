@@ -51,4 +51,5 @@ export type AttritionMovementQuery = {
 export interface AttritionMovementsClient {
   list(query: AttritionMovementQuery): Promise<AttritionMovementsPage>;
   dismissCandidate(candidateId: string): Promise<void>;
+  exportConfirmedHistory(): Promise<{ fileName: string }>;
 }

@@ -39,6 +39,7 @@ export function AttritionMovementsPanel({ client }: { client: AttritionMovements
   const [result, setResult] = useState(emptyPage);
   const [searchInput, setSearchInput] = useState('');
   const [busy, setBusy] = useState(true);
+  const [exportBusy, setExportBusy] = useState(false);
   const [message, setMessage] = useState('');
   const pageCount = Math.max(1, Math.ceil(result.total / result.pageSize));
   const firstRecord = result.total === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
@@ -78,6 +79,17 @@ export function AttritionMovementsPanel({ client }: { client: AttritionMovements
       setBusy(false);
     }
   };
+  const exportConfirmedHistory = async () => {
+    setExportBusy(true); setMessage('');
+    try {
+      const exported = await client.exportConfirmedHistory();
+      setMessage(`${exported.fileName} downloaded.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Confirmed attrition history could not be exported.');
+    } finally {
+      setExportBusy(false);
+    }
+  };
   const tabs: { value: AttritionMovementView; label: string; count: number }[] = [
     { value: 'all', label: 'All records', count: result.counts.all },
     { value: 'ps_attrition', label: 'PS attrition', count: result.counts.psAttrition },
@@ -86,7 +98,7 @@ export function AttritionMovementsPanel({ client }: { client: AttritionMovements
   ];
 
   return <section className="attrition-movements-panel" aria-labelledby="attrition-movements-title">
-    <header className="hrbp-page__heading"><div><p className="hrbp-section__eyebrow">Workforce movement review</p><h2 id="attrition-movements-title">Attrition movements</h2><p>Review finalized PS movements and unresolved departures across reporting periods.</p></div><PsExitImportButton onCommitted={() => load({ ...result, page: 1 })} /></header>
+    <header className="hrbp-page__heading"><div><p className="hrbp-section__eyebrow">Workforce movement review</p><h2 id="attrition-movements-title">Attrition movements</h2><p>Review finalized PS movements and unresolved departures across reporting periods.</p></div><div className="attrition-movements-actions"><button className="a-button a-button--secondary -small" type="button" aria-label="Export confirmed attrition history" disabled={exportBusy} onClick={() => void exportConfirmedHistory()}><i className="a-icon a-button__icon boschicon-bosch-ic-download" aria-hidden="true" /><span className="a-button__label">{exportBusy ? 'Preparing...' : 'Export history'}</span></button><PsExitImportButton onCommitted={() => load({ ...result, page: 1 })} /></div></header>
     <div className="data-table-card attrition-movements-table">
       <nav className="attrition-movement-tabs" aria-label="Attrition movement views">{tabs.map((tab) => <button key={tab.value} type="button" className={result.view === tab.value ? 'is-active' : ''} aria-current={result.view === tab.value ? 'page' : undefined} disabled={busy} onClick={() => selectView(tab.value)}><span>{tab.label}</span><strong>{tab.count}</strong></button>)}</nav>
       <div className="attrition-movements-toolbar">

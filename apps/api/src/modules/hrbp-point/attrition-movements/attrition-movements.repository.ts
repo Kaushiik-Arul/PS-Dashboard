@@ -5,7 +5,34 @@ import type {
   AttritionMovementItem,
   AttritionMovementsPage,
   AttritionMovementView,
+  ConfirmedAttritionExportRow,
 } from './attrition-movements.types';
+
+type ExportRow = {
+  event_id: string;
+  pers_no: string;
+  event_month: string;
+  exit_lwd: string | null;
+  event_type: string;
+  transfer_type: string | null;
+  within_ps_type: string | null;
+  counts_as_ps_attrition: boolean;
+  classification_status: string;
+  source: string;
+  exit_reason: string | null;
+  old_organisational_area_pa: string | null;
+  new_organisational_area_pa: string | null;
+  old_organizational_unit: string | null;
+  new_organizational_unit: string | null;
+  old_range: string | null;
+  new_range: string | null;
+  old_range_type: string | null;
+  new_range_type: string | null;
+  notes: string | null;
+  is_reviewed: boolean;
+  created_at: Date | string;
+  updated_at: Date | string;
+};
 
 type MovementRow = {
   id: string;
@@ -108,6 +135,62 @@ function mapRow(row: MovementRow): AttritionMovementItem {
 @Injectable()
 export class AttritionMovementsRepository {
   constructor(private readonly database: DatabaseService) {}
+
+  async getConfirmedExportRows(): Promise<ConfirmedAttritionExportRow[]> {
+    const result = await this.database.query<ExportRow>(
+      `SELECT event.event_id::text, event.pers_no::text,
+         TO_CHAR(event.event_month, 'YYYY-MM-DD') AS event_month,
+         CASE WHEN event.exit_lwd IS NULL THEN NULL ELSE TO_CHAR(event.exit_lwd, 'YYYY-MM-DD') END AS exit_lwd,
+         event.event_type, event.transfer_type, event.within_ps_type,
+         event.counts_as_ps_attrition, event.classification_status, event.source,
+         event.exit_reason, event.old_organisational_area_pa, event.new_organisational_area_pa,
+         event.old_organizational_unit, event.new_organizational_unit,
+         event.old_range, event.new_range, event.old_range_type, event.new_range_type,
+         event.notes, event.is_reviewed, event.created_at, event.updated_at
+       FROM public.employee_attrition_events event
+       WHERE event.deleted_at IS NULL AND event.classification_status = 'confirmed'
+       ORDER BY event.event_month DESC, event.pers_no, event.event_id`,
+    );
+    return result.rows.map((row) => ({
+      eventId: row.event_id,
+      persNo: row.pers_no,
+      eventMonth: row.event_month,
+      exitLwd: row.exit_lwd,
+      eventType: row.event_type,
+      transferType: row.transfer_type,
+      withinPsType: row.within_ps_type,
+      countsAsPsAttrition: row.counts_as_ps_attrition,
+      classificationStatus: row.classification_status,
+      source: row.source,
+      exitReason: row.exit_reason,
+      oldOrganisationalAreaPa: row.old_organisational_area_pa,
+      newOrganisationalAreaPa: row.new_organisational_area_pa,
+      oldOrganizationalUnit: row.old_organizational_unit,
+      newOrganizationalUnit: row.new_organizational_unit,
+      oldRange: row.old_range,
+      newRange: row.new_range,
+      oldRangeType: row.old_range_type,
+      newRangeType: row.new_range_type,
+      notes: row.notes,
+      isReviewed: row.is_reviewed,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
+  async recordExport(
+    actorAccountId: string,
+    rowCount: number,
+    fileName: string,
+    fileHash: string,
+  ): Promise<void> {
+    await this.database.query(
+      `INSERT INTO public.attrition_movement_exports (
+         exported_by_account_id, row_count, file_name, file_hash
+       ) VALUES ($1::uuid, $2, $3, $4)`,
+      [actorAccountId, rowCount, fileName, fileHash],
+    );
+  }
 
   async dismissCandidate(candidateId: string, actor: string): Promise<boolean> {
     const result = await this.database.query(

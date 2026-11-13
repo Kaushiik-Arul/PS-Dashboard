@@ -137,6 +137,14 @@ path. Unmatched records remain pending with visible source provenance; HRBP can
 dismiss false positives with an audited action. Existing Attrition and MRM
 sources remain unchanged.
 
+HRBP users can export all active confirmed movement history as XLSX. The
+workbook contains summary counts, detailed confirmed event fields, and a Read
+Me sheet. It excludes all departure candidate states and ignores table filters.
+Pers.No is authoritative because employee names are not frozen on historical
+events. Each generated file is recorded in `attrition_movement_exports` with
+its actor, row count, filename, and SHA-256 hash; an audit failure prevents the
+download.
+
 Staging rows use `(batch_id, source_row_number)`. They retain both
 `original_data` and editable `current_data`. They are not expired or deleted by
 this workflow.

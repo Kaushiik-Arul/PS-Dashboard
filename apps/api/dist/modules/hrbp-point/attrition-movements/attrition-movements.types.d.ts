@@ -41,3 +41,32 @@ export type AttritionMovementsPage = {
     year: number | null;
     month: number | null;
 };
+export type ConfirmedAttritionExportRow = {
+    eventId: string;
+    persNo: string;
+    eventMonth: string;
+    exitLwd: string | null;
+    eventType: string;
+    transferType: string | null;
+    withinPsType: string | null;
+    countsAsPsAttrition: boolean;
+    classificationStatus: string;
+    source: string;
+    exitReason: string | null;
+    oldOrganisationalAreaPa: string | null;
+    newOrganisationalAreaPa: string | null;
+    oldOrganizationalUnit: string | null;
+    newOrganizationalUnit: string | null;
+    oldRange: string | null;
+    newRange: string | null;
+    oldRangeType: string | null;
+    newRangeType: string | null;
+    notes: string | null;
+    isReviewed: boolean;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+};
+export type ConfirmedAttritionExport = {
+    fileName: string;
+    buffer: Buffer;
+};

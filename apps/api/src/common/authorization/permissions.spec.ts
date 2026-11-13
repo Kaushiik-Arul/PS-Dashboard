@@ -12,3 +12,16 @@ describe('dashboard customization permission', () => {
     },
   );
 });
+
+describe('attrition export permission', () => {
+  it('allows HRBP users', () => {
+    expect(hasPermission(['hrbp'], 'attrition:export')).toBe(true);
+  });
+
+  it.each(['admin', 'range_head', 'department_head', 'sub_department_head'] as const)(
+    'rejects %s',
+    (role) => {
+      expect(hasPermission([role], 'attrition:export')).toBe(false);
+    },
+  );
+});
