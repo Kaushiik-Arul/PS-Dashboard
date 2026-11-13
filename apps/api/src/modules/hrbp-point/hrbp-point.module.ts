@@ -10,6 +10,9 @@ import { MrmModule } from '../mrm/mrm.module';
 import { ActiveStepController } from './active-step/active-step.controller';
 import { ActiveStepService } from './active-step/active-step.service';
 import { ActiveStepRepository } from './active-step/active-step.repository';
+import { AttritionMovementsController } from './attrition-movements/attrition-movements.controller';
+import { AttritionMovementsRepository } from './attrition-movements/attrition-movements.repository';
+import { AttritionMovementsService } from './attrition-movements/attrition-movements.service';
 import { EmployeeJdImportController } from './employee-jd-import/employee-jd-import.controller';
 import { EmployeeJdImportRepository } from './employee-jd-import/employee-jd-import.repository';
 import { EmployeeJdImportService } from './employee-jd-import/employee-jd-import.service';
@@ -31,7 +34,10 @@ import { NamelistImportService } from './namelist-import/namelist-import.service
 import { PppHistoryImportController } from './ppp-history-import/ppp-history-import.controller';
 import { PppHistoryImportRepository } from './ppp-history-import/ppp-history-import.repository';
 import { PppHistoryImportService } from './ppp-history-import/ppp-history-import.service';
+import { PsExitImportController } from './ps-exit-import/ps-exit-import.controller';
+import { PsExitImportService } from './ps-exit-import/ps-exit-import.service';
 import { RbinCleaningController } from './rbin-cleaning/rbin-cleaning.controller';
+import { RbinAttritionRepository } from './rbin-cleaning/rbin-attrition.repository';
 import { RbinCleaningRepository } from './rbin-cleaning/rbin-cleaning.repository';
 import { RbinCleaningService } from './rbin-cleaning/rbin-cleaning.service';
 import { RbinExceptionsController } from './rbin-exceptions/rbin-exceptions.controller';
@@ -50,12 +56,14 @@ import { OrgStructureImportService } from './org-structure-import/org-structure-
 
 @Module({
   imports: [DatabaseModule, MrmModule],
-  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController, AttritionImportController, OrgStructureImportController],
+  controllers: [AvailableTalentController, PoolRegisterController, NominationStatusController, ActiveStepController, AttritionMovementsController, EmployeeJdImportController, EmployeeJdMovementsController, HrbpPointController, HeadcountImportController, JobDescriptionsController, NamelistImportController, PppHistoryImportController, PsExitImportController, RbinCleaningController, RbinMappingsController, RbinExceptionsController, SuccessionPlanningImportController, AttritionImportController, OrgStructureImportController],
   providers: [AvailableTalentService,
     PoolRegisterService,
     NominationStatusService,
     ActiveStepService,
     ActiveStepRepository,
+    AttritionMovementsService,
+    AttritionMovementsRepository,
     EmployeeJdImportService,
     EmployeeJdImportRepository,
     EmployeeJdMovementsService,
@@ -70,6 +78,8 @@ import { OrgStructureImportService } from './org-structure-import/org-structure-
     NamelistImportRepository,
     PppHistoryImportService,
     PppHistoryImportRepository,
+    PsExitImportService,
+    RbinAttritionRepository,
     RbinCleaningService,
     RbinCleaningRepository,
     RbinMappingsService,

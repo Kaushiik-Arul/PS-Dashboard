@@ -4,6 +4,7 @@ import type { PoolClient } from 'pg';
 import { DatabaseService } from '../../../database/database.service';
 import type { NamelistRowValues, RbinExceptionColumn } from '../namelist-import/namelist-import.types';
 import { detectCareerEvents } from './rbin-career-detector';
+import { RbinAttritionRepository } from './rbin-attrition.repository';
 import { normalizeLookupKey } from './rbin-cleaning.transformer';
 import type {
   ParsedRbinRow,
@@ -117,7 +118,10 @@ function stagedPayload(row: RbinStagedRow) {
 
 @Injectable()
 export class RbinCleaningRepository {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly attritionRepository: RbinAttritionRepository,
+  ) {}
 
   async getMappings(): Promise<RbinMappingContext> {
     const [ranges, functions] = await Promise.all([
@@ -206,8 +210,6 @@ export class RbinCleaningRepository {
       stagedRows.filter((row) => row.comparisonStatus === status).length;
 
     return this.database.transaction(async (client) => {
-      await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('rbin-career-detection'))`);
-      const previousRows = await this.getPreviousRawSnapshot(client, reportingMonth);
       const audit = await client.query<{ id: string }>(
         `INSERT INTO public.rbin_namelist_imports (
            reporting_month, uploaded_by, file_name, file_hash, status
@@ -282,33 +284,65 @@ export class RbinCleaningRepository {
           validRows, stagedRows.length - validRows,
         ],
       );
-      await this.replaceAutomaticCareerEvents(
-        client,
-        importId,
-        actorAccountId,
-        reportingMonth,
-        detectCareerEvents(previousRows, rawRows),
-      );
       return batchId;
     });
   }
 
-  private async getPreviousRawSnapshot(client: PoolClient, reportingMonth: string): Promise<{ values: RbinSourceValues }[]> {
-    const result = await client.query<{ raw_source_data: RbinSourceValues }>(
-      `SELECT row.raw_source_data
-      FROM public.rbin_namelist_history row
-       WHERE row.import_id = (
-         SELECT id
-         FROM public.rbin_namelist_imports
-         WHERE status = 'ready'
-           AND reporting_month < $1::date
-         ORDER BY reporting_month DESC, completed_at DESC, id DESC
+  private async getPreviousFinalizedRawSnapshot(
+    client: PoolClient,
+    reportingMonth: string,
+  ): Promise<{
+    importId: string | null;
+    batchId: string | null;
+    rows: { values: RbinSourceValues }[];
+  }> {
+    const result = await client.query<{
+      import_id: string;
+      batch_id: string;
+      raw_source_data: RbinSourceValues;
+    }>(
+      `WITH previous AS (
+         SELECT batch.import_id, batch.batch_id
+         FROM public.rbin_staging_batches batch
+         JOIN public.rbin_namelist_imports upload ON upload.id = batch.import_id
+         WHERE batch.status IN ('ready_for_export', 'exported')
+           AND upload.reporting_month < $1::date
+         ORDER BY upload.reporting_month DESC, batch.finalized_at DESC, batch.import_id DESC
          LIMIT 1
        )
+       SELECT previous.import_id::TEXT, previous.batch_id::TEXT, row.raw_source_data
+       FROM previous
+       JOIN public.rbin_namelist_history row ON row.import_id = previous.import_id
        ORDER BY row.source_row_number`,
       [reportingMonth],
     );
-    return result.rows.map((row) => ({ values: row.raw_source_data }));
+    return {
+      importId: result.rows[0]?.import_id ?? null,
+      batchId: result.rows[0]?.batch_id ?? null,
+      rows: result.rows.map((row) => ({ values: row.raw_source_data })),
+    };
+  }
+
+  private cleanupFinalizedRawHistory(client: PoolClient): Promise<unknown> {
+    return client.query(
+      `WITH ranked_imports AS (
+         SELECT batch.import_id,
+           DENSE_RANK() OVER (ORDER BY upload.reporting_month DESC) AS month_rank,
+           ROW_NUMBER() OVER (
+             PARTITION BY upload.reporting_month
+             ORDER BY batch.finalized_at DESC, batch.import_id DESC
+           ) AS import_rank
+         FROM public.rbin_staging_batches batch
+         JOIN public.rbin_namelist_imports upload ON upload.id = batch.import_id
+         WHERE batch.status IN ('ready_for_export', 'exported')
+       ), expired_imports AS (
+         SELECT import_id FROM ranked_imports
+         WHERE month_rank > 2 OR import_rank > 1
+       )
+       DELETE FROM public.rbin_namelist_history history
+       USING expired_imports expired
+       WHERE history.import_id = expired.import_id`,
+    );
   }
 
   private async replaceAutomaticCareerEvents(
@@ -559,22 +593,53 @@ export class RbinCleaningRepository {
 
   async finalize(batchId: string, actorAccountId: string): Promise<void> {
     await this.database.transaction(async (client) => {
-      const result = await client.query<{ invalid_rows: number; import_id: string }>(
-        `SELECT invalid_rows, import_id::text FROM public.rbin_staging_batches
-         WHERE batch_id = $1 AND uploaded_by = $2 AND status = 'draft' FOR UPDATE`,
+      await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('rbin-career-detection'))`);
+      const result = await client.query<{ invalid_rows: number; import_id: string; reporting_month: string }>(
+        `SELECT batch.invalid_rows, batch.import_id::text,
+           TO_CHAR(upload.reporting_month, 'YYYY-MM-DD') AS reporting_month
+         FROM public.rbin_staging_batches batch
+         JOIN public.rbin_namelist_imports upload ON upload.id = batch.import_id
+         WHERE batch.batch_id = $1 AND batch.uploaded_by = $2 AND batch.status = 'draft'
+         FOR UPDATE OF batch`,
         [batchId, actorAccountId],
       );
       if (!result.rows[0]) throw new Error('BATCH_NOT_EDITABLE');
       if (result.rows[0].invalid_rows > 0) throw new Error('INVALID_ROWS');
-      const importId = result.rows[0].import_id;
-      const history = await client.query<{ stored_row_data: ReturnType<typeof rawPayload> }>(
-        `SELECT stored_row_data
+      const { import_id: importId, reporting_month: reportingMonth } = result.rows[0];
+      const history = await client.query<{
+        source_row_number: number;
+        raw_source_data: RbinSourceValues;
+        stored_row_data: ReturnType<typeof rawPayload>;
+      }>(
+        `SELECT source_row_number, raw_source_data, stored_row_data
          FROM public.rbin_namelist_history
          WHERE import_id = $1 AND stored_row_data IS NOT NULL
          ORDER BY source_row_number`,
         [importId],
       );
       if (!history.rowCount) throw new Error('RBIN_HISTORY_NOT_FOUND');
+      const previousSnapshot = await this.getPreviousFinalizedRawSnapshot(client, reportingMonth);
+      const currentRows: ParsedRbinRow[] = history.rows.map((row) => ({
+        rowNumber: row.source_row_number,
+        values: row.raw_source_data,
+      }));
+      await this.replaceAutomaticCareerEvents(
+        client,
+        importId,
+        actorAccountId,
+        reportingMonth,
+        detectCareerEvents(previousSnapshot.rows, currentRows),
+      );
+      await this.attritionRepository.track(client, {
+        actorAccountId,
+        reportingMonth,
+        previousImportId: previousSnapshot.importId,
+        previousBatchId: previousSnapshot.batchId,
+        currentImportId: importId,
+        currentBatchId: batchId,
+        previousRawRows: previousSnapshot.rows,
+        currentRawRows: currentRows,
+      });
       await client.query(`DELETE FROM public.rbin_namelist`);
       for (let offset = 0; offset < history.rows.length; offset += 500) {
         await this.insertCurrentRows(
@@ -589,6 +654,7 @@ export class RbinCleaningRepository {
              updated_at = CURRENT_TIMESTAMP WHERE batch_id = $1`,
         [batchId],
       );
+      await this.cleanupFinalizedRawHistory(client);
     });
   }
 

@@ -18,6 +18,9 @@
 -- Fresh RBIN schema. This already contains Career Journey, current/history
 -- snapshots, mappings, employee exceptions, staging, and export tables.
 \ir rbin_namelist_creation.sql
+\ir attrition_tracking_migration.sql
+\ir ps_exit_import_migration.sql
+\ir ps_exit_pending_reconciliation_migration.sql
 
 -- Reference data and operational imports.
 \ir org_structure_migration.sql

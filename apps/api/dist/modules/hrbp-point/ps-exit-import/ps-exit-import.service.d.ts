@@ -1,0 +1,53 @@
+import { DatabaseService } from '../../../database/database.service';
+import type { AttritionFile } from '../attrition-import/attrition-import.types';
+import type { PsExitRow } from './ps-exit-import.types';
+export declare class PsExitImportService {
+    private readonly database;
+    constructor(database: DatabaseService);
+    private uuid;
+    private rangeMappings;
+    private previewLock;
+    private dateKey;
+    private validatedRows;
+    upload(actor: string, file?: AttritionFile): Promise<{
+        id: string;
+        fileName: string;
+        totalRows: number;
+        warningRows: number;
+        errorRows: number;
+        minimumLwd: string;
+        maximumLwd: string | null;
+        retainedPeriod: string | null;
+        periods: string[];
+        period: string;
+        filteredRows: number;
+        page: number;
+        rows: PsExitRow[];
+    }>;
+    preview(actor: string, id: string, filterInput?: string, periodInput?: string, pageInput?: string): Promise<{
+        id: string;
+        fileName: string;
+        totalRows: number;
+        warningRows: number;
+        errorRows: number;
+        minimumLwd: string;
+        maximumLwd: string | null;
+        retainedPeriod: string | null;
+        periods: string[];
+        period: string;
+        filteredRows: number;
+        page: number;
+        rows: PsExitRow[];
+    }>;
+    editPreview(actor: string, id: string, rowInput: string, input?: unknown): Promise<void>;
+    cancel(actor: string, id: string): Promise<void>;
+    commit(actor: string, id: string, confirmed: unknown, periodInput: unknown): Promise<{
+        importedRows: number;
+        retainedRows: number;
+        retainedPeriod: string;
+        insertedEvents: number;
+        updatedEvents: number;
+        matchedCandidates: number;
+        pendingPsExit: number;
+    }>;
+}

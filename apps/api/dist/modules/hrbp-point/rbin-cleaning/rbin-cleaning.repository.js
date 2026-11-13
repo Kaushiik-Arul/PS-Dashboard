@@ -14,6 +14,7 @@ const common_1 = require("@nestjs/common");
 const node_crypto_1 = require("node:crypto");
 const database_service_1 = require("../../../database/database.service");
 const rbin_career_detector_1 = require("./rbin-career-detector");
+const rbin_attrition_repository_1 = require("./rbin-attrition.repository");
 const rbin_cleaning_transformer_1 = require("./rbin-cleaning.transformer");
 const reviewColumns = [
     'pers_no', 'personnel_number', 'employee_group', 'ps_group',
@@ -72,8 +73,10 @@ function stagedPayload(row) {
 }
 let RbinCleaningRepository = class RbinCleaningRepository {
     database;
-    constructor(database) {
+    attritionRepository;
+    constructor(database, attritionRepository) {
         this.database = database;
+        this.attritionRepository = attritionRepository;
     }
     async getMappings() {
         const [ranges, functions] = await Promise.all([
@@ -143,8 +146,6 @@ let RbinCleaningRepository = class RbinCleaningRepository {
         const validRows = stagedRows.filter((row) => row.issues.length === 0).length;
         const countComparison = (status) => stagedRows.filter((row) => row.comparisonStatus === status).length;
         return this.database.transaction(async (client) => {
-            await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('rbin-career-detection'))`);
-            const previousRows = await this.getPreviousRawSnapshot(client, reportingMonth);
             const audit = await client.query(`INSERT INTO public.rbin_namelist_imports (
            reporting_month, uploaded_by, file_name, file_hash, status
          ) VALUES ($4::date, $1, $2, $3, 'processing')
@@ -200,23 +201,47 @@ let RbinCleaningRepository = class RbinCleaningRepository {
                 importId, rawRows.length, stagedRows.length, rawRows.length - stagedRows.length,
                 validRows, stagedRows.length - validRows,
             ]);
-            await this.replaceAutomaticCareerEvents(client, importId, actorAccountId, reportingMonth, (0, rbin_career_detector_1.detectCareerEvents)(previousRows, rawRows));
             return batchId;
         });
     }
-    async getPreviousRawSnapshot(client, reportingMonth) {
-        const result = await client.query(`SELECT row.raw_source_data
-      FROM public.rbin_namelist_history row
-       WHERE row.import_id = (
-         SELECT id
-         FROM public.rbin_namelist_imports
-         WHERE status = 'ready'
-           AND reporting_month < $1::date
-         ORDER BY reporting_month DESC, completed_at DESC, id DESC
+    async getPreviousFinalizedRawSnapshot(client, reportingMonth) {
+        const result = await client.query(`WITH previous AS (
+         SELECT batch.import_id, batch.batch_id
+         FROM public.rbin_staging_batches batch
+         JOIN public.rbin_namelist_imports upload ON upload.id = batch.import_id
+         WHERE batch.status IN ('ready_for_export', 'exported')
+           AND upload.reporting_month < $1::date
+         ORDER BY upload.reporting_month DESC, batch.finalized_at DESC, batch.import_id DESC
          LIMIT 1
        )
+       SELECT previous.import_id::TEXT, previous.batch_id::TEXT, row.raw_source_data
+       FROM previous
+       JOIN public.rbin_namelist_history row ON row.import_id = previous.import_id
        ORDER BY row.source_row_number`, [reportingMonth]);
-        return result.rows.map((row) => ({ values: row.raw_source_data }));
+        return {
+            importId: result.rows[0]?.import_id ?? null,
+            batchId: result.rows[0]?.batch_id ?? null,
+            rows: result.rows.map((row) => ({ values: row.raw_source_data })),
+        };
+    }
+    cleanupFinalizedRawHistory(client) {
+        return client.query(`WITH ranked_imports AS (
+         SELECT batch.import_id,
+           DENSE_RANK() OVER (ORDER BY upload.reporting_month DESC) AS month_rank,
+           ROW_NUMBER() OVER (
+             PARTITION BY upload.reporting_month
+             ORDER BY batch.finalized_at DESC, batch.import_id DESC
+           ) AS import_rank
+         FROM public.rbin_staging_batches batch
+         JOIN public.rbin_namelist_imports upload ON upload.id = batch.import_id
+         WHERE batch.status IN ('ready_for_export', 'exported')
+       ), expired_imports AS (
+         SELECT import_id FROM ranked_imports
+         WHERE month_rank > 2 OR import_rank > 1
+       )
+       DELETE FROM public.rbin_namelist_history history
+       USING expired_imports expired
+       WHERE history.import_id = expired.import_id`);
     }
     async replaceAutomaticCareerEvents(client, importId, actorAccountId, reportingMonth, events) {
         await client.query(`DELETE FROM public.employee_career_journey
@@ -409,19 +434,40 @@ let RbinCleaningRepository = class RbinCleaningRepository {
     }
     async finalize(batchId, actorAccountId) {
         await this.database.transaction(async (client) => {
-            const result = await client.query(`SELECT invalid_rows, import_id::text FROM public.rbin_staging_batches
-         WHERE batch_id = $1 AND uploaded_by = $2 AND status = 'draft' FOR UPDATE`, [batchId, actorAccountId]);
+            await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('rbin-career-detection'))`);
+            const result = await client.query(`SELECT batch.invalid_rows, batch.import_id::text,
+           TO_CHAR(upload.reporting_month, 'YYYY-MM-DD') AS reporting_month
+         FROM public.rbin_staging_batches batch
+         JOIN public.rbin_namelist_imports upload ON upload.id = batch.import_id
+         WHERE batch.batch_id = $1 AND batch.uploaded_by = $2 AND batch.status = 'draft'
+         FOR UPDATE OF batch`, [batchId, actorAccountId]);
             if (!result.rows[0])
                 throw new Error('BATCH_NOT_EDITABLE');
             if (result.rows[0].invalid_rows > 0)
                 throw new Error('INVALID_ROWS');
-            const importId = result.rows[0].import_id;
-            const history = await client.query(`SELECT stored_row_data
+            const { import_id: importId, reporting_month: reportingMonth } = result.rows[0];
+            const history = await client.query(`SELECT source_row_number, raw_source_data, stored_row_data
          FROM public.rbin_namelist_history
          WHERE import_id = $1 AND stored_row_data IS NOT NULL
          ORDER BY source_row_number`, [importId]);
             if (!history.rowCount)
                 throw new Error('RBIN_HISTORY_NOT_FOUND');
+            const previousSnapshot = await this.getPreviousFinalizedRawSnapshot(client, reportingMonth);
+            const currentRows = history.rows.map((row) => ({
+                rowNumber: row.source_row_number,
+                values: row.raw_source_data,
+            }));
+            await this.replaceAutomaticCareerEvents(client, importId, actorAccountId, reportingMonth, (0, rbin_career_detector_1.detectCareerEvents)(previousSnapshot.rows, currentRows));
+            await this.attritionRepository.track(client, {
+                actorAccountId,
+                reportingMonth,
+                previousImportId: previousSnapshot.importId,
+                previousBatchId: previousSnapshot.batchId,
+                currentImportId: importId,
+                currentBatchId: batchId,
+                previousRawRows: previousSnapshot.rows,
+                currentRawRows: currentRows,
+            });
             await client.query(`DELETE FROM public.rbin_namelist`);
             for (let offset = 0; offset < history.rows.length; offset += 500) {
                 await this.insertCurrentRows(client, importId, history.rows.slice(offset, offset + 500).map((row) => row.stored_row_data));
@@ -429,6 +475,7 @@ let RbinCleaningRepository = class RbinCleaningRepository {
             await client.query(`UPDATE public.rbin_staging_batches
          SET status = 'ready_for_export', finalized_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP WHERE batch_id = $1`, [batchId]);
+            await this.cleanupFinalizedRawHistory(client);
         });
     }
     insertCurrentRows(client, importId, rows) {
@@ -547,6 +594,7 @@ let RbinCleaningRepository = class RbinCleaningRepository {
 exports.RbinCleaningRepository = RbinCleaningRepository;
 exports.RbinCleaningRepository = RbinCleaningRepository = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [database_service_1.DatabaseService])
+    __metadata("design:paramtypes", [database_service_1.DatabaseService,
+        rbin_attrition_repository_1.RbinAttritionRepository])
 ], RbinCleaningRepository);
 //# sourceMappingURL=rbin-cleaning.repository.js.map

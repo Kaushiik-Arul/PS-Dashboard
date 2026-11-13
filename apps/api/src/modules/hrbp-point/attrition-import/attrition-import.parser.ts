@@ -33,9 +33,16 @@ const aliases: Record<string, AttritionColumn> = {
   'to org unit': 'to_org_unit',
 };
 
+const optionalColumns = new Set<AttritionColumn>(['filter_value', 'to_org_unit']);
+
 function cellText(value: ExcelJS.CellValue): string {
   if (value == null) return '';
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) {
+    const year = String(value.getFullYear()).padStart(4, '0');
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
   if (typeof value === 'object') {
     if ('result' in value && value.result != null) return cellText(value.result);
     if ('text' in value) return value.text.trim();
@@ -229,7 +236,7 @@ function headerMapping(sheet: ExcelJS.Worksheet) {
     if (!mapped.has('pers_no') || !mapped.has('employee_name')) continue;
     if (unknown.length)
       throw new BadRequestException(`Unexpected columns: ${unknown.join(', ')}.`);
-    const missing = attritionColumns.filter((column) => !mapped.has(column));
+    const missing = attritionColumns.filter((column) => !mapped.has(column) && !optionalColumns.has(column));
     if (missing.length)
       throw new BadRequestException(`Missing columns: ${missing.join(', ')}.`);
     return { rowNumber, mapping };

@@ -808,6 +808,18 @@ An employee may intentionally appear in both Talent and Development pools.
 - Replace the live Org Structure view.
 - Preserve missing or cyclic parent references for visibility in the Unlinked Roles section.
 
+### 12.14.1 Attrition Movement Review
+
+- Review permanent RBIN-derived movements, PS Exit events, and departure candidates in one table.
+- Switch between All records, PS attrition, Within-PS transfers, and Pending departures with live counts.
+- Search by employee or assignment and filter across reporting year and month.
+- Compare previous and current Area, Organizational Unit, Range, and Plant/Corporate classification.
+- Upload a historical or monthly PS Exit XLSX from the table heading, validate and correct a preview, then save one selected LWD month atomically.
+- Confirm resignation, retirement, or out-of-PS transfer when PS Exit matches the newest pending RBIN record by Pers.No; use PS Exit LWD as the event month.
+- Keep unmatched records from either source pending and let HRBP dismiss audited false positives.
+- Keep permanent events and import metadata while retaining raw PS Exit rows for the selected LWD month.
+- Keep the review and import independent of the existing Attrition import and MRM workflows.
+
 ### 12.15 RBIN Namelist Cleaning
 
 This workflow transforms raw RBIN employee files into the PS Namelist structure.

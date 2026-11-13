@@ -396,13 +396,38 @@ the exact stored-row payload required by Save cleaned dataset:
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/rbin_finalize_replacement_migration.sql"
 ```
 
+Apply the additive RBIN attrition-tracking schema after the RBIN schema exists:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/attrition_tracking_migration.sql"
+```
+
+Apply the PS Exit import schema after attrition tracking. It adds preview and
+import storage and allows permanent attrition events to reference a PS Exit
+import without requiring an RBIN run:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_import_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/ps_exit_pending_reconciliation_migration.sql"
+```
+
+The follow-up reconciliation migration lets unmatched PS Exit rows use the
+same pending departure queue as RBIN disappearances while retaining source,
+LWD, reason, and import provenance.
+
+Apply and validate all additive migrations in `PS_DEV` first. For production,
+back up `PS`, apply `attrition_tracking_migration.sql` followed by
+`ps_exit_import_migration.sql` and `ps_exit_pending_reconciliation_migration.sql`,
+verify their tables and constraints, and only
+then deploy the matching API code. Do not restore or clone `PS_DEV` over `PS`.
+
 The RBIN tables have separate retention semantics:
 
 | Table | Retention and purpose |
 | --- | --- |
 | `rbin_namelist_imports` | Permanent audit record for every raw upload. |
 | `rbin_namelist` | Current raw RBIN dataset; replaced atomically when Save cleaned dataset is confirmed. |
-| `rbin_namelist_history` | Permanent raw JSON snapshots used for month-to-month Career Journey detection. |
+| `rbin_namelist_history` | Raw JSON for all drafts plus the newest finalized import in each of the latest two reporting months; older finalized row payloads are removed after successful finalization. |
 | `org_unit_range_mappings` | Persistent Organizational Unit to Range lookup. |
 | `org_unit_function_mappings` | Persistent Organizational Unit to Function lookup. |
 | `rbin_employee_column_exceptions` | Persistent employee-and-column fixed values for future RBIN uploads. |
@@ -410,12 +435,36 @@ The RBIN tables have separate retention semantics:
 | `rbin_staging_rows` | Original and currently edited 29-column PS rows. |
 | `rbin_staging_exports` | Permanent record of every XLSX download. |
 | `employee_career_journey` | Permanent monthly PS-entry and internal PS-change history, including reviewed edits and soft-deleted tombstones. |
+| `attrition_tracking_runs` | Permanent audit record for each finalized monthly RBIN comparison; same-month reruns supersede the earlier active run. |
+| `employee_attrition_events` | Permanent automatic transfer history with frozen old/new organization and Range values. Within-PS transfers do not count as PS attrition. |
+| `attrition_departure_candidates` | Unmatched RBIN disappearances and PS Exit records, retained with source provenance until Pers.No reconciliation or audited dismissal. |
+| `ps_exit_imports` | Permanent audit metadata for every committed PS Exit workbook, including its LWD span and retained raw month. |
+| `ps_exit_rows` | Raw normalized rows for the explicitly selected LWD month; replaced on each successful save. |
+| `ps_exit_previews` / `ps_exit_preview_rows` | Account-owned validation previews that expire after 24 hours and are removed after save or cancellation. |
 
-Career detection compares raw RBIN values by Pers.No before mappings,
-exceptions, or PS staging filters. The first retained upload is a baseline.
-Later uploads record proven non-PS to PS entries and PS Organizational Unit or
-PS Group changes. Same-month reuploads compare against the prior month and
-replace only unreviewed automatic events; HRBP edits and deletions are retained.
+Career detection runs when Save cleaned dataset finalizes a valid batch. It
+compares raw RBIN values by Pers.No before mappings, exceptions, or PS staging
+filters. The first finalized month is a baseline. Later finalized months record
+proven non-PS to PS entries and PS Organizational Unit or PS Group changes.
+Same-month reuploads compare against the prior finalized month and replace only
+unreviewed automatic events; HRBP edits and deletions are retained.
+
+RBIN attrition tracking runs in the same finalization transaction. Raw rows
+prove presence and PS status; finalized staging rows provide frozen Range
+values for Plant/Corporate classification. BidP, NaP, JaP, and GanP are Plant;
+every other nonblank Range is Corporate, while blank Range is unclassified.
+PS to non-PS employees still present
+in RBIN become confirmed out-of-PS transfers. PS employees whose Organizational
+Unit changed become within-PS transfers. Missing previous PS employees become
+departure candidates only; they are not classified as resignation, retirement,
+or out-of-RBIN transfer until PS Exit reconciliation finds the same Pers.No in
+the pending RBIN queue. The newest pending RBIN candidate for that Pers.No is
+matched, and PS Exit LWD supplies the confirmed event month. Unmatched records
+from either source remain pending. HRBP
+can dismiss a pending record as a false positive; the row is retained with an
+audited dismissed status.
+The current Attrition dashboard and MRM continue reading the legacy Attrition
+register and are intentionally unaffected.
 
 Select the source file's reporting month during every RBIN upload. To verify
 historical detection, upload June 2026 first as the baseline, followed by July

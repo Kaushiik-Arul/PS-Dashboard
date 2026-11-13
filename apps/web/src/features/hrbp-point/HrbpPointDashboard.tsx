@@ -23,6 +23,8 @@ import { NominationStatusImportPanel } from "./NominationStatusImportPanel";
 import { SuccessionPlanningImportPanel } from "./SuccessionPlanningImportPanel";
 import { AttritionImportPanel } from "./AttritionImportPanel";
 import { OrgStructureImportPanel } from "./OrgStructureImportPanel";
+import { AttritionMovementsPanel } from "./AttritionMovementsPanel";
+import { httpAttritionMovementsClient } from "./attrition-movements.http";
 import "@/components/data-table/data-table.css";
 import "./hrbp-point.css";
 
@@ -184,6 +186,7 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
       {canManageNamelist && <NamelistImportPanel />}
       {canManageNamelist && <HeadcountImportPanel />}
       {canManageNamelist && <JdManagementPanel />}
+      <AttritionMovementsPanel client={httpAttritionMovementsClient} />
 
       <div className="hrbp-maintenance-grid">
       <section className="hrbp-status-panel" aria-labelledby="leave-status-title">

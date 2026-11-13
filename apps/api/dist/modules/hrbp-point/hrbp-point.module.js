@@ -19,6 +19,9 @@ const mrm_module_1 = require("../mrm/mrm.module");
 const active_step_controller_1 = require("./active-step/active-step.controller");
 const active_step_service_1 = require("./active-step/active-step.service");
 const active_step_repository_1 = require("./active-step/active-step.repository");
+const attrition_movements_controller_1 = require("./attrition-movements/attrition-movements.controller");
+const attrition_movements_repository_1 = require("./attrition-movements/attrition-movements.repository");
+const attrition_movements_service_1 = require("./attrition-movements/attrition-movements.service");
 const employee_jd_import_controller_1 = require("./employee-jd-import/employee-jd-import.controller");
 const employee_jd_import_repository_1 = require("./employee-jd-import/employee-jd-import.repository");
 const employee_jd_import_service_1 = require("./employee-jd-import/employee-jd-import.service");
@@ -40,7 +43,10 @@ const namelist_import_service_1 = require("./namelist-import/namelist-import.ser
 const ppp_history_import_controller_1 = require("./ppp-history-import/ppp-history-import.controller");
 const ppp_history_import_repository_1 = require("./ppp-history-import/ppp-history-import.repository");
 const ppp_history_import_service_1 = require("./ppp-history-import/ppp-history-import.service");
+const ps_exit_import_controller_1 = require("./ps-exit-import/ps-exit-import.controller");
+const ps_exit_import_service_1 = require("./ps-exit-import/ps-exit-import.service");
 const rbin_cleaning_controller_1 = require("./rbin-cleaning/rbin-cleaning.controller");
+const rbin_attrition_repository_1 = require("./rbin-cleaning/rbin-attrition.repository");
 const rbin_cleaning_repository_1 = require("./rbin-cleaning/rbin-cleaning.repository");
 const rbin_cleaning_service_1 = require("./rbin-cleaning/rbin-cleaning.service");
 const rbin_exceptions_controller_1 = require("./rbin-exceptions/rbin-exceptions.controller");
@@ -62,12 +68,14 @@ exports.HrbpPointModule = HrbpPointModule;
 exports.HrbpPointModule = HrbpPointModule = __decorate([
     (0, common_1.Module)({
         imports: [database_module_1.DatabaseModule, mrm_module_1.MrmModule],
-        controllers: [available_talent_controller_1.AvailableTalentController, pool_register_controller_1.PoolRegisterController, nomination_status_controller_1.NominationStatusController, active_step_controller_1.ActiveStepController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, headcount_import_controller_1.HeadcountImportController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController, succession_planning_import_controller_1.SuccessionPlanningImportController, attrition_import_controller_1.AttritionImportController, org_structure_import_controller_1.OrgStructureImportController],
+        controllers: [available_talent_controller_1.AvailableTalentController, pool_register_controller_1.PoolRegisterController, nomination_status_controller_1.NominationStatusController, active_step_controller_1.ActiveStepController, attrition_movements_controller_1.AttritionMovementsController, employee_jd_import_controller_1.EmployeeJdImportController, employee_jd_movements_controller_1.EmployeeJdMovementsController, hrbp_point_controller_1.HrbpPointController, headcount_import_controller_1.HeadcountImportController, job_descriptions_controller_1.JobDescriptionsController, namelist_import_controller_1.NamelistImportController, ppp_history_import_controller_1.PppHistoryImportController, ps_exit_import_controller_1.PsExitImportController, rbin_cleaning_controller_1.RbinCleaningController, rbin_mappings_controller_1.RbinMappingsController, rbin_exceptions_controller_1.RbinExceptionsController, succession_planning_import_controller_1.SuccessionPlanningImportController, attrition_import_controller_1.AttritionImportController, org_structure_import_controller_1.OrgStructureImportController],
         providers: [available_talent_service_1.AvailableTalentService,
             pool_register_service_1.PoolRegisterService,
             nomination_status_service_1.NominationStatusService,
             active_step_service_1.ActiveStepService,
             active_step_repository_1.ActiveStepRepository,
+            attrition_movements_service_1.AttritionMovementsService,
+            attrition_movements_repository_1.AttritionMovementsRepository,
             employee_jd_import_service_1.EmployeeJdImportService,
             employee_jd_import_repository_1.EmployeeJdImportRepository,
             employee_jd_movements_service_1.EmployeeJdMovementsService,
@@ -82,6 +90,8 @@ exports.HrbpPointModule = HrbpPointModule = __decorate([
             namelist_import_repository_1.NamelistImportRepository,
             ppp_history_import_service_1.PppHistoryImportService,
             ppp_history_import_repository_1.PppHistoryImportRepository,
+            ps_exit_import_service_1.PsExitImportService,
+            rbin_attrition_repository_1.RbinAttritionRepository,
             rbin_cleaning_service_1.RbinCleaningService,
             rbin_cleaning_repository_1.RbinCleaningRepository,
             rbin_mappings_service_1.RbinMappingsService,

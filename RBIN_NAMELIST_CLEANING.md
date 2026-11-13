@@ -93,7 +93,8 @@ changes.
 | Table | Retention | Purpose |
 | --- | --- | --- |
 | `public.rbin_namelist_imports` | Permanent | Upload audit metadata, file hash, counts, status, owner, and timestamps. |
-| `public.rbin_namelist` | Latest snapshot | Complete raw rows from the latest successful upload. A later successful upload replaces this snapshot atomically. |
+| `public.rbin_namelist` | Latest snapshot | Complete rows from the latest finalized batch. A later finalization replaces this snapshot atomically. |
+| `public.rbin_namelist_history` | Rolling finalized history plus drafts | Original raw rows for draft batches and the newest finalized import for each of the latest two reporting months. Older finalized row payloads are removed after successful finalization. |
 | `public.org_unit_range_mappings` | Permanent | Case-insensitive Organizational Unit to Range lookup. |
 | `public.org_unit_function_mappings` | Permanent | Case-insensitive Organizational Unit to Function lookup. |
 | `public.rbin_staging_batches` | Permanent | Account-owned batch state, counts, hashes, and finalization/export timestamps. |
@@ -105,6 +106,33 @@ Raw rows use `(import_id, source_row_number)` rather than `pers_no` as their
 identity. This allows the raw snapshot to preserve blank, invalid, and duplicate
 employee numbers. `raw_source_data` is authoritative JSONB; nullable typed
 columns support querying values that can be safely cast.
+
+Career Journey detection runs only when a valid draft is finalized. It compares
+the current immutable `raw_source_data` with the newest earlier finalized
+reporting month, then records entry-to-PS and within-PS Organizational Unit or
+PS Group changes in the same transaction that replaces `rbin_namelist` and
+applies history retention.
+
+Attrition tracking runs in that transaction as an independent additive data
+flow. It records confirmed PS-to-non-PS and within-PS Organizational Unit
+transfers in `employee_attrition_events`; a within-PS transfer uses frozen
+staging Range values. BidP, NaP, JaP, and GanP are Plant; every other nonblank
+Range is Corporate, while blank Range remains unclassified.
+Previous PS employees absent from current raw RBIN are stored only as unresolved
+`attrition_departure_candidates`. These new tables do not feed the current
+Attrition dashboard or MRM.
+
+HRBP Point provides an Attrition movements table over this permanent tracking
+data. It combines confirmed events and departure candidates, exposes
+counted views for all records, PS attrition, within-PS transfers, and pending
+departures, and supports employee search, year/month filters, and pagination.
+Its PS Exit upload action accepts historical or monthly XLSX data through a
+validation preview and saves only the selected LWD month. An exact Pers.No and
+match with the newest pending RBIN disappearance creates a permanent resignation,
+retirement, or out-of-PS transfer event using PS Exit LWD as its month. Unmatched
+records from either source remain pending; HRBP can dismiss false positives with an audited action. Import
+metadata and events remain permanent, while raw PS Exit rows retain the selected
+LWD month from the newest save. Existing Attrition and MRM sources remain unchanged.
 
 Staging rows use `(batch_id, source_row_number)`. They retain both
 `original_data` and editable `current_data`. They are not expired or deleted by

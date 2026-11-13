@@ -28,11 +28,16 @@ const aliases = {
     'e separation request no': 'e_separation_request_no',
     'to org unit': 'to_org_unit',
 };
+const optionalColumns = new Set(['filter_value', 'to_org_unit']);
 function cellText(value) {
     if (value == null)
         return '';
-    if (value instanceof Date)
-        return value.toISOString().slice(0, 10);
+    if (value instanceof Date) {
+        const year = String(value.getFullYear()).padStart(4, '0');
+        const month = String(value.getMonth() + 1).padStart(2, '0');
+        const day = String(value.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
     if (typeof value === 'object') {
         if ('result' in value && value.result != null)
             return cellText(value.result);
@@ -223,7 +228,7 @@ function headerMapping(sheet) {
             continue;
         if (unknown.length)
             throw new common_1.BadRequestException(`Unexpected columns: ${unknown.join(', ')}.`);
-        const missing = attrition_import_types_1.attritionColumns.filter((column) => !mapped.has(column));
+        const missing = attrition_import_types_1.attritionColumns.filter((column) => !mapped.has(column) && !optionalColumns.has(column));
         if (missing.length)
             throw new common_1.BadRequestException(`Missing columns: ${missing.join(', ')}.`);
         return { rowNumber, mapping };

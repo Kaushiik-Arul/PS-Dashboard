@@ -1,14 +1,17 @@
 import { DatabaseService } from '../../../database/database.service';
 import type { NamelistRowValues } from '../namelist-import/namelist-import.types';
+import { RbinAttritionRepository } from './rbin-attrition.repository';
 import type { ParsedRbinRow, RbinBaselineValues, RbinBatchMappingInput, RbinBatchSummary, RbinColumnView, RbinExceptionContext, RbinMappingContext, RbinPreviewPage, RbinRowFilter, RbinStagedRow, UploadedRbinFile } from './rbin-cleaning.types';
 export declare class RbinCleaningRepository {
     private readonly database;
-    constructor(database: DatabaseService);
+    private readonly attritionRepository;
+    constructor(database: DatabaseService, attritionRepository: RbinAttritionRepository);
     getMappings(): Promise<RbinMappingContext>;
     getBaselines(persNos: readonly string[]): Promise<Map<string, RbinBaselineValues>>;
     getExceptions(persNos: readonly string[]): Promise<RbinExceptionContext>;
     createBatch(actorAccountId: string, reportingMonth: string, file: UploadedRbinFile, rawRows: ParsedRbinRow[], stagedRows: RbinStagedRow[]): Promise<string>;
-    private getPreviousRawSnapshot;
+    private getPreviousFinalizedRawSnapshot;
+    private cleanupFinalizedRawHistory;
     private replaceAutomaticCareerEvents;
     listBatches(actorAccountId: string): Promise<RbinBatchSummary[]>;
     getSummary(batchId: string, actorAccountId: string): Promise<RbinBatchSummary | null>;

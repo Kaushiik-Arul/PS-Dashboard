@@ -248,6 +248,24 @@ describe('RBIN career detection', () => {
     expect(events[0].eventType).toBe('internal_ps_change');
   });
 
+  it('tracks an internal PS event when only Org Unit changes', () => {
+    const events = detectCareerEvents(
+      [row({ organizational_unit: 'OLD', ps_group: 'A' })],
+      [row({ organizational_unit: 'NEW', ps_group: 'A' })],
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0].eventType).toBe('internal_ps_change');
+  });
+
+  it('tracks an internal PS event when only PS Group changes', () => {
+    const events = detectCareerEvents(
+      [row({ organizational_unit: 'SAME', ps_group: 'A' })],
+      [row({ organizational_unit: 'SAME', ps_group: 'B' })],
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0].eventType).toBe('internal_ps_change');
+  });
+
   it('ignores exits, new employees, unchanged rows, and duplicate identifiers', () => {
     expect(detectCareerEvents(
       [row({ organisational_area_pa: 'PS' })],
