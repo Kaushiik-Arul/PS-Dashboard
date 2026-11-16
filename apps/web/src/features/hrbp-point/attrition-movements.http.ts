@@ -1,5 +1,5 @@
 import { getCsrfToken } from '@/auth/csrf';
-import type { AttritionMovementQuery, AttritionMovementsClient, AttritionMovementsPage } from './attrition-movements.types';
+import type { AttritionMovementQuery, AttritionMovementsClient, AttritionMovementsPage, PendingAttritionCandidate } from './attrition-movements.types';
 
 async function errorMessage(response: Response, fallback: string): Promise<string> {
   const body = await response.json().catch(() => null) as { message?: string } | null;
@@ -34,8 +34,31 @@ export const httpAttritionMovementsClient: AttritionMovementsClient = {
     }
     return response.json() as Promise<AttritionMovementsPage>;
   },
+  async getPendingCandidate(candidateId: string) {
+    const response = await fetch(`/api/hrbp-point/attrition-movements/candidates/${encodeURIComponent(candidateId)}`, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(await errorMessage(response, 'The pending departure details could not be loaded.'));
+    }
+    return response.json() as Promise<PendingAttritionCandidate>;
+  },
+  async confirmPendingCandidate(candidateId, input) {
+    const csrfToken = getCsrfToken();
+    const response = await fetch(`/api/hrbp-point/attrition-movements/candidates/${encodeURIComponent(candidateId)}/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}) },
+      body: JSON.stringify(input),
+    });
+    if (!response.ok) {
+      throw new Error(await errorMessage(response, 'The pending departure could not be confirmed.'));
+    }
+    return response.json() as Promise<{ eventId: string }>;
+  },
   async dismissCandidate(candidateId: string) {
-    const response = await fetch(`/api/hrbp-point/attrition-movements/candidates/${encodeURIComponent(candidateId)}`, { method: 'DELETE' });
+    const csrfToken = getCsrfToken();
+    const response = await fetch(`/api/hrbp-point/attrition-movements/candidates/${encodeURIComponent(candidateId)}`, {
+      method: 'DELETE',
+      headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : undefined,
+    });
     if (!response.ok) {
       throw new Error(await errorMessage(response, 'The pending departure could not be dismissed.'));
     }

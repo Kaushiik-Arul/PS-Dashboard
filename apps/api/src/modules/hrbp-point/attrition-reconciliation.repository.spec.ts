@@ -16,6 +16,8 @@ describe('reconcilePendingAttrition', () => {
     expect(sql).toContain('ps_exit.detected_month = rbin.detected_month');
     expect(sql).toContain("ps_exit.source = 'ps_exit'");
     expect(sql).toContain("rbin.source = 'rbin'");
+    expect(sql).toContain("COALESCE(NULLIF(BTRIM(ps_exit.employee_name), ''), rbin.employee_name)");
+    expect(sql).toContain('employee_name = EXCLUDED.employee_name');
     expect(sql).toContain('DATE_TRUNC(\'month\', pair.exit_lwd)');
     expect(parameters).toEqual(['account-id']);
   });

@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Header, HttpCode, Param, Post, Query, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Query, StreamableFile } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequirePermission } from '../../../common/authorization/require-permission.decorator';
 import { CurrentUser } from '../../auth/auth.decorators';
@@ -34,6 +34,22 @@ export class AttritionMovementsController {
       disposition: `attachment; filename="${result.fileName}"`,
       length: result.buffer.length,
     });
+  }
+
+  @Get('candidates/:candidateId')
+  @RequirePermission('attrition:import')
+  getPendingCandidate(@Param('candidateId') candidateId: string) {
+    return this.service.getPendingCandidate(candidateId);
+  }
+
+  @Post('candidates/:candidateId/confirm')
+  @RequirePermission('attrition:import')
+  confirmPendingCandidate(
+    @Param('candidateId') candidateId: string,
+    @Body() body: unknown,
+    @CurrentUser() actor: AuthenticatedUser,
+  ) {
+    return this.service.confirmPendingCandidate(candidateId, body, actor.accountId);
   }
 
   @Delete('candidates/:candidateId')

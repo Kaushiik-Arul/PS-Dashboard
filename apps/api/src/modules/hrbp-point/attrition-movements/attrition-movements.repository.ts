@@ -5,12 +5,16 @@ import type {
   AttritionMovementItem,
   AttritionMovementsPage,
   AttritionMovementView,
+  ConfirmPendingCandidateInput,
+  ConfirmPendingCandidateResult,
   ConfirmedAttritionExportRow,
+  PendingAttritionCandidate,
 } from './attrition-movements.types';
 
 type ExportRow = {
   event_id: string;
   pers_no: string;
+  employee_name: string | null;
   event_month: string;
   exit_lwd: string | null;
   event_type: string;
@@ -38,6 +42,7 @@ type MovementRow = {
   id: string;
   record_type: 'event' | 'candidate';
   pers_no: string;
+  employee_name: string | null;
   movement_month: Date | string;
   category: AttritionMovementItem['category'];
   event_type: string | null;
@@ -65,9 +70,24 @@ type CountsRow = {
   pending_count: string;
 };
 
+type CandidateRow = {
+  candidate_id: string;
+  run_id: string | null;
+  pers_no: string;
+  employee_name: string | null;
+  detected_month: Date | string;
+  source: string;
+  previous_organisational_area_pa: string | null;
+  previous_organizational_unit: string | null;
+  previous_range: string | null;
+  previous_range_type: string | null;
+  previous_import_id: string | null;
+  current_import_id: string | null;
+};
+
 const recordsCte = `WITH movement_records AS (
   SELECT event.event_id::text AS id, 'event'::text AS record_type,
-    event.pers_no::text AS pers_no, event.event_month AS movement_month,
+    event.pers_no::text AS pers_no, event.employee_name, event.event_month AS movement_month,
     CASE WHEN event.counts_as_ps_attrition THEN 'ps_attrition' ELSE 'within_ps' END::text AS category,
     event.event_type, event.transfer_type, event.within_ps_type, event.counts_as_ps_attrition,
     event.classification_status AS record_status, event.source, event.exit_lwd, event.exit_reason,
@@ -78,7 +98,7 @@ const recordsCte = `WITH movement_records AS (
   WHERE event.deleted_at IS NULL
   UNION ALL
   SELECT candidate.candidate_id::text, 'candidate'::text, candidate.pers_no::text,
-    candidate.detected_month, 'departure_candidate'::text,
+    candidate.employee_name, candidate.detected_month, 'departure_candidate'::text,
     NULL::text, NULL::text, NULL::text, FALSE, candidate.status,
     candidate.source, candidate.exit_lwd, candidate.exit_reason,
     candidate.previous_organisational_area_pa, NULL::text,
@@ -88,7 +108,7 @@ const recordsCte = `WITH movement_records AS (
   WHERE candidate.status = 'pending'
 ), filtered_records AS (
   SELECT * FROM movement_records record
-  WHERE ($1::text = '' OR CONCAT_WS(' ', record.pers_no, record.category, record.event_type,
+  WHERE ($1::text = '' OR CONCAT_WS(' ', record.pers_no, record.employee_name, record.category, record.event_type,
       record.transfer_type, record.within_ps_type, record.record_status,
       record.exit_lwd::text, record.exit_reason,
       record.old_organisational_area_pa, record.new_organisational_area_pa,
@@ -111,6 +131,7 @@ function mapRow(row: MovementRow): AttritionMovementItem {
     id: row.id,
     recordType: row.record_type,
     persNo: row.pers_no,
+    employeeName: row.employee_name,
     month: mapDate(row.movement_month),
     category: row.category,
     eventType: row.event_type,
@@ -136,9 +157,91 @@ function mapRow(row: MovementRow): AttritionMovementItem {
 export class AttritionMovementsRepository {
   constructor(private readonly database: DatabaseService) {}
 
+  async getPendingCandidate(candidateId: string): Promise<PendingAttritionCandidate | null> {
+    const result = await this.database.query<CandidateRow>(
+      `SELECT candidate_id::text, run_id::text, pers_no::text, employee_name,
+         detected_month, source, previous_organisational_area_pa,
+         previous_organizational_unit, previous_range, previous_range_type,
+         previous_import_id::text, current_import_id::text
+       FROM public.attrition_departure_candidates
+       WHERE candidate_id = $1 AND status = 'pending'`,
+      [candidateId],
+    );
+    const candidate = result.rows[0];
+    return candidate ? this.mapCandidate(candidate) : null;
+  }
+
+  async confirmPendingCandidate(
+    candidateId: string,
+    input: ConfirmPendingCandidateInput,
+    actor: string,
+  ): Promise<ConfirmPendingCandidateResult> {
+    return this.database.transaction(async (client) => {
+      const candidateResult = await client.query<CandidateRow>(
+        `SELECT candidate_id::text, run_id::text, pers_no::text, employee_name,
+           detected_month, source, previous_organisational_area_pa,
+           previous_organizational_unit, previous_range, previous_range_type,
+           previous_import_id::text, current_import_id::text
+         FROM public.attrition_departure_candidates
+         WHERE candidate_id = $1 AND status = 'pending'
+         FOR UPDATE`,
+        [candidateId],
+      );
+      const candidate = candidateResult.rows[0];
+      if (!candidate) return { status: 'not_found' };
+
+      const eventResult = await client.query<{ event_id: string }>(
+        `INSERT INTO public.employee_attrition_events (
+           run_id, pers_no, employee_name, event_month, event_type,
+           transfer_type, within_ps_type, counts_as_ps_attrition,
+           classification_status, source, old_organisational_area_pa,
+           old_organizational_unit, old_range, old_range_type,
+           previous_import_id, current_import_id, exit_lwd, exit_reason,
+           notes, is_reviewed, created_by_account_id, updated_by_account_id
+         ) VALUES (
+           $1, $2::bigint, $3, DATE_TRUNC('month', $4::date)::date, $5,
+           CASE WHEN $5 = 'transfer' THEN 'out_of_ps_out_of_rbin' ELSE NULL END,
+           NULL, TRUE, 'confirmed', 'manual', $6, $7, $8, $9,
+           $10::bigint, $11::bigint, $4::date, $12, $13, TRUE, $14::uuid, $14::uuid
+         )
+         ON CONFLICT (pers_no, event_month) WHERE deleted_at IS NULL DO NOTHING
+         RETURNING event_id::text`,
+        [
+          candidate.run_id,
+          candidate.pers_no,
+          candidate.employee_name,
+          input.exitLwd,
+          input.movementType,
+          candidate.previous_organisational_area_pa,
+          candidate.previous_organizational_unit,
+          candidate.previous_range,
+          candidate.previous_range_type,
+          candidate.previous_import_id,
+          candidate.current_import_id,
+          input.exitReason,
+          input.notes,
+          actor,
+        ],
+      );
+      const eventId = eventResult.rows[0]?.event_id;
+      if (!eventId) return { status: 'conflict' };
+
+      await client.query(
+        `UPDATE public.attrition_departure_candidates SET
+           status = 'matched', linked_event_id = $2,
+           resolution_note = 'Manual attrition confirmation.',
+           resolved_by_account_id = $3::uuid, resolved_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE candidate_id = $1`,
+        [candidateId, eventId, actor],
+      );
+      return { status: 'confirmed', eventId };
+    });
+  }
+
   async getConfirmedExportRows(): Promise<ConfirmedAttritionExportRow[]> {
     const result = await this.database.query<ExportRow>(
-      `SELECT event.event_id::text, event.pers_no::text,
+      `SELECT event.event_id::text, event.pers_no::text, event.employee_name,
          TO_CHAR(event.event_month, 'YYYY-MM-DD') AS event_month,
          CASE WHEN event.exit_lwd IS NULL THEN NULL ELSE TO_CHAR(event.exit_lwd, 'YYYY-MM-DD') END AS exit_lwd,
          event.event_type, event.transfer_type, event.within_ps_type,
@@ -154,6 +257,7 @@ export class AttritionMovementsRepository {
     return result.rows.map((row) => ({
       eventId: row.event_id,
       persNo: row.pers_no,
+      employeeName: row.employee_name,
       eventMonth: row.event_month,
       exitLwd: row.exit_lwd,
       eventType: row.event_type,
@@ -267,6 +371,20 @@ export class AttritionMovementsRepository {
       search,
       year,
       month,
+    };
+  }
+
+  private mapCandidate(candidate: CandidateRow): PendingAttritionCandidate {
+    return {
+      id: candidate.candidate_id,
+      persNo: candidate.pers_no,
+      employeeName: candidate.employee_name,
+      detectedMonth: mapDate(candidate.detected_month),
+      source: candidate.source,
+      previousOrganisationalAreaPa: candidate.previous_organisational_area_pa,
+      previousOrganizationalUnit: candidate.previous_organizational_unit,
+      previousRange: candidate.previous_range,
+      previousRangeType: candidate.previous_range_type,
     };
   }
 }

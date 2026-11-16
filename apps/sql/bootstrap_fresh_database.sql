@@ -19,6 +19,7 @@
 -- snapshots, mappings, employee exceptions, staging, and export tables.
 \ir rbin_namelist_creation.sql
 \ir attrition_tracking_migration.sql
+\ir attrition_employee_name_migration.sql
 \ir ps_exit_import_migration.sql
 \ir ps_exit_pending_reconciliation_migration.sql
 \ir ps_exit_month_end_reconciliation_migration.sql

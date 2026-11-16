@@ -11,6 +11,10 @@ function normalized(value: string): string {
   return value.trim().toUpperCase();
 }
 
+function employeeName(value: RbinSourceValues): string | null {
+  return value.personnel_number.trim() || null;
+}
+
 function validPersNo(value: string): boolean {
   if (!/^[1-9]\d{0,18}$/.test(value)) return false;
   return BigInt(value) <= 9_223_372_036_854_775_807n;
@@ -77,6 +81,7 @@ export function detectAttrition(
       if (currentPresence.has(persNo)) return;
       departureCandidates.push({
         persNo,
+        employeeName: employeeName(prior),
         previousOrganisationalAreaPa: prior.organisational_area_pa.trim(),
         previousOrganizationalUnit: prior.organizational_unit.trim(),
         previousRange: oldRange,
@@ -88,6 +93,7 @@ export function detectAttrition(
     if (normalized(next.organisational_area_pa) !== 'PS') {
       events.push({
         persNo,
+        employeeName: employeeName(next) ?? employeeName(prior),
         eventType: 'transfer',
         transferType: 'out_of_ps_within_rbin',
         withinPsType: null,
@@ -112,6 +118,7 @@ export function detectAttrition(
     const fullyClassified = oldRangeType !== null && newRangeType !== null;
     events.push({
       persNo,
+      employeeName: employeeName(next) ?? employeeName(prior),
       eventType: 'transfer',
       transferType: 'within_ps',
       withinPsType: fullyClassified ? withinPsType(oldRangeType, newRangeType) : 'unclassified',

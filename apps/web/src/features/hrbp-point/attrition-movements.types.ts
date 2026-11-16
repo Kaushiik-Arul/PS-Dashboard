@@ -6,6 +6,7 @@ export type AttritionMovementItem = {
   id: string;
   recordType: 'event' | 'candidate';
   persNo: string;
+  employeeName: string | null;
   month: string;
   category: 'ps_attrition' | 'within_ps' | 'departure_candidate';
   eventType: string | null;
@@ -48,8 +49,29 @@ export type AttritionMovementQuery = {
   pageSize: number;
 };
 
+export type PendingAttritionCandidate = {
+  id: string;
+  persNo: string;
+  employeeName: string | null;
+  detectedMonth: string;
+  source: string;
+  previousOrganisationalAreaPa: string | null;
+  previousOrganizationalUnit: string | null;
+  previousRange: string | null;
+  previousRangeType: string | null;
+};
+
+export type ConfirmPendingCandidateInput = {
+  exitLwd: string;
+  movementType: 'resignation' | 'retirement' | 'transfer';
+  exitReason: string;
+  notes: string;
+};
+
 export interface AttritionMovementsClient {
   list(query: AttritionMovementQuery): Promise<AttritionMovementsPage>;
+  getPendingCandidate(candidateId: string): Promise<PendingAttritionCandidate>;
+  confirmPendingCandidate(candidateId: string, input: ConfirmPendingCandidateInput): Promise<{ eventId: string }>;
   dismissCandidate(candidateId: string): Promise<void>;
   exportConfirmedHistory(): Promise<{ fileName: string }>;
 }

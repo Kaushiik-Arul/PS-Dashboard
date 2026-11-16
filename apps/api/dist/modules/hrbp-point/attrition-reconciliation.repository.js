@@ -6,6 +6,7 @@ async function reconcilePendingAttrition(client, actor) {
        SELECT rbin.candidate_id AS rbin_candidate_id,
          ps_exit.candidate_id AS ps_exit_candidate_id,
          rbin.pers_no, rbin.detected_month,
+         COALESCE(NULLIF(BTRIM(ps_exit.employee_name), ''), rbin.employee_name) AS employee_name,
          rbin.previous_organisational_area_pa,
          rbin.previous_organizational_unit,
          rbin.previous_range, rbin.previous_range_type,
@@ -19,13 +20,13 @@ async function reconcilePendingAttrition(client, actor) {
        WHERE rbin.source = 'rbin' AND rbin.status = 'pending'
      ), events AS (
        INSERT INTO public.employee_attrition_events (
-         pers_no, event_month, event_type, transfer_type, within_ps_type,
+         pers_no, employee_name, event_month, event_type, transfer_type, within_ps_type,
          counts_as_ps_attrition, classification_status, source,
          old_organisational_area_pa, old_organizational_unit,
          old_range, old_range_type, ps_exit_import_id, exit_lwd, exit_reason,
          notes, created_by_account_id, updated_by_account_id
        )
-       SELECT pair.pers_no, DATE_TRUNC('month', pair.exit_lwd)::date,
+      SELECT pair.pers_no, pair.employee_name, DATE_TRUNC('month', pair.exit_lwd)::date,
          CASE
            WHEN REGEXP_REPLACE(LOWER(pair.exit_reason), '[^a-z0-9]+', ' ', 'g') = 'intra bosch transfer' THEN 'transfer'
            WHEN REGEXP_REPLACE(LOWER(pair.exit_reason), '[^a-z0-9]+', ' ', 'g') IN ('retirement', 'death not related to work') THEN 'retirement'
@@ -40,6 +41,7 @@ async function reconcilePendingAttrition(client, actor) {
          pair.resolution_note, $1, $1
        FROM pairs pair
        ON CONFLICT (pers_no, event_month) WHERE deleted_at IS NULL DO UPDATE SET
+         employee_name = EXCLUDED.employee_name,
          event_type = EXCLUDED.event_type,
          transfer_type = EXCLUDED.transfer_type,
          within_ps_type = NULL,

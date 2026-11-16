@@ -127,6 +127,9 @@ data. It combines confirmed events and unresolved departure candidates, while
 matched, dismissed, and reappeared candidate audit rows remain stored but hidden. It exposes
 counted views for all records, PS attrition, within-PS transfers, and pending
 departures, and supports employee search, year/month filters, and pagination.
+The movement identity displays Pers.No with a frozen employee-name snapshot
+from RBIN Personnel Number or PS Exit Employee Name, so later source cleanup
+does not remove the historical display value.
 Its PS Exit upload action accepts historical or monthly XLSX data through a
 validation preview. Selecting month M saves employees whose LWD is the final
 calendar day of M-1 plus LWD rows in M before M's final day. The final day of M

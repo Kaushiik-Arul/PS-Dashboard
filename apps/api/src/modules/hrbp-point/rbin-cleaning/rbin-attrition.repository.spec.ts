@@ -44,6 +44,10 @@ describe('RbinAttritionRepository', () => {
     });
 
     expect(query.mock.calls.some(([sql]) => sql.includes('INSERT INTO public.employee_attrition_events'))).toBe(true);
+    const eventInsert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO public.employee_attrition_events'));
+    expect(JSON.parse(eventInsert?.[1]?.[5] as string)).toEqual([
+      expect.objectContaining({ employee_name: '1001' }),
+    ]);
     expect(query.mock.calls.some(([sql]) => /public\.attrition_(rows|imports|state|previews)/.test(sql))).toBe(false);
     expect(query.mock.calls.some(([sql]) => (
       sql.includes("source = 'rbin'") && sql.includes('is_reviewed = FALSE')
@@ -80,5 +84,9 @@ describe('RbinAttritionRepository', () => {
 
     expect(query.mock.calls.some(([sql]) => sql.includes("SET status = 'reappeared'"))).toBe(true);
     expect(query.mock.calls.some(([sql]) => sql.includes('INSERT INTO public.attrition_departure_candidates'))).toBe(true);
+    const candidateInsert = query.mock.calls.find(([sql]) => sql.includes('INSERT INTO public.attrition_departure_candidates'));
+    expect(JSON.parse(candidateInsert?.[1]?.[5] as string)).toEqual([
+      expect.objectContaining({ employee_name: '1001' }),
+    ]);
   });
 });

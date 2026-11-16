@@ -35,14 +35,15 @@ describe('RBIN attrition detection', () => {
 
   it('detects an employee moving out of PS while remaining in RBIN', () => {
     const result = detectAttrition(
-      [raw('1001')],
-      [raw('1001', { organisational_area_pa: 'Other', organizational_unit: 'OTHER/NEW' })],
+      [raw('1001', { personnel_number: 'Previous Name' })],
+      [raw('1001', { personnel_number: 'Employee Name', organisational_area_pa: 'Other', organizational_unit: 'OTHER/NEW' })],
       [cleaned('1001', 'PS/OLD', 'NaP')],
       [],
     );
 
     expect(result.events).toEqual([expect.objectContaining({
       persNo: '1001',
+      employeeName: 'Employee Name',
       transferType: 'out_of_ps_within_rbin',
       countsAsPsAttrition: true,
       classificationStatus: 'confirmed',
@@ -52,7 +53,7 @@ describe('RBIN attrition detection', () => {
 
   it('creates an unresolved candidate when a previous PS employee disappears', () => {
     const result = detectAttrition(
-      [raw('1001')],
+      [raw('1001', { personnel_number: 'Employee Name' })],
       [],
       [cleaned('1001', 'PS/OLD', 'NaP')],
       [],
@@ -60,7 +61,7 @@ describe('RBIN attrition detection', () => {
 
     expect(result.events).toEqual([]);
     expect(result.departureCandidates).toEqual([expect.objectContaining({
-      persNo: '1001', previousRange: 'NaP', previousRangeType: 'plant',
+      persNo: '1001', employeeName: 'Employee Name', previousRange: 'NaP', previousRangeType: 'plant',
     })]);
   });
 

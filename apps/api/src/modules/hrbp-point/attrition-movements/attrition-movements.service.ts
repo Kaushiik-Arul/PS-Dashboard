@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, HttpException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import ExcelJS from 'exceljs';
 import { AttritionMovementsRepository } from './attrition-movements.repository';
@@ -8,12 +8,15 @@ import {
   type ConfirmedAttritionExportRow,
   type AttritionMovementsPage,
   type AttritionMovementView,
+  type ConfirmPendingCandidateInput,
+  type PendingAttritionCandidate,
 } from './attrition-movements.types';
 
 const exportRowLimit = 100_000;
 
 const exportColumns: Array<{ key: keyof ConfirmedAttritionExportRow; header: string; width: number }> = [
   { key: 'persNo', header: 'Pers.No', width: 14 },
+  { key: 'employeeName', header: 'Employee Name', width: 28 },
   { key: 'eventMonth', header: 'Event Month', width: 15 },
   { key: 'exitLwd', header: 'Last Working Day', width: 18 },
   { key: 'eventType', header: 'Event Type', width: 16 },
@@ -93,14 +96,36 @@ export class AttritionMovementsService {
   }
 
   async dismissCandidate(candidateId: string, actor: string): Promise<void> {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidateId)) {
-      throw new BadRequestException('Invalid departure candidate ID.');
-    }
+    this.candidateId(candidateId);
     const dismissed = await this.run(
       () => this.repository.dismissCandidate(candidateId, actor),
       'Unable to dismiss the departure candidate',
     );
     if (!dismissed) throw new NotFoundException('Pending departure candidate was not found.');
+  }
+
+  async getPendingCandidate(candidateId: string): Promise<PendingAttritionCandidate> {
+    this.candidateId(candidateId);
+    const candidate = await this.run(
+      () => this.repository.getPendingCandidate(candidateId),
+      'Unable to load the pending departure candidate',
+    );
+    if (!candidate) throw new NotFoundException('Pending departure candidate was not found.');
+    return candidate;
+  }
+
+  async confirmPendingCandidate(candidateId: string, body: unknown, actor: string): Promise<{ eventId: string }> {
+    this.candidateId(candidateId);
+    const input = this.confirmationInput(body);
+    const result = await this.run(
+      () => this.repository.confirmPendingCandidate(candidateId, input, actor),
+      'Unable to confirm the pending departure candidate',
+    );
+    if (result.status === 'not_found') throw new NotFoundException('Pending departure candidate was not found.');
+    if (result.status === 'conflict') {
+      throw new ConflictException('An active attrition event already exists for this employee and LWD month.');
+    }
+    return { eventId: result.eventId };
   }
 
   private addSummarySheet(workbook: ExcelJS.Workbook, rows: ConfirmedAttritionExportRow[]): void {
@@ -168,8 +193,8 @@ export class AttritionMovementsService {
         return source[key] ?? null;
       }));
       row.getCell(1).numFmt = '@';
-      row.getCell(2).numFmt = 'mmm yyyy';
-      row.getCell(3).numFmt = 'dd mmm yyyy';
+      row.getCell(3).numFmt = 'mmm yyyy';
+      row.getCell(4).numFmt = 'dd mmm yyyy';
     });
     sheet.autoFilter = { from: 'A1', to: `${sheet.getColumn(exportColumns.length).letter}1` };
   }
@@ -188,6 +213,38 @@ export class AttritionMovementsService {
     const parsed = Number(value);
     if (parsed < 1 || parsed > maximum) throw new BadRequestException(`Pagination value must be between 1 and ${maximum}.`);
     return parsed;
+  }
+
+  private candidateId(value: string): void {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+      throw new BadRequestException('Invalid departure candidate ID.');
+    }
+  }
+
+  private confirmationInput(body: unknown): ConfirmPendingCandidateInput {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      throw new BadRequestException('Confirmation details are required.');
+    }
+    const input = body as Record<string, unknown>;
+    const exitLwd = typeof input.exitLwd === 'string' ? input.exitLwd.trim() : '';
+    const parsedLwd = new Date(`${exitLwd}T00:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(exitLwd)
+      || Number.isNaN(parsedLwd.getTime())
+      || parsedLwd.toISOString().slice(0, 10) !== exitLwd) {
+      throw new BadRequestException('LWD must be a valid date.');
+    }
+    if (exitLwd > new Date().toISOString().slice(0, 10)) {
+      throw new BadRequestException('LWD must be today or earlier.');
+    }
+    const movementType = input.movementType;
+    if (movementType !== 'resignation' && movementType !== 'retirement' && movementType !== 'transfer') {
+      throw new BadRequestException('Movement type must be resignation, retirement, or transfer.');
+    }
+    const exitReason = typeof input.exitReason === 'string' ? input.exitReason.trim() : '';
+    if (!exitReason) throw new BadRequestException('Exit reason is required.');
+    const notesValue = typeof input.notes === 'string' ? input.notes.trim() : '';
+    if (notesValue.length > 1000) throw new BadRequestException('Notes must not exceed 1000 characters.');
+    return { exitLwd, movementType, exitReason, notes: notesValue || null };
   }
 
   private async run<Result>(operation: () => Promise<Result>, message: string): Promise<Result> {

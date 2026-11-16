@@ -8,6 +8,7 @@ export type AttritionCleanedRow = {
 };
 export type DetectedAttritionEvent = {
     persNo: string;
+    employeeName: string | null;
     eventType: 'transfer';
     transferType: 'out_of_ps_within_rbin' | 'within_ps';
     withinPsType: WithinPsType | null;
@@ -24,6 +25,7 @@ export type DetectedAttritionEvent = {
 };
 export type DetectedDepartureCandidate = {
     persNo: string;
+    employeeName: string | null;
     previousOrganisationalAreaPa: string;
     previousOrganizationalUnit: string;
     previousRange: string | null;

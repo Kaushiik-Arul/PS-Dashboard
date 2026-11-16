@@ -239,17 +239,17 @@ export class PsExitImportService {
       const pending = await client.query<{ candidate_id: string }>(
         `WITH input AS (
            SELECT * FROM JSONB_TO_RECORDSET($2::jsonb) AS item(
-             pers_no text, reason_for_action text, detailed_reason_approved text,
+             pers_no text, employee_name text, reason_for_action text, detailed_reason_approved text,
              org_unit text, range text, lwd date
            )
          )
          INSERT INTO public.attrition_departure_candidates (
-           pers_no, detected_month, previous_organisational_area_pa,
+           pers_no, employee_name, detected_month, previous_organisational_area_pa,
            previous_organizational_unit, previous_range, previous_range_type,
            source, ps_exit_import_id, exit_lwd, exit_reason,
            resolution_note, created_by_account_id
          )
-         SELECT input.pers_no::bigint, $4::date, 'PS',
+         SELECT input.pers_no::bigint, NULLIF(BTRIM(input.employee_name), ''), $4::date, 'PS',
            NULLIF(input.org_unit, ''), NULLIF(input.range, ''),
            CASE WHEN NULLIF(BTRIM(input.range), '') IS NULL THEN NULL
              WHEN UPPER(BTRIM(input.range)) IN ('BIDP', 'NAP', 'JAP', 'GANP') THEN 'plant'
@@ -258,6 +258,7 @@ export class PsExitImportService {
            NULLIF(input.detailed_reason_approved, ''), $3
          FROM input
          ON CONFLICT (source, pers_no, detected_month) DO UPDATE SET
+           employee_name = EXCLUDED.employee_name,
            ps_exit_import_id = EXCLUDED.ps_exit_import_id,
            exit_lwd = EXCLUDED.exit_lwd,
            exit_reason = EXCLUDED.exit_reason,

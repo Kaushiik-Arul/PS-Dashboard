@@ -64,6 +64,7 @@ next-env.d.ts
 !apps/sql/rbin_employee_exceptions_migration.sql
 !apps/sql/employee_career_journey_migration.sql
 !apps/sql/attrition_tracking_migration.sql
+!apps/sql/attrition_employee_name_migration.sql
 !apps/sql/ps_exit_import_migration.sql
 !apps/sql/ps_exit_pending_reconciliation_migration.sql
 !apps/sql/ps_exit_month_end_reconciliation_migration.sql

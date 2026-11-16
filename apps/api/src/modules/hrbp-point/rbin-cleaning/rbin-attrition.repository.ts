@@ -93,21 +93,21 @@ export class RbinAttritionRepository {
     if (result.events.length) {
       await client.query(
         `INSERT INTO public.employee_attrition_events (
-           run_id, pers_no, event_month, event_type, transfer_type, within_ps_type,
+            run_id, pers_no, employee_name, event_month, event_type, transfer_type, within_ps_type,
            counts_as_ps_attrition, classification_status, source,
            old_organisational_area_pa, new_organisational_area_pa,
            old_organizational_unit, new_organizational_unit,
            old_range, new_range, old_range_type, new_range_type,
            previous_import_id, current_import_id,
            created_by_account_id, updated_by_account_id
-         ) SELECT $1, item.pers_no, $2::date, item.event_type, item.transfer_type,
+         ) SELECT $1, item.pers_no, item.employee_name, $2::date, item.event_type, item.transfer_type,
            item.within_ps_type, item.counts_as_ps_attrition,
            item.classification_status, 'rbin', item.old_organisational_area_pa,
            item.new_organisational_area_pa, item.old_organizational_unit,
            item.new_organizational_unit, item.old_range, item.new_range,
            item.old_range_type, item.new_range_type, $3, $4, $5, $5
          FROM JSONB_TO_RECORDSET($6::jsonb) AS item(
-           pers_no bigint, event_type text, transfer_type text, within_ps_type text,
+           pers_no bigint, employee_name text, event_type text, transfer_type text, within_ps_type text,
            counts_as_ps_attrition boolean, classification_status text,
            old_organisational_area_pa text, new_organisational_area_pa text,
            old_organizational_unit text, new_organizational_unit text,
@@ -122,6 +122,7 @@ export class RbinAttritionRepository {
           context.actorAccountId,
           JSON.stringify(result.events.map((event) => ({
             pers_no: event.persNo,
+            employee_name: event.employeeName,
             event_type: event.eventType,
             transfer_type: event.transferType,
             within_ps_type: event.withinPsType,
@@ -143,19 +144,20 @@ export class RbinAttritionRepository {
     if (result.departureCandidates.length) {
       await client.query(
         `INSERT INTO public.attrition_departure_candidates (
-           run_id, pers_no, detected_month, previous_organisational_area_pa,
+            run_id, pers_no, employee_name, detected_month, previous_organisational_area_pa,
            previous_organizational_unit, previous_range, previous_range_type,
            previous_import_id, current_import_id, created_by_account_id
-         ) SELECT $1, item.pers_no, $2::date, item.previous_organisational_area_pa,
+         ) SELECT $1, item.pers_no, item.employee_name, $2::date, item.previous_organisational_area_pa,
            item.previous_organizational_unit, item.previous_range,
            item.previous_range_type, $3, $4, $5
          FROM JSONB_TO_RECORDSET($6::jsonb) AS item(
-           pers_no bigint, previous_organisational_area_pa text,
+           pers_no bigint, employee_name text, previous_organisational_area_pa text,
            previous_organizational_unit text, previous_range text,
            previous_range_type text
          )
          ON CONFLICT (source, pers_no, detected_month) DO UPDATE SET
            run_id = EXCLUDED.run_id,
+           employee_name = EXCLUDED.employee_name,
            previous_organisational_area_pa = EXCLUDED.previous_organisational_area_pa,
            previous_organizational_unit = EXCLUDED.previous_organizational_unit,
            previous_range = EXCLUDED.previous_range,
@@ -173,6 +175,7 @@ export class RbinAttritionRepository {
           context.actorAccountId,
           JSON.stringify(result.departureCandidates.map((candidate) => ({
             pers_no: candidate.persNo,
+            employee_name: candidate.employeeName,
             previous_organisational_area_pa: candidate.previousOrganisationalAreaPa,
             previous_organizational_unit: candidate.previousOrganizationalUnit,
             previous_range: candidate.previousRange,

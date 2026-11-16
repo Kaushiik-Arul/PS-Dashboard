@@ -22,6 +22,7 @@ const attrition_movements_types_1 = require("./attrition-movements.types");
 const exportRowLimit = 100_000;
 const exportColumns = [
     { key: 'persNo', header: 'Pers.No', width: 14 },
+    { key: 'employeeName', header: 'Employee Name', width: 28 },
     { key: 'eventMonth', header: 'Event Month', width: 15 },
     { key: 'exitLwd', header: 'Last Working Day', width: 18 },
     { key: 'eventType', header: 'Event Type', width: 16 },
@@ -84,12 +85,28 @@ let AttritionMovementsService = AttritionMovementsService_1 = class AttritionMov
         return this.run(() => this.repository.list(view, search, year, month, page, pageSize), 'Unable to load attrition movements');
     }
     async dismissCandidate(candidateId, actor) {
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidateId)) {
-            throw new common_1.BadRequestException('Invalid departure candidate ID.');
-        }
+        this.candidateId(candidateId);
         const dismissed = await this.run(() => this.repository.dismissCandidate(candidateId, actor), 'Unable to dismiss the departure candidate');
         if (!dismissed)
             throw new common_1.NotFoundException('Pending departure candidate was not found.');
+    }
+    async getPendingCandidate(candidateId) {
+        this.candidateId(candidateId);
+        const candidate = await this.run(() => this.repository.getPendingCandidate(candidateId), 'Unable to load the pending departure candidate');
+        if (!candidate)
+            throw new common_1.NotFoundException('Pending departure candidate was not found.');
+        return candidate;
+    }
+    async confirmPendingCandidate(candidateId, body, actor) {
+        this.candidateId(candidateId);
+        const input = this.confirmationInput(body);
+        const result = await this.run(() => this.repository.confirmPendingCandidate(candidateId, input, actor), 'Unable to confirm the pending departure candidate');
+        if (result.status === 'not_found')
+            throw new common_1.NotFoundException('Pending departure candidate was not found.');
+        if (result.status === 'conflict') {
+            throw new common_1.ConflictException('An active attrition event already exists for this employee and LWD month.');
+        }
+        return { eventId: result.eventId };
     }
     addSummarySheet(workbook, rows) {
         const sheet = workbook.addWorksheet('Summary', { views: [{ state: 'frozen', ySplit: 1 }] });
@@ -157,8 +174,8 @@ let AttritionMovementsService = AttritionMovementsService_1 = class AttritionMov
                 return source[key] ?? null;
             }));
             row.getCell(1).numFmt = '@';
-            row.getCell(2).numFmt = 'mmm yyyy';
-            row.getCell(3).numFmt = 'dd mmm yyyy';
+            row.getCell(3).numFmt = 'mmm yyyy';
+            row.getCell(4).numFmt = 'dd mmm yyyy';
         });
         sheet.autoFilter = { from: 'A1', to: `${sheet.getColumn(exportColumns.length).letter}1` };
     }
@@ -181,6 +198,38 @@ let AttritionMovementsService = AttritionMovementsService_1 = class AttritionMov
         if (parsed < 1 || parsed > maximum)
             throw new common_1.BadRequestException(`Pagination value must be between 1 and ${maximum}.`);
         return parsed;
+    }
+    candidateId(value) {
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+            throw new common_1.BadRequestException('Invalid departure candidate ID.');
+        }
+    }
+    confirmationInput(body) {
+        if (!body || typeof body !== 'object' || Array.isArray(body)) {
+            throw new common_1.BadRequestException('Confirmation details are required.');
+        }
+        const input = body;
+        const exitLwd = typeof input.exitLwd === 'string' ? input.exitLwd.trim() : '';
+        const parsedLwd = new Date(`${exitLwd}T00:00:00Z`);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(exitLwd)
+            || Number.isNaN(parsedLwd.getTime())
+            || parsedLwd.toISOString().slice(0, 10) !== exitLwd) {
+            throw new common_1.BadRequestException('LWD must be a valid date.');
+        }
+        if (exitLwd > new Date().toISOString().slice(0, 10)) {
+            throw new common_1.BadRequestException('LWD must be today or earlier.');
+        }
+        const movementType = input.movementType;
+        if (movementType !== 'resignation' && movementType !== 'retirement' && movementType !== 'transfer') {
+            throw new common_1.BadRequestException('Movement type must be resignation, retirement, or transfer.');
+        }
+        const exitReason = typeof input.exitReason === 'string' ? input.exitReason.trim() : '';
+        if (!exitReason)
+            throw new common_1.BadRequestException('Exit reason is required.');
+        const notesValue = typeof input.notes === 'string' ? input.notes.trim() : '';
+        if (notesValue.length > 1000)
+            throw new common_1.BadRequestException('Notes must not exceed 1000 characters.');
+        return { exitLwd, movementType, exitReason, notes: notesValue || null };
     }
     async run(operation, message) {
         try {

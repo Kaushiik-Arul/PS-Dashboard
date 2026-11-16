@@ -34,6 +34,12 @@ let AttritionMovementsController = class AttritionMovementsController {
             length: result.buffer.length,
         });
     }
+    getPendingCandidate(candidateId) {
+        return this.service.getPendingCandidate(candidateId);
+    }
+    confirmPendingCandidate(candidateId, body, actor) {
+        return this.service.confirmPendingCandidate(candidateId, body, actor.accountId);
+    }
     dismissCandidate(candidateId, actor) {
         return this.service.dismissCandidate(candidateId, actor.accountId);
     }
@@ -61,6 +67,24 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AttritionMovementsController.prototype, "exportConfirmedHistory", null);
+__decorate([
+    (0, common_1.Get)('candidates/:candidateId'),
+    (0, require_permission_decorator_1.RequirePermission)('attrition:import'),
+    __param(0, (0, common_1.Param)('candidateId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AttritionMovementsController.prototype, "getPendingCandidate", null);
+__decorate([
+    (0, common_1.Post)('candidates/:candidateId/confirm'),
+    (0, require_permission_decorator_1.RequirePermission)('attrition:import'),
+    __param(0, (0, common_1.Param)('candidateId')),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, auth_decorators_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], AttritionMovementsController.prototype, "confirmPendingCandidate", null);
 __decorate([
     (0, common_1.Delete)('candidates/:candidateId'),
     (0, common_1.HttpCode)(204),

@@ -400,7 +400,13 @@ Apply the additive RBIN attrition-tracking schema after the RBIN schema exists:
 
 ```powershell
 & "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/attrition_tracking_migration.sql"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --dbname="$db" --set ON_ERROR_STOP=1 --file="apps/sql/attrition_employee_name_migration.sql"
 ```
+
+The employee-name follow-up adds a nullable frozen name snapshot to confirmed
+events and departure candidates. RBIN uses its Personnel Number source value;
+PS Exit uses Employee Name. Apply it after attrition tracking and before new
+RBIN or PS Exit records are created.
 
 Apply the PS Exit import schema after attrition tracking. It adds preview and
 import storage and allows permanent attrition events to reference a PS Exit
@@ -423,7 +429,8 @@ filename, and SHA-256 hash.
 
 Apply and validate all additive migrations in `PS_DEV` first. For production,
 back up `PS`, apply `attrition_tracking_migration.sql` followed by
-`ps_exit_import_migration.sql`, `ps_exit_pending_reconciliation_migration.sql`,
+`attrition_employee_name_migration.sql`, `ps_exit_import_migration.sql`,
+`ps_exit_pending_reconciliation_migration.sql`,
 and `ps_exit_month_end_reconciliation_migration.sql`,
 followed by `attrition_movement_export_audit_migration.sql`,
 verify their tables and constraints, and only

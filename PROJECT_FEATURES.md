@@ -490,6 +490,10 @@ Filter options update based on the active selection and authorized scope.
 
 The detailed register includes employee separation records, grouped filters, pagination, full-screen mode, and HRBP CSV download.
 
+### 9.6 Pending Departure Confirmation
+
+- HRBP users can review a pending RBIN or PS Exit departure, enter the final LWD, movement type, exit reason, and optional notes, then confirm it as a permanent manually sourced attrition event. Confirmation preserves the employee and previous-assignment snapshots, rejects duplicate employee/month events, and resolves the pending candidate atomically.
+
 Relevant implementation:
 
 - [Attrition dashboard](apps/web/src/features/attrition/AttritionDashboard.tsx)
@@ -814,6 +818,7 @@ An employee may intentionally appear in both Talent and Development pools.
 - Switch between All records, PS attrition, Within-PS transfers, and Pending departures with live counts.
 - Search by employee or assignment and filter across reporting year and month.
 - Compare previous and current Area, Organizational Unit, Range, and Plant/Corporate classification.
+- Display the frozen source employee name with Pers.No and allow movement searches by either value.
 - Upload a historical or monthly PS Exit XLSX from the table heading, validate and correct a preview, then save the prior month’s final-calendar-day carryover plus current-month rows before the current final day.
 - Confirm resignation, retirement, or out-of-PS transfer when PS Exit and RBIN pending records match by Pers.No and detection month; use PS Exit LWD as the event month and reconcile in either import order.
 - Keep unmatched records from either source pending and let HRBP dismiss audited false positives.
