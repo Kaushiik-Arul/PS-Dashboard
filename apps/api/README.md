@@ -52,13 +52,13 @@ Schema migrations and database functions are stored in [`../sql`](../sql). Revie
 
 ## Feature Documentation
 
-- [Project features](../../PROJECT_FEATURES.md)
-- [Namelist workflows](../../NAMELIST_IMPORT.md)
-- [RBIN Namelist cleaning](../../RBIN_NAMELIST_CLEANING.md)
-- [Management Review Meeting](../../MRM.md)
-- [Security architecture](../../SECURITY_ARCHITECTURE.md)
-- [Cleanup test gate](../../docs/cleanup-testing.md)
+- [Project features](../../docs/features/PROJECT_FEATURES.md)
+- [Namelist workflows](../../docs/imports/NAMELIST_IMPORT.md)
+- [RBIN Namelist cleaning](../../docs/imports/RBIN_NAMELIST_CLEANING.md)
+- [Management Review Meeting](../../docs/features/MRM.md)
+- [Security architecture](../../docs/architecture/SECURITY_ARCHITECTURE.md)
+- [Cleanup test gate](../../docs/operations/cleanup-testing.md)
 
 ## Deployment
 
-Repository deployment and system-engineering requirements are documented in [System Engineering and Deployment Guidelines](../../SYSTEM_ENGINEERING_AND_DEPLOYMENT_GUIDELINES.md).
+Repository deployment and system-engineering requirements are documented in [System Engineering and Deployment Guidelines](../../docs/architecture/SYSTEM_ENGINEERING_AND_DEPLOYMENT_GUIDELINES.md).

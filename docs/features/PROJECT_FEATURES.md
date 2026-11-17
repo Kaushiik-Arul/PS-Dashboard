@@ -69,9 +69,9 @@ The application derives workforce scope from access assignments maintained in Ac
 
 Relevant implementation:
 
-- [Web permission matrix](apps/web/src/auth/permissions.ts)
-- [Application navigation](apps/web/src/components/AppShell.tsx)
-- [API authorization](apps/api/src/common/authorization/permissions.ts)
+- [Web permission matrix](../../apps/web/src/auth/permissions.ts)
+- [Application navigation](../../apps/web/src/components/AppShell.tsx)
+- [API authorization](../../apps/api/src/common/authorization/permissions.ts)
 
 ---
 
@@ -147,9 +147,9 @@ Users can:
 
 Relevant implementation:
 
-- [Custom Overview dashboard](apps/web/src/features/custom-overview/CustomOverviewDashboard.tsx)
-- [Widget catalog](apps/web/src/features/custom-overview/custom-overview.catalog.ts)
-- [Dashboard preferences API](apps/api/src/modules/dashboard-preferences/dashboard-preferences.controller.ts)
+- [Custom Overview dashboard](../../apps/web/src/features/custom-overview/CustomOverviewDashboard.tsx)
+- [Widget catalog](../../apps/web/src/features/custom-overview/custom-overview.catalog.ts)
+- [Dashboard preferences API](../../apps/api/src/modules/dashboard-preferences/dashboard-preferences.controller.ts)
 
 ---
 
@@ -217,8 +217,8 @@ Filters use multi-select controls and dependent option refresh, preventing users
 
 Relevant implementation:
 
-- [Demographics dashboard](apps/web/src/features/overview/OverviewDashboardView.tsx)
-- [Overview API](apps/api/src/modules/overview/overview.controller.ts)
+- [Demographics dashboard](../../apps/web/src/features/overview/OverviewDashboardView.tsx)
+- [Overview API](../../apps/api/src/modules/overview/overview.controller.ts)
 
 ---
 
@@ -317,10 +317,10 @@ Authorized HRBP users can update STEP availability and IDP status directly from 
 
 Relevant implementation:
 
-- [Employee directory](apps/web/src/features/employee-360/Employee360Dashboard.tsx)
-- [Employee profile](apps/web/src/features/employee-360/EmployeeProfileView.tsx)
-- [Career Journey](apps/web/src/features/employee-360/CareerJourneyPanel.tsx)
-- [Employee 360 API](apps/api/src/modules/employee-360/employee-360.controller.ts)
+- [Employee directory](../../apps/web/src/features/employee-360/Employee360Dashboard.tsx)
+- [Employee profile](../../apps/web/src/features/employee-360/EmployeeProfileView.tsx)
+- [Career Journey](../../apps/web/src/features/employee-360/CareerJourneyPanel.tsx)
+- [Employee 360 API](../../apps/api/src/modules/employee-360/employee-360.controller.ts)
 
 ---
 
@@ -389,9 +389,9 @@ Both dashboards support workforce filters for Function, Organizational Unit, Ran
 
 Relevant implementation:
 
-- [Talent Landscape dashboard](apps/web/src/features/talent-pipeline/TalentPipelineDashboard.tsx)
-- [Talent Landscape API](apps/api/src/modules/talent-pipeline/talent-pipeline.controller.ts)
-- [Pool register API](apps/api/src/modules/hrbp-point/pool-register/pool-register.controller.ts)
+- [Talent Landscape dashboard](../../apps/web/src/features/talent-pipeline/TalentPipelineDashboard.tsx)
+- [Talent Landscape API](../../apps/api/src/modules/talent-pipeline/talent-pipeline.controller.ts)
+- [Pool register API](../../apps/api/src/modules/hrbp-point/pool-register/pool-register.controller.ts)
 
 ---
 
@@ -447,8 +447,8 @@ HRBP can save organization-wide monthly Succession Planning snapshots. Historica
 
 Relevant implementation:
 
-- [Succession Planning dashboard](apps/web/src/features/succession-planning/SuccessionPlanningDashboard.tsx)
-- [Succession Planning API](apps/api/src/modules/succession-planning/succession-planning.controller.ts)
+- [Succession Planning dashboard](../../apps/web/src/features/succession-planning/SuccessionPlanningDashboard.tsx)
+- [Succession Planning API](../../apps/api/src/modules/succession-planning/succession-planning.controller.ts)
 
 ---
 
@@ -496,8 +496,8 @@ The detailed register includes employee separation records, grouped filters, pag
 
 Relevant implementation:
 
-- [Attrition dashboard](apps/web/src/features/attrition/AttritionDashboard.tsx)
-- [Attrition API](apps/api/src/modules/attrition/attrition.controller.ts)
+- [Attrition dashboard](../../apps/web/src/features/attrition/AttritionDashboard.tsx)
+- [Attrition API](../../apps/api/src/modules/attrition/attrition.controller.ts)
 
 ---
 
@@ -550,8 +550,8 @@ Missing-parent and cyclic branches are shown in a separate **Unlinked Roles** se
 
 Relevant implementation:
 
-- [Organization Structure view](apps/web/src/features/org-structure/OrgStructureView.tsx)
-- [Organization Structure API](apps/api/src/modules/hrbp-point/org-structure-import/org-structure-import.controller.ts)
+- [Organization Structure view](../../apps/web/src/features/org-structure/OrgStructureView.tsx)
+- [Organization Structure API](../../apps/api/src/modules/hrbp-point/org-structure-import/org-structure-import.controller.ts)
 
 ---
 
@@ -635,10 +635,10 @@ Authorized users can download attachments. HRBP can upload or delete attachments
 
 Relevant implementation:
 
-- [MRM report interface](apps/web/src/features/mrm/MrmReport.tsx)
-- [MRM API](apps/api/src/modules/mrm/mrm.controller.ts)
+- [MRM report interface](../../apps/web/src/features/mrm/MrmReport.tsx)
+- [MRM API](../../apps/api/src/modules/mrm/mrm.controller.ts)
 - [MRM documentation](MRM.md)
-- [MRM snapshot migration](apps/sql/mrm_monthly_metric_snapshots_migration.sql)
+- [MRM snapshot migration](../../apps/sql/mrm_monthly_metric_snapshots_migration.sql)
 
 ---
 
@@ -689,7 +689,7 @@ Features include:
 - Historical organization-level snapshot generation.
 - Separate historical import workflow.
 
-Reference: [Namelist import panel](apps/web/src/features/hrbp-point/NamelistImportPanel.tsx)
+Reference: [Namelist import panel](../../apps/web/src/features/hrbp-point/NamelistImportPanel.tsx)
 
 ### 12.4 Monthly Headcount Import
 
@@ -708,7 +708,7 @@ Features include:
 
 This is identified in project documentation as a temporary migration tool: the historical aggregate tables remain useful after the import UI is no longer needed.
 
-Reference: [Monthly headcount import documentation](MONTHLY_HEADCOUNT_IMPORT.md)
+Reference: [Monthly headcount import documentation](../imports/MONTHLY_HEADCOUNT_IMPORT.md)
 
 ### 12.5 Job Description Management
 
@@ -724,7 +724,7 @@ HRBP can maintain the JD master through:
 
 JD master data is reused by Employee 360, talent workflows, Succession Planning, and Org Structure.
 
-Reference: [JD management panel](apps/web/src/features/hrbp-point/JdManagementPanel.tsx)
+Reference: [JD management panel](../../apps/web/src/features/hrbp-point/JdManagementPanel.tsx)
 
 ### 12.6 Employee Leave and Special Status
 
@@ -869,7 +869,7 @@ The preview also shows raw-row count, staged-row count, valid rows, and missing-
 - Export produces a 29-column XLSX PS Namelist.
 - Export events retain metadata such as actor, row count, timestamp, and integrity hash.
 
-Reference: [RBIN cleaning panel](apps/web/src/features/hrbp-point/RbinNamelistCleaningPanel.tsx)
+Reference: [RBIN cleaning panel](../../apps/web/src/features/hrbp-point/RbinNamelistCleaningPanel.tsx)
 
 ### 12.16 RBIN Mapping Management
 
@@ -886,8 +886,8 @@ HRBP can maintain reusable column-level exception rules. These rules support spe
 
 Relevant implementation:
 
-- [HRBP Point dashboard](apps/web/src/features/hrbp-point/HrbpPointDashboard.tsx)
-- [HRBP API modules](apps/api/src/modules/hrbp-point)
+- [HRBP Point dashboard](../../apps/web/src/features/hrbp-point/HrbpPointDashboard.tsx)
+- [HRBP API modules](../../apps/api/src/modules/hrbp-point)
 
 ---
 
@@ -945,8 +945,8 @@ Account deactivation:
 
 Relevant implementation:
 
-- [Access Point dashboard](apps/web/src/features/access-point/AccessPointDashboard.tsx)
-- [Access Point API](apps/api/src/modules/access-point/access-point.controller.ts)
+- [Access Point dashboard](../../apps/web/src/features/access-point/AccessPointDashboard.tsx)
+- [Access Point API](../../apps/api/src/modules/access-point/access-point.controller.ts)
 
 ---
 
@@ -997,8 +997,8 @@ The platform stores security and operational history for important events such a
 
 Relevant implementation:
 
-- [Authentication API](apps/api/src/modules/auth/auth.controller.ts)
-- [Security architecture](SECURITY_ARCHITECTURE.md)
+- [Authentication API](../../apps/api/src/modules/auth/auth.controller.ts)
+- [Security architecture](../architecture/SECURITY_ARCHITECTURE.md)
 
 ---
 
@@ -1024,7 +1024,7 @@ Operational tables support:
 
 CSV export protects values that begin with spreadsheet formula characters, reducing formula-injection risk when files are opened in Excel.
 
-Reference: [Reusable DataTable](apps/web/src/components/data-table/DataTable.tsx)
+Reference: [Reusable DataTable](../../apps/web/src/components/data-table/DataTable.tsx)
 
 ### 15.2 Consistent Workforce Filters
 

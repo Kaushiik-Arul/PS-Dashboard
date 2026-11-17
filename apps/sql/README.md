@@ -1,6 +1,6 @@
 # Overview database contract
 
-Org Structure import setup and behavior: [Org Structure Import](../../ORG_STRUCTURE_IMPORT.md).
+Org Structure import setup and behavior: [Org Structure Import](../../docs/imports/ORG_STRUCTURE_IMPORT.md).
 
 API endpoint: GET /api/v1/overview
 
@@ -130,7 +130,7 @@ Schema file: `apps/sql/auth_creation.sql`
 
 ## Namelist import
 
-Full cross-stack documentation: [Namelist Updation](../../NAMELIST_IMPORT.md).
+Full cross-stack documentation: [Namelist Updation](../../docs/imports/NAMELIST_IMPORT.md).
 
 Apply `namelist_import_staging_migration.sql` after `auth_creation.sql` and
 `namelist_creation.sql` before enabling Namelist Updation. It creates expiring,
@@ -283,7 +283,7 @@ relying on organization-filtered percentages.
 
 ## Management Review Meeting
 
-Full cross-stack documentation: [Management Review Meeting](../../MRM.md).
+Full cross-stack documentation: [Management Review Meeting](../../docs/features/MRM.md).
 
 Apply `mrm_creation_migration.sql` after authentication, Namelist, Namelist
 monthly history, and Attrition migrations. Back up the database and apply it to
@@ -346,7 +346,7 @@ WHERE status = 'ready' AND expires_at <= CURRENT_TIMESTAMP;
 
 ## RBIN cleaning data foundation
 
-Full cross-stack documentation: [RBIN Namelist to PS Namelist](../../RBIN_NAMELIST_CLEANING.md).
+Full cross-stack documentation: [RBIN Namelist to PS Namelist](../../docs/imports/RBIN_NAMELIST_CLEANING.md).
 
 `rbin_namelist_creation.sql` is the fresh-install schema for the RBIN cleaning
 workflow. Apply it after `auth_creation.sql` and `namelist_creation.sql`. Do not
