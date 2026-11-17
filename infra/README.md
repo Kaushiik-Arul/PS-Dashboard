@@ -13,6 +13,8 @@ Run scripts from the repository root.
 | `scripts/load-rbin-mappings.ps1` | Validate and load Organizational Unit mapping CSV files into PostgreSQL |
 | `scripts/test-smoke.ps1` | Verify the running Next.js application, NestJS API, API proxy, and basic security boundaries |
 
+The mapping loader requires `-FunctionCsv` and `-RangeCsv`. It reads `DATABASE_URL` from `apps/api/.env` unless explicitly supplied and locates `psql` from `-PsqlPath`, `PATH`, or installed PostgreSQL directories.
+
 The mapping workflow is documented in [RBIN Namelist Cleaning](../RBIN_NAMELIST_CLEANING.md). The smoke gate is documented in [Cleanup Testing](../docs/cleanup-testing.md).
 
 ## Deployment Status

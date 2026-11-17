@@ -1,9 +1,13 @@
 [CmdletBinding()]
 param(
-    [string]$FunctionCsv = 'C:\Users\ARL4BAN\Documents\PS\OrgUnit Function Mapping.csv',
-    [string]$RangeCsv = 'C:\Users\ARL4BAN\Documents\PS\OrgUnit - Range Mapping.csv',
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]$FunctionCsv,
+    [Parameter(Mandatory)]
+    [ValidateNotNullOrEmpty()]
+    [string]$RangeCsv,
     [string]$DatabaseUrl,
-    [string]$PsqlPath = 'C:\Program Files\PostgreSQL\18\bin\psql.exe'
+    [string]$PsqlPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,13 +34,27 @@ function Get-DatabaseUrl {
 }
 
 function Get-PsqlPath {
-    if (Test-Path -LiteralPath $PsqlPath) {
-        return $PsqlPath
+    if ($PsqlPath) {
+        if (Test-Path -LiteralPath $PsqlPath -PathType Leaf) {
+            return (Resolve-Path -LiteralPath $PsqlPath).Path
+        }
+        throw "psql does not exist at the supplied path: $PsqlPath"
     }
 
     $command = Get-Command psql -ErrorAction SilentlyContinue
     if ($command) {
         return $command.Source
+    }
+
+    $postgresRoot = Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'PostgreSQL'
+    $installedClients = @(
+        Get-ChildItem -LiteralPath $postgresRoot -Directory -ErrorAction SilentlyContinue |
+            ForEach-Object { Join-Path $_.FullName 'bin\psql.exe' } |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+            Sort-Object -Descending
+    )
+    if ($installedClients.Count -gt 0) {
+        return $installedClients[0]
     }
 
     throw 'psql was not found. Pass -PsqlPath with the PostgreSQL client path.'

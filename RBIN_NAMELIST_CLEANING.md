@@ -185,12 +185,6 @@ the other remains missing.
 Preferred loader:
 
 ```powershell
-& .\infra\scripts\load-rbin-mappings.ps1
-```
-
-Override the source files when needed:
-
-```powershell
 & .\infra\scripts\load-rbin-mappings.ps1 `
   -FunctionCsv "C:\path\OrgUnit Function Mapping.csv" `
   -RangeCsv "C:\path\OrgUnit - Range Mapping.csv"
@@ -199,7 +193,7 @@ Override the source files when needed:
 The loader:
 
 1. Reads `DATABASE_URL` from `apps/api/.env` unless `-DatabaseUrl` is supplied.
-2. Locates `psql`, using PostgreSQL 18's default Windows path unless overridden.
+2. Locates `psql` from `-PsqlPath`, `PATH`, or installed PostgreSQL directories.
 3. Validates both CSVs before changing PostgreSQL.
 4. Rejects blank Organizational Units or mapped values.
 5. Rejects conflicting duplicate Organizational Unit mappings.

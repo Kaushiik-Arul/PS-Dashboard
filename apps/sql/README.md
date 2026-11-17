@@ -510,14 +510,8 @@ CSV must have `organizational_unit,function`. Load each file in a separate
 transaction using `psql`; replace the example paths and source file names.
 
 The preferred loader validates both CSVs first, creates or migrates the RBIN
-schema when needed, and transactionally upserts both mappings. Its defaults are
-the approved local file paths:
-
-```powershell
-& .\infra\scripts\load-rbin-mappings.ps1
-```
-
-Override paths when the files move:
+schema when needed, and transactionally upserts both mappings. Both source
+paths are required:
 
 ```powershell
 & .\infra\scripts\load-rbin-mappings.ps1 `
@@ -526,7 +520,8 @@ Override paths when the files move:
 ```
 
 The script reads `DATABASE_URL` from `apps/api/.env` unless `-DatabaseUrl` is
-provided. It recognizes `organizational_unit`, `organisational_unit`,
+provided. It locates `psql` from `-PsqlPath`, `PATH`, or installed PostgreSQL
+directories. It recognizes `organizational_unit`, `organisational_unit`,
 `org_unit`, or `orgunit` after normalizing spaces and punctuation. Range headers
 may be `range` or `range_value`; Function headers may be `function` or
 `function_value`. Blank values and conflicting duplicate Organizational Units
