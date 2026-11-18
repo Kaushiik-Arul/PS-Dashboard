@@ -209,6 +209,7 @@ CREATE TABLE public.org_unit_range_mappings (
     mapping_id              UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
     organizational_unit     TEXT NOT NULL CHECK (NULLIF(BTRIM(organizational_unit), '') IS NOT NULL),
     range_value             TEXT NOT NULL CHECK (NULLIF(BTRIM(range_value), '') IS NOT NULL),
+    range_2                 TEXT CHECK (range_2 IS NULL OR NULLIF(BTRIM(range_2), '') IS NOT NULL),
     source_file_name        TEXT NOT NULL CHECK (NULLIF(BTRIM(source_file_name), '') IS NOT NULL),
     created_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

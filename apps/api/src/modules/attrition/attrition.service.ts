@@ -22,6 +22,7 @@ type AttritionRecord = {
   detailed_reason_approved: string;
   org_unit: string;
   range: string;
+  range2: string;
   initiated_date: string;
   lwd: string;
   lwd_year: number | null;
@@ -62,36 +63,52 @@ export class AttritionService {
          WHERE state.singleton = TRUE`,
       ),
       this.database.query<AttritionRecord>(
-        `SELECT row.id::TEXT,
-                row.pers_no::TEXT,
-                COALESCE(row.employee_name, '') AS employee_name,
-                COALESCE(row.ps_group, '') AS ps_group,
-                COALESCE(row.gender_key, '') AS gender_key,
-                COALESCE(row.filter_value, '') AS filter_value,
-                COALESCE(row.reason_for_action, '') AS reason_for_action,
-                COALESCE(row.detailed_reason_approved, '') AS detailed_reason_approved,
-                COALESCE(row.org_unit, '') AS org_unit,
-                COALESCE(row.range, '') AS range,
-                COALESCE(TO_CHAR(row.initiated_date, 'DD.MM.YYYY'), '') AS initiated_date,
-                COALESCE(TO_CHAR(row.lwd, 'DD.MM.YYYY'), '') AS lwd,
-                EXTRACT(YEAR FROM row.lwd)::INTEGER AS lwd_year,
-                EXTRACT(MONTH FROM row.lwd)::INTEGER AS lwd_month,
-                COALESCE(row.e_separation_request_no, '') AS e_separation_request_no,
-                COALESCE(row.to_org_unit, '') AS to_org_unit
-         FROM public.attrition_rows row
-         WHERE EXISTS (
+        `SELECT event.event_id::TEXT AS id,
+                event.pers_no::TEXT,
+                COALESCE(event.employee_name, '') AS employee_name,
+                ''::TEXT AS ps_group,
+                ''::TEXT AS gender_key,
+                INITCAP(event.event_type) AS filter_value,
+                COALESCE(event.exit_reason, '') AS reason_for_action,
+                COALESCE(event.exit_reason, '') AS detailed_reason_approved,
+                COALESCE(event.old_organizational_unit, '') AS org_unit,
+                COALESCE(mapping.range_value, '') AS range,
+                COALESCE(mapping.range_2, '') AS range2,
+                ''::TEXT AS initiated_date,
+                COALESCE(TO_CHAR(event.exit_lwd, 'DD.MM.YYYY'), '') AS lwd,
+                EXTRACT(YEAR FROM COALESCE(event.exit_lwd, event.event_month))::INTEGER AS lwd_year,
+                EXTRACT(MONTH FROM COALESCE(event.exit_lwd, event.event_month))::INTEGER AS lwd_month,
+                ''::TEXT AS e_separation_request_no,
+                COALESCE(event.new_organizational_unit, '') AS to_org_unit
+         FROM public.employee_attrition_events event
+         LEFT JOIN public.org_unit_range_mappings mapping
+           ON LOWER(REGEXP_REPLACE(BTRIM(mapping.organizational_unit), '[[:space:]]+', ' ', 'g'))
+            = LOWER(REGEXP_REPLACE(BTRIM(COALESCE(event.old_organizational_unit, '')), '[[:space:]]+', ' ', 'g'))
+         WHERE event.deleted_at IS NULL
+           AND event.classification_status = 'confirmed'
+           AND event.counts_as_ps_attrition = TRUE
+           AND (
+             event.event_type IN ('resignation', 'retirement')
+             OR (
+               event.event_type = 'transfer'
+               AND event.transfer_type IN ('out_of_ps_within_rbin', 'out_of_ps_out_of_rbin')
+             )
+           )
+           AND EXISTS (
            SELECT 1 FROM public.master_access access
            WHERE access.account_id = $1::UUID
              AND (
                access.role IN ('hrbp', 'admin')
                OR (access.role = 'range_head'
-                 AND BTRIM(COALESCE(row.range, '')) = BTRIM(access.assigned_range))
+                 AND BTRIM(COALESCE(event.old_range, '')) = BTRIM(access.assigned_range))
                OR (access.role IN ('department_head', 'sub_department_head')
-                 AND BTRIM(COALESCE(row.range, '')) = BTRIM(access.assigned_range)
-                 AND BTRIM(COALESCE(row.org_unit, '')) = BTRIM(access.assigned_org_unit))
+                 AND BTRIM(COALESCE(event.old_range, '')) = BTRIM(access.assigned_range)
+                 AND BTRIM(COALESCE(event.old_organizational_unit, '')) = BTRIM(access.assigned_org_unit))
              )
          )
-         ORDER BY row.lwd DESC NULLS LAST, row.pers_no, row.id`,
+         ORDER BY COALESCE(event.exit_lwd, event.event_month) DESC,
+                  event.pers_no,
+                  event.event_id`,
         [accountId],
       ),
       this.database.query<{ unrestricted: boolean; range_scoped: boolean }>(
@@ -148,7 +165,7 @@ export class AttritionService {
         : accessFlags?.range_scoped
           ? 'range'
           : 'rangeOrgUnit',
-      rows: rows.map(({ lwd_year, lwd_month, separationType: rowType, ...row }) => row),
+      rows: rows.map(({ lwd_year, lwd_month, range2, separationType: rowType, ...row }) => row),
       filterOptions: this.buildFilterOptions(authorizedRows, filters),
       kpis: {
         total: rows.length,
@@ -176,14 +193,14 @@ export class AttritionService {
     rows: ClassifiedAttritionRecord[],
     filters: NormalizedAttritionFilters,
   ) {
-    type FilterKey = 'year' | 'separationType' | 'reasonForAction' | 'range' | 'orgUnit';
+    type FilterKey = 'year' | 'separationType' | 'reasonForAction' | 'range' | 'range2';
     const matchesExcept = (row: ClassifiedAttritionRecord, omitted: FilterKey) =>
       row.lwd_year !== null
       && (omitted === 'year' || filters.years.includes(row.lwd_year))
       && (omitted === 'separationType' || !filters.separationTypes.length || filters.separationTypes.includes(row.separationType))
       && (omitted === 'reasonForAction' || !filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => normalizedKey(row.reason_for_action) === normalizedKey(reason)))
       && (omitted === 'range' || !filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)))
-      && (omitted === 'orgUnit' || !filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)));
+      && (omitted === 'range2' || !filters.ranges2.length || filters.ranges2.some((range2) => normalizedKey(row.range2) === normalizedKey(range2)));
     return {
       year: [...new Set(rows.filter((row) => matchesExcept(row, 'year'))
         .flatMap((row) => row.lwd_year === null ? [] : [String(row.lwd_year)]))]
@@ -195,8 +212,8 @@ export class AttritionService {
         .map((row) => row.reason_for_action).filter(Boolean)),
       range: sortValues(rows.filter((row) => matchesExcept(row, 'range'))
         .map((row) => row.range).filter(Boolean)),
-      orgUnit: sortValues(rows.filter((row) => matchesExcept(row, 'orgUnit'))
-        .map((row) => row.org_unit).filter(Boolean)),
+      range2: sortValues(rows.filter((row) => matchesExcept(row, 'range2'))
+        .map((row) => row.range2).filter(Boolean)),
     };
   }
 
@@ -204,7 +221,7 @@ export class AttritionService {
     return row.lwd_year !== null && filters.years.includes(row.lwd_year)
       && (!filters.separationTypes.length || filters.separationTypes.includes(row.separationType))
       && (!filters.reasonsForAction.length || filters.reasonsForAction.some((reason) => normalizedKey(row.reason_for_action) === normalizedKey(reason)))
-      && (!filters.orgUnits.length || filters.orgUnits.some((orgUnit) => normalizedKey(row.org_unit) === normalizedKey(orgUnit)))
+      && (!filters.ranges2.length || filters.ranges2.some((range2) => normalizedKey(row.range2) === normalizedKey(range2)))
       && (!filters.ranges.length || filters.ranges.some((range) => normalizedKey(row.range) === normalizedKey(range)));
   }
 
@@ -229,6 +246,11 @@ export class AttritionService {
            AND NOT EXISTS (
              SELECT 1 FROM allowed_ranges allowed WHERE allowed.range_key = scoped.range_key
            )
+       ), mapping_rows AS (
+         SELECT UPPER(REGEXP_REPLACE(BTRIM(organizational_unit), '[[:space:]]+', ' ', 'g')) AS org_unit_key,
+                UPPER(REGEXP_REPLACE(BTRIM(range_value), '[[:space:]]+', ' ', 'g')) AS range_key,
+                UPPER(REGEXP_REPLACE(BTRIM(COALESCE(range_2, '')), '[[:space:]]+', ' ', 'g')) AS range2_key
+         FROM public.org_unit_range_mappings
        ), selected AS (
          SELECT month.reporting_month, month.total_headcount::BIGINT AS headcount
          FROM public.employee_headcount_months month CROSS JOIN access_flags flags
@@ -236,19 +258,12 @@ export class AttritionService {
            AND EXTRACT(YEAR FROM month.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
-         FROM public.employee_headcount_by_range item CROSS JOIN access_flags flags
-         WHERE flags.unrestricted AND $3::TEXT[] IS NOT NULL AND $4::TEXT[] IS NULL
-           AND item.range_key = ANY($3::TEXT[]) AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
-         UNION ALL
-         SELECT item.reporting_month, item.headcount::BIGINT
-         FROM public.employee_headcount_by_org_unit item CROSS JOIN access_flags flags
-         WHERE flags.unrestricted AND $3::TEXT[] IS NULL AND $4::TEXT[] IS NOT NULL
-           AND item.org_unit_key = ANY($4::TEXT[]) AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
-         UNION ALL
-         SELECT item.reporting_month, item.headcount::BIGINT
-         FROM public.employee_headcount_by_range_org_unit item CROSS JOIN access_flags flags
-         WHERE flags.unrestricted AND $3::TEXT[] IS NOT NULL AND $4::TEXT[] IS NOT NULL
-           AND item.range_key = ANY($3::TEXT[]) AND item.org_unit_key = ANY($4::TEXT[])
+         FROM public.employee_headcount_by_org_unit item
+         JOIN mapping_rows mapping ON mapping.org_unit_key = item.org_unit_key
+         CROSS JOIN access_flags flags
+         WHERE flags.unrestricted AND ($3::TEXT[] IS NOT NULL OR $4::TEXT[] IS NOT NULL)
+           AND ($3::TEXT[] IS NULL OR mapping.range_key = ANY($3::TEXT[]))
+           AND ($4::TEXT[] IS NULL OR mapping.range2_key = ANY($4::TEXT[]))
            AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
@@ -262,19 +277,22 @@ export class AttritionService {
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_range_org_unit item
          JOIN allowed_ranges allowed ON allowed.range_key = item.range_key
+         JOIN mapping_rows mapping ON mapping.org_unit_key = item.org_unit_key
          CROSS JOIN access_flags flags
-         WHERE NOT flags.unrestricted AND $4::TEXT[] IS NOT NULL
-           AND item.org_unit_key = ANY($4::TEXT[]) AND ($3::TEXT[] IS NULL OR item.range_key = ANY($3::TEXT[]))
+         WHERE NOT flags.unrestricted AND ($3::TEXT[] IS NOT NULL OR $4::TEXT[] IS NOT NULL)
+           AND ($3::TEXT[] IS NULL OR mapping.range_key = ANY($3::TEXT[]))
+           AND ($4::TEXT[] IS NULL OR mapping.range2_key = ANY($4::TEXT[]))
            AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
          UNION ALL
          SELECT item.reporting_month, item.headcount::BIGINT
          FROM public.employee_headcount_by_range_org_unit item
          JOIN allowed_tuples allowed
            ON allowed.range_key = item.range_key AND allowed.org_unit_key = item.org_unit_key
+         LEFT JOIN mapping_rows mapping ON mapping.org_unit_key = item.org_unit_key
          CROSS JOIN access_flags flags
          WHERE NOT flags.unrestricted
-           AND ($3::TEXT[] IS NULL OR item.range_key = ANY($3::TEXT[]))
-           AND ($4::TEXT[] IS NULL OR item.org_unit_key = ANY($4::TEXT[]))
+           AND ($3::TEXT[] IS NULL OR mapping.range_key = ANY($3::TEXT[]))
+           AND ($4::TEXT[] IS NULL OR mapping.range2_key = ANY($4::TEXT[]))
              AND EXTRACT(YEAR FROM item.reporting_month)::INTEGER = ANY($2::INTEGER[])
        )
            SELECT EXTRACT(MONTH FROM reporting_month)::INTEGER AS month,
@@ -284,7 +302,7 @@ export class AttritionService {
         accountId,
         filters.years,
         filters.ranges.length ? filters.ranges.map(normalizedKey) : null,
-        filters.orgUnits.length ? filters.orgUnits.map(normalizedKey) : null,
+        filters.ranges2.length ? filters.ranges2.map(normalizedKey) : null,
       ],
     );
     return new Map(result.rows.map((row) => [
@@ -314,7 +332,7 @@ export class AttritionService {
     return {
       years,
       separationTypes: selectedTypes,
-      orgUnits: normalizeMany(filters.orgUnit, 'Organizational unit'),
+      ranges2: normalizeMany(filters.range2, 'Range 2'),
       ranges: normalizeMany(filters.range, 'Range'),
       reasonsForAction: normalizeMany(filters.reasonForAction, 'Reason for action'),
     };

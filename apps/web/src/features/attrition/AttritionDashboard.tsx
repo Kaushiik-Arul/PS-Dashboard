@@ -27,7 +27,7 @@ type FilterState = {
   separationTypes: string[];
   reasonsForAction: string[];
   ranges: string[];
-  orgUnits: string[];
+  ranges2: string[];
 };
 
 const columns: DataTableColumn<AttritionRecord>[] = attritionColumns.map(
@@ -51,7 +51,7 @@ function toFilterState(filters: AttritionQueryFilters, data: AttritionResponse):
     separationTypes: filters.separationType ?? data.filterOptions.separationType,
     reasonsForAction: filters.reasonForAction ?? data.filterOptions.reasonForAction,
     ranges: filters.range ?? data.filterOptions.range,
-    orgUnits: filters.orgUnit ?? data.filterOptions.orgUnit,
+    ranges2: filters.range2 ?? data.filterOptions.range2,
   };
 }
 
@@ -61,7 +61,7 @@ function toSearchParams(filters: FilterState, options: AttritionFilterOptions) {
   if (!areAllOptionsSelected(filters.separationTypes, options.separationType)) filters.separationTypes.forEach((type) => params.append("separationType", type));
   if (!areAllOptionsSelected(filters.reasonsForAction, options.reasonForAction)) filters.reasonsForAction.forEach((reason) => params.append("reasonForAction", reason));
   if (!areAllOptionsSelected(filters.ranges, options.range)) filters.ranges.forEach((range) => params.append("range", range));
-  if (!areAllOptionsSelected(filters.orgUnits, options.orgUnit)) filters.orgUnits.forEach((orgUnit) => params.append("orgUnit", orgUnit));
+  if (!areAllOptionsSelected(filters.ranges2, options.range2)) filters.ranges2.forEach((range2) => params.append("range2", range2));
   return params;
 }
 
@@ -71,7 +71,7 @@ function mapAttritionFilterOptions(options: AttritionFilterOptions): Record<keyo
     separationTypes: options.separationType,
     reasonsForAction: options.reasonForAction,
     ranges: options.range,
-    orgUnits: options.orgUnit,
+    ranges2: options.range2,
   };
 }
 
@@ -171,17 +171,17 @@ export function AttritionDashboard({
   const filterSelectionIntent = useRef<MultiSelectSelectionIntent<keyof FilterState>>({});
   const filtersRef = useRef<HTMLElement>(null);
   const showRange = data.organizationScope === "unrestricted";
-  const showOrgUnit = data.organizationScope !== "rangeOrgUnit";
+  const showRange2 = data.organizationScope !== "rangeOrgUnit";
   const activeCount = Number(appliedFilters.years.length !== 1 || appliedFilters.years[0] !== String(new Date().getFullYear()))
     + Number(!areAllOptionsSelected(appliedFilters.separationTypes, data.filterOptions.separationType))
     + Number(!areAllOptionsSelected(appliedFilters.reasonsForAction, data.filterOptions.reasonForAction))
     + Number(showRange && !areAllOptionsSelected(appliedFilters.ranges, data.filterOptions.range))
-    + Number(showOrgUnit && !areAllOptionsSelected(appliedFilters.orgUnits, data.filterOptions.orgUnit));
+    + Number(showRange2 && !areAllOptionsSelected(appliedFilters.ranges2, data.filterOptions.range2));
   const hasEmptyFilterSelection = (filters: FilterState) => filters.years.length === 0
     || filters.separationTypes.length === 0
     || filters.reasonsForAction.length === 0
     || (showRange && filters.ranges.length === 0)
-    || (showOrgUnit && filters.orgUnits.length === 0);
+    || (showRange2 && filters.ranges2.length === 0);
   const hasEmptySelection = hasEmptyFilterSelection(draftFilters);
 
   useEffect(() => {
@@ -235,7 +235,7 @@ export function AttritionDashboard({
       separationTypes: filterOptions.separationType,
       reasonsForAction: filterOptions.reasonForAction,
       ranges: filterOptions.range,
-      orgUnits: filterOptions.orgUnit,
+      ranges2: filterOptions.range2,
     };
     setDraftFilters(reset);
     setOpenFilter(null);
@@ -292,7 +292,7 @@ export function AttritionDashboard({
                 <MultiSelectFilter id="attrition-filter-type" label="Separation type" options={filterOptions.separationType} value={draftFilters.separationTypes} isOpen={openFilter === "separationTypes"} onToggle={() => setOpenFilter((current) => current === "separationTypes" ? null : "separationTypes")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("separationTypes", value)} />
                 <MultiSelectFilter id="attrition-filter-reason" label="Reason for Action" options={filterOptions.reasonForAction} value={draftFilters.reasonsForAction} isOpen={openFilter === "reasonsForAction"} onToggle={() => setOpenFilter((current) => current === "reasonsForAction" ? null : "reasonsForAction")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("reasonsForAction", value)} />
                 {showRange && <MultiSelectFilter id="attrition-filter-range" label="Range" options={filterOptions.range} value={draftFilters.ranges} isOpen={openFilter === "ranges"} onToggle={() => setOpenFilter((current) => current === "ranges" ? null : "ranges")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("ranges", value)} />}
-                {showOrgUnit && <MultiSelectFilter id="attrition-filter-org-unit" label="Org Unit" options={filterOptions.orgUnit} value={draftFilters.orgUnits} isOpen={openFilter === "orgUnits"} onToggle={() => setOpenFilter((current) => current === "orgUnits" ? null : "orgUnits")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("orgUnits", value)} />}
+                {showRange2 && <MultiSelectFilter id="attrition-filter-range-2" label="Range 2" options={filterOptions.range2} value={draftFilters.ranges2} isOpen={openFilter === "ranges2"} onToggle={() => setOpenFilter((current) => current === "ranges2" ? null : "ranges2")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("ranges2", value)} />}
               </div>
               <footer className="overview-filters__footer">
                 <p className="overview-filters__status">{hasEmptySelection ? "Select at least one option in every filter" : activeCount ? `${activeCount} filter${activeCount === 1 ? "" : "s"} active` : "Current year · all authorized records"}</p>

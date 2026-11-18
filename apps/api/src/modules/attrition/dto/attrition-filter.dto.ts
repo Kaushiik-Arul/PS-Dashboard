@@ -8,7 +8,7 @@ export class AttritionFilterDto {
   separationType?: string | string[];
 
   @ApiPropertyOptional({ type: [String] })
-  orgUnit?: string | string[];
+  range2?: string | string[];
 
   @ApiPropertyOptional({ type: [String] })
   range?: string | string[];
@@ -20,7 +20,7 @@ export class AttritionFilterDto {
 export type NormalizedAttritionFilters = {
   years: number[];
   separationTypes: string[];
-  orgUnits: string[];
+  ranges2: string[];
   ranges: string[];
   reasonsForAction: string[];
 };

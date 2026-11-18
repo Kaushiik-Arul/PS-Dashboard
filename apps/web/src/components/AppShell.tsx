@@ -195,7 +195,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <ul className="m-menu-group" role="menubar" aria-orientation="vertical">
           {visibleNavigationItems.map((item) => {
-            const isActive = isCurrentRoute(pathname, item.href);
+            const isActive = activeItem.href === item.href;
 
             return (
               <li

@@ -4,6 +4,7 @@ export type RbinMapping = {
   id: string;
   organizationalUnit: string;
   value: string;
+  range2: string | null;
   sourceFileName: string;
   updatedAt: string;
 };

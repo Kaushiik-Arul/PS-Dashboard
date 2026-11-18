@@ -27,19 +27,19 @@ describe('AttritionService', () => {
         {
           id: '1', pers_no: '1001', employee_name: 'A', ps_group: '', gender_key: 'Male',
           filter_value: 'Separation', reason_for_action: 'Retirement', detailed_reason_approved: 'Age',
-          org_unit: 'Engineering', range: 'R1', initiated_date: '', lwd: '10.01.2025',
+          org_unit: 'Engineering', range: 'R1', range2: 'R2A', initiated_date: '', lwd: '10.01.2025',
           lwd_year: 2025, lwd_month: 1, e_separation_request_no: '', to_org_unit: '',
         },
         {
           id: '2', pers_no: '1002', employee_name: 'B', ps_group: '', gender_key: 'Male',
           filter_value: 'Transfer', reason_for_action: 'Resignation', detailed_reason_approved: 'Internal move',
-          org_unit: 'Engineering', range: 'R1', initiated_date: '', lwd: '20.01.2025',
+          org_unit: 'Engineering', range: 'R1', range2: 'R2A', initiated_date: '', lwd: '20.01.2025',
           lwd_year: 2025, lwd_month: 1, e_separation_request_no: '', to_org_unit: '',
         },
         {
           id: '3', pers_no: '1003', employee_name: 'C', ps_group: '', gender_key: 'Female',
           filter_value: 'Exit', reason_for_action: 'Resignation', detailed_reason_approved: 'Career growth',
-          org_unit: 'Sales', range: 'R2', initiated_date: '', lwd: '05.02.2025',
+          org_unit: 'Sales', range: 'R2', range2: 'R2B', initiated_date: '', lwd: '05.02.2025',
           lwd_year: 2025, lwd_month: 2, e_separation_request_no: '', to_org_unit: '',
         },
       ]))
@@ -53,7 +53,7 @@ describe('AttritionService', () => {
       year: ['2025', '2026'],
       separationType: ['Resignation', 'Transfer', 'Retirement'],
       range: ['R1', 'R2'],
-      orgUnit: ['Engineering', 'Sales'],
+      range2: ['R2A', 'R2B'],
       reasonForAction: [' Retirement ', 'Resignation'],
     });
 
@@ -80,12 +80,56 @@ describe('AttritionService', () => {
       'Resignation', 'Transfer', 'Retirement',
     ]);
     expect(response.filterOptions.reasonForAction).toEqual(['Resignation', 'Retirement']);
+    expect(response.filterOptions.range2).toEqual(['R2A', 'R2B']);
     expect(response.rows[0]).not.toHaveProperty('lwd_year');
+
+    const rowsSql = String(query.mock.calls[1][0]);
+    expect(rowsSql).toContain('FROM public.employee_attrition_events event');
+    expect(rowsSql).not.toContain('public.attrition_rows');
+    expect(rowsSql).toContain('event.deleted_at IS NULL');
+    expect(rowsSql).toContain("event.classification_status = 'confirmed'");
+    expect(rowsSql).toContain('event.counts_as_ps_attrition = TRUE');
+    expect(rowsSql).toContain("event.event_type IN ('resignation', 'retirement')");
+    expect(rowsSql).toContain(
+      "event.transfer_type IN ('out_of_ps_within_rbin', 'out_of_ps_out_of_rbin')",
+    );
+    expect(rowsSql).not.toContain("event.transfer_type = 'within_ps'");
+    expect(rowsSql).toContain(
+      "COALESCE(event.exit_reason, '') AS reason_for_action",
+    );
+    expect(rowsSql).toContain("COALESCE(mapping.range_value, '') AS range");
+    expect(rowsSql).toContain("COALESCE(mapping.range_2, '') AS range2");
+    expect(rowsSql).toContain('LEFT JOIN public.org_unit_range_mappings mapping');
+    expect(rowsSql).toContain(
+      "COALESCE(event.old_organizational_unit, '') AS org_unit",
+    );
+    expect(rowsSql).toContain(
+      "BTRIM(COALESCE(event.old_range, '')) = BTRIM(access.assigned_range)",
+    );
+    expect(rowsSql).toContain(
+      "BTRIM(COALESCE(event.old_organizational_unit, '')) = BTRIM(access.assigned_org_unit)",
+    );
+    expect(rowsSql).toContain(
+      "COALESCE(event.new_organizational_unit, '') AS to_org_unit",
+    );
+    expect(rowsSql).toContain(
+      "COALESCE(TO_CHAR(event.exit_lwd, 'DD.MM.YYYY'), '') AS lwd",
+    );
+    expect(rowsSql).toContain(
+      'EXTRACT(YEAR FROM COALESCE(event.exit_lwd, event.event_month))::INTEGER AS lwd_year',
+    );
+    expect(rowsSql).toContain(
+      'EXTRACT(MONTH FROM COALESCE(event.exit_lwd, event.event_month))::INTEGER AS lwd_month',
+    );
+    const headcountSql = String(query.mock.calls[3][0]);
+    expect(headcountSql).toContain('FROM public.org_unit_range_mappings');
+    expect(headcountSql).toContain('mapping.range_key = ANY($3::TEXT[])');
+    expect(headcountSql).toContain('mapping.range2_key = ANY($4::TEXT[])');
     expect(query.mock.calls[3][1]).toEqual([
       'account-id',
       [2025, 2026],
       ['R1', 'R2'],
-      ['ENGINEERING', 'SALES'],
+      ['R2A', 'R2B'],
     ]);
   });
 
