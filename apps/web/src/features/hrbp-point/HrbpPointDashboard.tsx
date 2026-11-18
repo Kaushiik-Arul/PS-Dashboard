@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/auth/AuthProvider";
@@ -183,6 +184,18 @@ export function HrbpPointDashboard({ initialRows }: { initialRows: EmployeeStatu
 
   return (
     <main className="hrbp-page">
+      <section className="hrbp-guide-entry" aria-labelledby="hrbp-guide-entry-title">
+        <div className="hrbp-guide-entry__title">
+          <p className="hrbp-section__eyebrow">HRBP workspace</p>
+          <h1 id="hrbp-guide-entry-title">HRBP Point</h1>
+        </div>
+        <Link className="hrbp-guide-entry__link" href="/hrbp-point/operations-guide">
+          <i className="a-icon boschicon-bosch-ic-document" aria-hidden="true" />
+          <span><strong>Operations guide</strong><small>Import schedules, exports, and retention</small></span>
+          <i className="a-icon boschicon-bosch-ic-forward-right" aria-hidden="true" />
+        </Link>
+      </section>
+
       {canManageNamelist && <NamelistImportPanel />}
       {canManageNamelist && <HeadcountImportPanel />}
       {canManageNamelist && <JdManagementPanel />}

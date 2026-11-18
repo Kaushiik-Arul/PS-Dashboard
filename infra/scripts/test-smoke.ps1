@@ -94,6 +94,13 @@ try {
         -ExpectedLocation "^(?:https?://[^/]+)?/login\?returnTo="
 
     Invoke-SmokeCheck `
+        -Name "HRBP operations guide redirects to login" `
+        -Method "GET" `
+        -Url "$web/hrbp-point/operations-guide" `
+        -ExpectedStatus @(307, 308) `
+        -ExpectedLocation "^(?:https?://[^/]+)?/login\?returnTo="
+
+    Invoke-SmokeCheck `
         -Name "Nest API rejects an anonymous session" `
         -Method "GET" `
         -Url "$api/auth/me" `
