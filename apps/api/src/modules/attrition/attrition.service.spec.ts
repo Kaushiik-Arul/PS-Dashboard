@@ -52,7 +52,6 @@ describe('AttritionService', () => {
     const response = await service.getDashboard('account-id', {
       year: ['2025', '2026'],
       separationType: ['Resignation', 'Transfer', 'Retirement'],
-      range: ['R1', 'R2'],
       range2: ['R2A', 'R2B'],
       reasonForAction: [' Retirement ', 'Resignation'],
     });
@@ -81,6 +80,7 @@ describe('AttritionService', () => {
     ]);
     expect(response.filterOptions.reasonForAction).toEqual(['Resignation', 'Retirement']);
     expect(response.filterOptions.range2).toEqual(['R2A', 'R2B']);
+    expect(response.filterOptions).not.toHaveProperty('range');
     expect(response.rows[0]).not.toHaveProperty('lwd_year');
 
     const rowsSql = String(query.mock.calls[1][0]);
@@ -93,10 +93,10 @@ describe('AttritionService', () => {
     expect(rowsSql).toContain(
       "event.transfer_type IN ('out_of_ps_within_rbin', 'out_of_ps_out_of_rbin')",
     );
-    expect(rowsSql).not.toContain("event.transfer_type = 'within_ps'");
-    expect(rowsSql).toContain(
-      "COALESCE(event.exit_reason, '') AS reason_for_action",
-    );
+    expect(rowsSql).toContain("event.transfer_type = 'within_ps'");
+    expect(rowsSql).toContain('$2::BOOLEAN');
+    expect(rowsSql).toContain("WHEN event.transfer_type = 'within_ps' THEN 'Within PS Transfer'");
+    expect(query.mock.calls[1][1]).toEqual(['account-id', true]);
     expect(rowsSql).toContain("COALESCE(mapping.range_value, '') AS range");
     expect(rowsSql).toContain("COALESCE(mapping.range_2, '') AS range2");
     expect(rowsSql).toContain('LEFT JOIN public.org_unit_range_mappings mapping');
@@ -123,14 +123,28 @@ describe('AttritionService', () => {
     );
     const headcountSql = String(query.mock.calls[3][0]);
     expect(headcountSql).toContain('FROM public.org_unit_range_mappings');
-    expect(headcountSql).toContain('mapping.range_key = ANY($3::TEXT[])');
-    expect(headcountSql).toContain('mapping.range2_key = ANY($4::TEXT[])');
+    expect(headcountSql).toContain('mapping.range2_key = ANY($3::TEXT[])');
+    expect(headcountSql).not.toContain('mapping.range_key = ANY');
     expect(query.mock.calls[3][1]).toEqual([
       'account-id',
       [2025, 2026],
-      ['R1', 'R2'],
       ['R2A', 'R2B'],
     ]);
+  });
+
+  it('keeps within-PS transfers excluded when Personal Range is not narrowed', async () => {
+    query
+      .mockResolvedValueOnce(result([{ revision: '1', file_name: null, imported_at: null }]))
+      .mockResolvedValueOnce(result([]))
+      .mockResolvedValueOnce(result([{ unrestricted: true, range_scoped: false }]))
+      .mockResolvedValueOnce(result([]));
+
+    await service.getDashboard('account-id', { year: '2025' });
+
+    expect(query.mock.calls[1][1]).toEqual(['account-id', false]);
+    expect(String(query.mock.calls[1][0])).toContain(
+      "AND event.transfer_type = 'within_ps'",
+    );
   });
 
   it('rejects an unknown separation type before querying data', async () => {

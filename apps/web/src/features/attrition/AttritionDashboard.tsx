@@ -26,7 +26,6 @@ type FilterState = {
   years: string[];
   separationTypes: string[];
   reasonsForAction: string[];
-  ranges: string[];
   ranges2: string[];
 };
 
@@ -50,7 +49,6 @@ function toFilterState(filters: AttritionQueryFilters, data: AttritionResponse):
     years: filters.year ?? data.selectedYears.map(String),
     separationTypes: filters.separationType ?? data.filterOptions.separationType,
     reasonsForAction: filters.reasonForAction ?? data.filterOptions.reasonForAction,
-    ranges: filters.range ?? data.filterOptions.range,
     ranges2: filters.range2 ?? data.filterOptions.range2,
   };
 }
@@ -60,7 +58,6 @@ function toSearchParams(filters: FilterState, options: AttritionFilterOptions) {
   if (!areAllOptionsSelected(filters.years, options.year)) filters.years.forEach((year) => params.append("year", year));
   if (!areAllOptionsSelected(filters.separationTypes, options.separationType)) filters.separationTypes.forEach((type) => params.append("separationType", type));
   if (!areAllOptionsSelected(filters.reasonsForAction, options.reasonForAction)) filters.reasonsForAction.forEach((reason) => params.append("reasonForAction", reason));
-  if (!areAllOptionsSelected(filters.ranges, options.range)) filters.ranges.forEach((range) => params.append("range", range));
   if (!areAllOptionsSelected(filters.ranges2, options.range2)) filters.ranges2.forEach((range2) => params.append("range2", range2));
   return params;
 }
@@ -70,7 +67,6 @@ function mapAttritionFilterOptions(options: AttritionFilterOptions): Record<keyo
     years: options.year,
     separationTypes: options.separationType,
     reasonsForAction: options.reasonForAction,
-    ranges: options.range,
     ranges2: options.range2,
   };
 }
@@ -170,18 +166,15 @@ export function AttritionDashboard({
   const optionRequestId = useRef(0);
   const filterSelectionIntent = useRef<MultiSelectSelectionIntent<keyof FilterState>>({});
   const filtersRef = useRef<HTMLElement>(null);
-  const showRange = data.organizationScope === "unrestricted";
-  const showRange2 = data.organizationScope !== "rangeOrgUnit";
+  const showPersonalRange = data.organizationScope !== "rangeOrgUnit";
   const activeCount = Number(appliedFilters.years.length !== 1 || appliedFilters.years[0] !== String(new Date().getFullYear()))
     + Number(!areAllOptionsSelected(appliedFilters.separationTypes, data.filterOptions.separationType))
     + Number(!areAllOptionsSelected(appliedFilters.reasonsForAction, data.filterOptions.reasonForAction))
-    + Number(showRange && !areAllOptionsSelected(appliedFilters.ranges, data.filterOptions.range))
-    + Number(showRange2 && !areAllOptionsSelected(appliedFilters.ranges2, data.filterOptions.range2));
+    + Number(showPersonalRange && !areAllOptionsSelected(appliedFilters.ranges2, data.filterOptions.range2));
   const hasEmptyFilterSelection = (filters: FilterState) => filters.years.length === 0
     || filters.separationTypes.length === 0
     || filters.reasonsForAction.length === 0
-    || (showRange && filters.ranges.length === 0)
-    || (showRange2 && filters.ranges2.length === 0);
+    || (showPersonalRange && filters.ranges2.length === 0);
   const hasEmptySelection = hasEmptyFilterSelection(draftFilters);
 
   useEffect(() => {
@@ -234,7 +227,6 @@ export function AttritionDashboard({
       years: [String(new Date().getFullYear())],
       separationTypes: filterOptions.separationType,
       reasonsForAction: filterOptions.reasonForAction,
-      ranges: filterOptions.range,
       ranges2: filterOptions.range2,
     };
     setDraftFilters(reset);
@@ -291,8 +283,7 @@ export function AttritionDashboard({
                 <MultiSelectFilter id="attrition-filter-year" label="Year" options={filterOptions.year} value={draftFilters.years} isOpen={openFilter === "years"} onToggle={() => setOpenFilter((current) => current === "years" ? null : "years")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("years", value)} />
                 <MultiSelectFilter id="attrition-filter-type" label="Separation type" options={filterOptions.separationType} value={draftFilters.separationTypes} isOpen={openFilter === "separationTypes"} onToggle={() => setOpenFilter((current) => current === "separationTypes" ? null : "separationTypes")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("separationTypes", value)} />
                 <MultiSelectFilter id="attrition-filter-reason" label="Reason for Action" options={filterOptions.reasonForAction} value={draftFilters.reasonsForAction} isOpen={openFilter === "reasonsForAction"} onToggle={() => setOpenFilter((current) => current === "reasonsForAction" ? null : "reasonsForAction")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("reasonsForAction", value)} />
-                {showRange && <MultiSelectFilter id="attrition-filter-range" label="Range" options={filterOptions.range} value={draftFilters.ranges} isOpen={openFilter === "ranges"} onToggle={() => setOpenFilter((current) => current === "ranges" ? null : "ranges")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("ranges", value)} />}
-                {showRange2 && <MultiSelectFilter id="attrition-filter-range-2" label="Range 2" options={filterOptions.range2} value={draftFilters.ranges2} isOpen={openFilter === "ranges2"} onToggle={() => setOpenFilter((current) => current === "ranges2" ? null : "ranges2")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("ranges2", value)} />}
+                {showPersonalRange && <MultiSelectFilter id="attrition-filter-personal-range" label="Personal Range" options={filterOptions.range2} value={draftFilters.ranges2} isOpen={openFilter === "ranges2"} onToggle={() => setOpenFilter((current) => current === "ranges2" ? null : "ranges2")} onClose={() => setOpenFilter(null)} onChange={(value) => updateMultiFilter("ranges2", value)} />}
               </div>
               <footer className="overview-filters__footer">
                 <p className="overview-filters__status">{hasEmptySelection ? "Select at least one option in every filter" : activeCount ? `${activeCount} filter${activeCount === 1 ? "" : "s"} active` : "Current year · all authorized records"}</p>

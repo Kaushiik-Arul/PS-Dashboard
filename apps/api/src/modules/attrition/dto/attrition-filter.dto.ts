@@ -11,9 +11,6 @@ export class AttritionFilterDto {
   range2?: string | string[];
 
   @ApiPropertyOptional({ type: [String] })
-  range?: string | string[];
-
-  @ApiPropertyOptional({ type: [String] })
   reasonForAction?: string | string[];
 }
 
@@ -21,6 +18,5 @@ export type NormalizedAttritionFilters = {
   years: number[];
   separationTypes: string[];
   ranges2: string[];
-  ranges: string[];
   reasonsForAction: string[];
 };

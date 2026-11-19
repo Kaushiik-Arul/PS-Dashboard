@@ -119,8 +119,8 @@ transfers in `employee_attrition_events`; a within-PS transfer uses frozen
 staging Range values. BidP, NaP, JaP, and GanP are Plant; every other nonblank
 Range is Corporate, while blank Range remains unclassified.
 Previous PS employees absent from current raw RBIN are stored only as unresolved
-`attrition_departure_candidates`. These new tables do not feed the current
-Attrition dashboard or MRM.
+`attrition_departure_candidates`. Confirmed events feed the Attrition dashboard;
+unresolved candidates do not. MRM continues using its existing source.
 
 HRBP Point provides an Attrition movements table over this permanent tracking
 data. It combines confirmed events and unresolved departure candidates, while
@@ -137,8 +137,8 @@ belongs only to M+1. These rows use M as their RBIN detection month, while actua
 LWD remains the confirmed event month. Matching RBIN and PS
 Exit candidates reconcile by Pers.No and detection month after either import
 path. Unmatched records remain pending with visible source provenance; HRBP can
-dismiss false positives with an audited action. Existing Attrition and MRM
-sources remain unchanged.
+dismiss false positives with an audited action. Confirmed events are the
+Attrition dashboard source; MRM remains unchanged.
 
 HRBP users can export all active confirmed movement history as XLSX. The
 workbook contains summary counts, detailed confirmed event fields, and a Read

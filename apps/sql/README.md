@@ -260,7 +260,8 @@ When Range is blank, preview generation performs a trimmed, case-insensitive
 Org Unit lookup in `org_unit_range_mappings`. A match fills Range and displays
 a nonblocking warning so the user can keep or edit the value. A supplied Range
 is never overwritten. A confirmed import atomically deletes and replaces the
-complete Attrition register.
+complete legacy Attrition register. This register remains available to legacy
+consumers but is no longer the Attrition dashboard source.
 
 Run the focused parser checks from `apps/api`:
 
@@ -268,14 +269,16 @@ Run the focused parser checks from `apps/api`:
 npm test -- attrition-import.parser.spec.ts --runInBand
 ```
 
-The Attrition dashboard defaults to the current calendar year and applies LWD
-year, canonical separation type, Range, and Org Unit filters to its KPIs,
-12-month trend, reason distribution, and register. Separation classification
-uses Retirement, Transfer, then Resignation/Separation/Exit precedence, with
-remaining rows classified as Other. Monthly rates divide each month's exits by
-the matching monthly headcount aggregate. HRBP/Admin filters can use overall,
-Range, Org Unit, or exact Range/Org Unit aggregates; scoped Head roles sum only
-their authorized Range or exact Range/Org Unit assignments.
+The Attrition dashboard defaults to the current calendar year and reads active,
+confirmed `employee_attrition_events`. It counts resignations, retirements, and
+out-of-PS transfers as PS attrition. Within-PS transfers are excluded unless a
+specific Personal Range (`org_unit_range_mappings.range_2`) is selected, when
+they count as departures from the previous mapped scope. The dashboard filters
+by year, canonical separation type, approved reason, and Personal Range. The
+visible Range and Personal Range values are resolved from the event's previous
+Organizational Unit, while access control continues using the frozen previous
+assignment. Monthly rates divide exits by headcount resolved through the same
+Organizational Unit mapping and authorized scope.
 
 Apply `employee_headcount_org_unit_migration.sql` after the original monthly
 headcount migration, then reimport all historical PS Namelist workbooks before
@@ -482,8 +485,8 @@ Reconciliation runs after both import paths, so either source may arrive first.
 Unmatched records from either source remain pending. HRBP
 can dismiss a pending record as a false positive; the row is retained with an
 audited dismissed status.
-The current Attrition dashboard and MRM continue reading the legacy Attrition
-register and are intentionally unaffected.
+The Attrition dashboard reads these confirmed events. MRM continues reading the
+legacy Attrition register and is intentionally unaffected.
 
 Select the source file's reporting month during every RBIN upload. To verify
 historical detection, upload June 2026 first as the baseline, followed by July

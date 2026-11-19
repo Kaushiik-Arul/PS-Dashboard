@@ -21,14 +21,12 @@ export type AttritionQueryFilters = {
   separationType?: string[];
   reasonForAction?: string[];
   range2?: string[];
-  range?: string[];
 };
 export type AttritionFilterOptions = {
   year: string[];
   separationType: string[];
   reasonForAction: string[];
   range2: string[];
-  range: string[];
 };
 export type AttritionResponse = {
   revision: string;

@@ -461,6 +461,8 @@ Relevant implementation:
 
 The Attrition dashboard provides a controlled view of employee exits, transfer categories, workforce attrition rate, and approved separation reasons.
 
+The dashboard reads active, confirmed records from `employee_attrition_events`. PS attrition includes resignations, retirements, and transfers out of PS. Within-PS transfers remain excluded from the organization-wide view, but are included as departures from the employee's previous scope when a specific Personal Range is selected. Authorization continues to use the frozen previous Range and Organizational Unit stored on each event.
+
 ### 9.2 Attrition KPIs
 
 - Total Attrition
@@ -481,14 +483,15 @@ KPIs include comparison against average headcount and total attrition where appl
 - Reporting year
 - Separation type
 - Reason for action
-- Range, when the user's role allows it
-- Organizational Unit, when the user's role allows it
+- Personal Range, when the user's role allows it
 
 Filter options update based on the active selection and authorized scope.
 
+Personal Range is stored internally as `range_2` and resolved from the employee's previous Organizational Unit through `org_unit_range_mappings`. The same mapping constrains monthly headcount denominators so scoped attrition rates use a matching population.
+
 ### 9.5 Attrition Register
 
-The detailed register includes employee separation records, grouped filters, pagination, full-screen mode, and HRBP CSV download.
+The detailed register includes employee separation records, grouped filters, pagination, full-screen mode, and HRBP CSV download. Its Range column remains visible and is resolved from the previous Organizational Unit's current mapping; Personal Range is used only as a filter and is not added as a register column.
 
 ### 9.6 Pending Departure Confirmation
 
