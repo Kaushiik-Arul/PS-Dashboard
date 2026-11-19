@@ -213,7 +213,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
   };
 
   const finalizeReport = async () => {
-    if (!window.confirm(`Finalize ${document.reportingMonth}? Finalized reports cannot be changed.`)) return;
+    if (!window.confirm(`Finalize ${document.dataMonth}? Finalized reports cannot be changed.`)) return;
     const saved = saveState === "saved" ? document : await saveNow(document);
     if (!saved) return;
     const csrf = getCsrfToken();
@@ -285,7 +285,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     const url = URL.createObjectURL(new Blob([workbook], { type: "application/vnd.ms-excel;charset=utf-8" }));
     const link = window.document.createElement("a");
     link.href = url;
-    link.download = `MRM-${document.reportingMonth}.xls`;
+    link.download = `MRM-${document.dataMonth}.xls`;
     link.click();
     URL.revokeObjectURL(url);
     setMessage("Formatted Excel table exported.");
@@ -319,7 +319,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         <label className="mrm-field" htmlFor="mrm-reporting-month">
           <span>Reporting month</span>
           <select id="mrm-reporting-month" value={document.reportingMonth} onChange={(event) => changeReportingMonth(event.target.value)}>
-            {months.map((month) => <option key={month.reportingMonth} value={month.reportingMonth}>{month.reportingMonth} · {month.status}</option>)}
+            {months.map((month) => <option key={month.reportingMonth} value={month.reportingMonth}>{month.dataMonth} · {month.status}</option>)}
           </select>
         </label>
         <span className={`mrm-source-state ${document.sourceStatus.available ? "is-available" : "is-unavailable"}`}>

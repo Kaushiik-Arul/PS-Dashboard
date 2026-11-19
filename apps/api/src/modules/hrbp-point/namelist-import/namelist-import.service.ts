@@ -271,7 +271,10 @@ export class NamelistImportService {
         if (error.message === 'SNAPSHOT_VERIFICATION_FAILED') throw new ConflictException('The older reporting month could not be archived. No Namelist data was changed.');
         if (error.message === 'EXPORT_MONTH_NOT_FOUND') throw new NotFoundException('The selected Namelist month is no longer available for detailed export.');
       }
-      this.logger.error(publicMessage);
+      this.logger.error(
+        publicMessage,
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new InternalServerErrorException(publicMessage);
     }
   }

@@ -6,9 +6,23 @@ MRM reports are shared PostgreSQL documents. Browser `localStorage` is not a dat
 
 All authenticated HRBP, Admin, Range Head, Department Head, and Sub-department Head roles can view MRM. Only HRBP can save drafts, upload or delete attachments, and finalize reports. Draft saves use an expected revision; a stale revision returns HTTP 409 and must not overwrite local edits.
 
-The reporting month is the first day of a calendar month. Its automated data month is the previous month. A report remains editable while it is a draft. Finalization stores the resolved document, metric buckets, checksum, actor, and timestamp before changing the report status. PostgreSQL triggers reject later changes or deletion under a finalized report.
+The reporting month is the first day of a calendar month. Its automated data month is the previous month. The reporting month dropdown displays all available months—both saved reports and months with available Namelist or MRM data sources—allowing you to file reports for any month that has underlying data. A report remains editable while it is a draft. Finalization stores the resolved document, metric buckets, checksum, actor, and timestamp before changing the report status. PostgreSQL triggers reject later changes or deletion under a finalized report.
 
 Managed definitions use stable keys and activation months. Active additions appear in drafts; finalized snapshots retain their original definitions. Custom columns and manual values are shared organization-wide. `Actual 2025` remains manual. Draft-managing HRBPs may override any calculated value cell; untouched cells continue to refresh from Namelist, and saved overrides take precedence until cleared or the report is finalized.
+
+The month selector is labeled by data month, the month the report covers. Selecting 2026-08 opens the stored report whose reporting month is 2026-09, and its rolling columns show Jul'26 and Aug'26 (stored offsets -2 and -1 from the reporting month). Stored reporting months, finalized reports, and URLs (`/mrm?month=YYYY-MM`) continue to use the reporting month.
+
+## Reporting month discovery
+
+The month dropdown is automatically populated by querying all available data sources:
+
+- **Live imports:** The latest confirmed live Namelist import with `import_mode = 'live'`
+- **Historical months:** Distinct months in `employee_namelist_monthly` from previous imports
+- **MRM snapshots:** Archived monthly metric calculations from finalized reports
+
+For each available data month, a corresponding reporting month (+1) is generated and displayed. Months with existing saved reports show their actual status (draft or finalized); months discovered only from data sources appear as unsaved drafts. This allows MRM reports to be filed for any month with available Namelist or snapshot data, even before creating an explicit report record.
+
+If a month has no saved report and no available data source, it will not appear in the dropdown.
 
 ## Sources and calculations
 

@@ -78,12 +78,12 @@ describe('MrmCalculationService', () => {
       },
     ]);
     repository.getAttrition.mockResolvedValue([
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Exit', reason_for_action: 'Resignation', detailed_reason_approved: '' },
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'TRANSFER INTRA BOSCH', detailed_reason_approved: 'Within PS (Within Corp)' },
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'Transfer', detailed_reason_approved: ' out of ps within rbin ' },
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'Transfer', detailed_reason_approved: 'Within PS (Into Corp)' },
-      { range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: '', reason_for_action: 'INTERNAL', detailed_reason_approved: '' },
-      { range: 'GanP', org_unit: 'Plant', filter_value: 'Exit', reason_for_action: 'Resignation', detailed_reason_approved: '' },
+      { metric_source: 'governed_attrition', range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Resignation', reason_for_action: '', detailed_reason_approved: '' },
+      { metric_source: 'governed_attrition', range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: '', detailed_reason_approved: '' },
+      { metric_source: 'governed_attrition', range: 'GanP', org_unit: 'Plant', filter_value: 'Retirement', reason_for_action: '', detailed_reason_approved: '' },
+      { metric_source: 'legacy_movement', range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Transfer', reason_for_action: 'TRANSFER INTRA BOSCH', detailed_reason_approved: 'Within PS (Within Corp)' },
+      { metric_source: 'legacy_movement', range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: '', reason_for_action: 'INTERNAL', detailed_reason_approved: '' },
+      { metric_source: 'legacy_movement', range: 'PS/NE-IN', org_unit: 'Unit A', filter_value: 'Exit', reason_for_action: 'Resignation', detailed_reason_approved: '' },
     ]);
 
     const result = await service.calculate('2026-01', 'account');

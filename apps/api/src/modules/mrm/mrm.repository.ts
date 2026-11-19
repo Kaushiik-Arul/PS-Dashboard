@@ -76,6 +76,28 @@ export class MrmRepository {
     }));
   }
 
+  async getAvailableDataMonths(): Promise<string[]> {
+    const result = await this.database.query<{ data_month: string }>(
+      `SELECT DISTINCT data_month FROM (
+         SELECT TO_CHAR(reporting_month, 'YYYY-MM') AS data_month
+         FROM public.namelist_imports
+         WHERE reporting_month_confirmed AND import_mode = 'live' AND status = 'completed'
+         
+         UNION
+         
+         SELECT DISTINCT TO_CHAR(reporting_month, 'YYYY-MM') AS data_month
+         FROM public.employee_namelist_monthly
+         
+         UNION
+         
+         SELECT DISTINCT TO_CHAR(data_month, 'YYYY-MM') AS data_month
+         FROM public.mrm_monthly_snapshots
+       ) available_months
+       ORDER BY data_month DESC`,
+    );
+    return result.rows.map((row) => row.data_month);
+  }
+
   async getReport(reportingMonth: string): Promise<MrmReportRecord | null> {
     const result = await this.database.query<MrmReportRecord>(
       `SELECT id::text, TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month,

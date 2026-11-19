@@ -71,9 +71,34 @@ export class MrmService {
   async listMonths() {
     const generatedMonth = currentMonth();
     const reports = await this.repository.listReports();
-    const months = reports.some((report) => report.reportingMonth === generatedMonth)
-      ? reports
-      : [{ reportingMonth: generatedMonth, dataMonth: shiftMonth(generatedMonth, -1), status: 'draft' as const }, ...reports];
+    const reportMonths = new Set(reports.map((r) => r.reportingMonth));
+
+    // Collect all available data months from live, historical, and snapshot sources
+    const availableDataMonths = await this.repository.getAvailableDataMonths();
+    
+    // For each available data month, generate a corresponding reporting month (data + 1)
+    const potentialMonths = new Set<string>();
+    availableDataMonths.forEach((dataMonth) => {
+      const reportingMonth = shiftMonth(dataMonth, 1);
+      potentialMonths.add(reportingMonth);
+    });
+
+    // Add current month if not already present
+    potentialMonths.add(generatedMonth);
+
+    // Build the final month list: use reports for status, or create draft entries for available data
+    const months = Array.from(potentialMonths)
+      .sort()
+      .reverse()
+      .map((reportingMonth) => {
+        const existing = reports.find((r) => r.reportingMonth === reportingMonth);
+        return {
+          reportingMonth,
+          dataMonth: existing?.dataMonth ?? shiftMonth(reportingMonth, -1),
+          status: existing?.status ?? ('draft' as const),
+        };
+      });
+
     const statuses = await Promise.all(months.map(async (month) => ({
       ...month,
       sourceStatus: await this.calculations.getSourceStatus(month.dataMonth),

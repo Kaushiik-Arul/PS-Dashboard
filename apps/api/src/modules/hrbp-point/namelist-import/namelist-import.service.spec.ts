@@ -1,4 +1,4 @@
-import { BadRequestException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import ExcelJS from 'exceljs';
 import { NamelistImportRepository } from './namelist-import.repository';
 import { NamelistImportService } from './namelist-import.service';
@@ -9,15 +9,18 @@ describe('NamelistImportService export', () => {
   let listExportMonths: jest.Mock;
   let getExportRows: jest.Mock;
   let recordExport: jest.Mock;
+  let commit: jest.Mock;
 
   beforeEach(() => {
     listExportMonths = jest.fn();
     getExportRows = jest.fn();
     recordExport = jest.fn();
+    commit = jest.fn();
     repository = {
       listExportMonths,
       getExportRows,
       recordExport,
+      commit,
     } as unknown as jest.Mocked<NamelistImportRepository>;
     service = new NamelistImportService(repository);
   });
@@ -93,6 +96,7 @@ describe('NamelistImportService export', () => {
   });
 
   it('does not return a file when audit recording fails', async () => {
+    const logger = jest.spyOn(Logger.prototype, 'error').mockImplementation();
     getExportRows.mockResolvedValue({
       month: { reportingMonth: '2026-10', source: 'live', rowCount: 1 },
       rows: [{ pers_no: '12345' }],
@@ -103,5 +107,20 @@ describe('NamelistImportService export', () => {
       reportingMonth: '2026-10',
       columns: ['pers_no'],
     }, 'account-id')).rejects.toBeInstanceOf(InternalServerErrorException);
+    logger.mockRestore();
+  });
+
+  it('logs the underlying commit error before returning the public message', async () => {
+    const logger = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    commit.mockRejectedValue(new Error('snapshot insert failed'));
+
+    await expect(service.commit('preview-id', false, 'account-id'))
+      .rejects.toBeInstanceOf(InternalServerErrorException);
+
+    expect(logger).toHaveBeenCalledWith(
+      'Unable to import employee namelist',
+      expect.stringContaining('snapshot insert failed'),
+    );
+    logger.mockRestore();
   });
 });

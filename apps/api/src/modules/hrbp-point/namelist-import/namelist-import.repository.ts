@@ -17,7 +17,7 @@ import type {
 type PreviewRecord = {
   preview_id: string;
   file_name: string;
-  reporting_month: Date | string;
+  reporting_month: string;
   import_mode: NamelistImportMode;
   total_rows: number;
   valid_rows: number;
@@ -32,11 +32,11 @@ type StoredRow = {
 
 type LiveImportRecord = {
   id: string;
-  reporting_month: Date | string;
+  reporting_month: string;
 };
 
-function mapMonth(value: Date | string): string {
-  return value instanceof Date ? value.toISOString().slice(0, 7) : value.slice(0, 7);
+function monthDate(value: string): string {
+  return `${value}-01`;
 }
 
 @Injectable()
@@ -185,7 +185,8 @@ export class NamelistImportRepository {
 
   async getSummary(previewId: string, actorAccountId: string): Promise<NamelistPreviewSummary | null> {
     const preview = await this.database.query<PreviewRecord>(
-      `SELECT preview_id, file_name, reporting_month, import_mode, total_rows, valid_rows, invalid_rows
+      `SELECT preview_id, file_name, TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month,
+              import_mode, total_rows, valid_rows, invalid_rows
        FROM public.namelist_import_previews
        WHERE preview_id = $1 AND uploaded_by = $2 AND status = 'ready'
          AND expires_at > CURRENT_TIMESTAMP`,
@@ -281,7 +282,8 @@ export class NamelistImportRepository {
     return this.database.transaction(async (client) => {
       await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('employee_namelist_import'))`);
       const preview = await client.query<PreviewRecord>(
-        `SELECT preview_id, file_name, reporting_month, import_mode, total_rows, valid_rows, invalid_rows
+        `SELECT preview_id, file_name, TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month,
+                import_mode, total_rows, valid_rows, invalid_rows
          FROM public.namelist_import_previews
          WHERE preview_id = $1 AND uploaded_by = $2 AND status = 'ready'
            AND expires_at > CURRENT_TIMESTAMP FOR UPDATE`,
@@ -294,10 +296,10 @@ export class NamelistImportRepository {
       if ((await this.hasCurrentMonthImport(record.reporting_month, client)) && !confirmReplacement) throw new Error('REPLACEMENT_CONFIRMATION_REQUIRED');
 
       const currentLiveImport = await this.getCurrentLiveImport(client);
-      if (currentLiveImport && mapMonth(record.reporting_month) < mapMonth(currentLiveImport.reporting_month)) {
+      if (currentLiveImport && record.reporting_month < currentLiveImport.reporting_month) {
         throw new Error('LIVE_MONTH_OUT_OF_SEQUENCE');
       }
-      if (currentLiveImport && mapMonth(record.reporting_month) > mapMonth(currentLiveImport.reporting_month)) {
+      if (currentLiveImport && record.reporting_month > currentLiveImport.reporting_month) {
         await this.copyLiveToMonthly(currentLiveImport, client);
       }
 
@@ -306,7 +308,7 @@ export class NamelistImportRepository {
            reporting_month, reporting_month_confirmed, import_mode,
            imported_by, file_name, total_rows, status
          ) VALUES ($1, TRUE, 'live', $2, $3, $4, 'processing') RETURNING id::text`,
-        [record.reporting_month, actorAccountId, record.file_name, record.total_rows],
+        [monthDate(record.reporting_month), actorAccountId, record.file_name, record.total_rows],
       );
       await client.query('DELETE FROM public.employee_namelist');
       await client.query(
@@ -341,7 +343,8 @@ export class NamelistImportRepository {
     return this.database.transaction(async (client) => {
       await client.query(`SELECT PG_ADVISORY_XACT_LOCK(HASHTEXT('employee_namelist_import'))`);
       const preview = await client.query<PreviewRecord>(
-        `SELECT preview_id, file_name, reporting_month, import_mode, total_rows, valid_rows, invalid_rows
+        `SELECT preview_id, file_name, TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month,
+                import_mode, total_rows, valid_rows, invalid_rows
          FROM public.namelist_import_previews
          WHERE preview_id = $1 AND uploaded_by = $2 AND status = 'ready'
            AND expires_at > CURRENT_TIMESTAMP FOR UPDATE`,
@@ -352,7 +355,7 @@ export class NamelistImportRepository {
       if (record.import_mode !== 'historical') throw new Error('PREVIEW_MODE_MISMATCH');
       if (record.invalid_rows > 0) throw new Error('INVALID_ROWS');
       const currentLiveImport = await this.getCurrentLiveImport(client);
-      if (currentLiveImport && mapMonth(record.reporting_month) >= mapMonth(currentLiveImport.reporting_month)) {
+      if (currentLiveImport && record.reporting_month >= currentLiveImport.reporting_month) {
         throw new Error('HISTORICAL_MONTH_NOT_BEFORE_LIVE');
       }
       if ((await this.hasHistoricalMonthImport(record.reporting_month, client)) && !confirmReplacement) {
@@ -364,11 +367,11 @@ export class NamelistImportRepository {
            reporting_month, reporting_month_confirmed, import_mode,
            imported_by, file_name, total_rows, status
          ) VALUES ($1, TRUE, 'historical', $2, $3, $4, 'processing') RETURNING id::text`,
-        [record.reporting_month, actorAccountId, record.file_name, record.total_rows],
+        [monthDate(record.reporting_month), actorAccountId, record.file_name, record.total_rows],
       );
       await client.query(
         `DELETE FROM public.employee_namelist_monthly WHERE reporting_month = $1`,
-        [record.reporting_month],
+        [monthDate(record.reporting_month)],
       );
       await client.query(
         `INSERT INTO public.employee_namelist_monthly (
@@ -393,7 +396,7 @@ export class NamelistImportRepository {
            (row_data->>'technical_entry_date')::date, row_data->>'direct_or_indirect'
          FROM public.namelist_import_preview_rows
          WHERE preview_id = $1 ORDER BY row_number`,
-        [previewId, record.reporting_month, audit.rows[0].id],
+        [previewId, monthDate(record.reporting_month), audit.rows[0].id],
       );
       await client.query(`UPDATE public.namelist_imports SET status = 'completed' WHERE id = $1`, [audit.rows[0].id]);
       await client.query(`UPDATE public.namelist_import_previews SET status = 'committed' WHERE preview_id = $1`, [previewId]);
@@ -404,7 +407,7 @@ export class NamelistImportRepository {
 
   private async getCurrentLiveImport(client: Pick<DatabaseService, 'query'>): Promise<LiveImportRecord | null> {
     const result = await client.query<LiveImportRecord>(
-      `SELECT id::text, reporting_month
+      `SELECT id::text, TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month
        FROM public.namelist_imports
        WHERE reporting_month_confirmed
          AND import_mode = 'live' AND status = 'completed'
@@ -420,7 +423,7 @@ export class NamelistImportRepository {
   ): Promise<void> {
     await client.query(
       `DELETE FROM public.employee_namelist_monthly WHERE reporting_month = $1`,
-      [currentLiveImport.reporting_month],
+      [monthDate(currentLiveImport.reporting_month)],
     );
     await client.query(
       `INSERT INTO public.employee_namelist_monthly (
@@ -438,7 +441,7 @@ export class NamelistImportRepository {
          entry_for_retirement, designation_text, hrbp_global_id, hrbp2_global_id,
          official_email, technical_entry_date, direct_or_indirect
        FROM public.employee_namelist`,
-      [currentLiveImport.reporting_month, currentLiveImport.id],
+      [monthDate(currentLiveImport.reporting_month), currentLiveImport.id],
     );
   }
 
@@ -446,7 +449,7 @@ export class NamelistImportRepository {
     actorAccountId: string,
     client: Pick<DatabaseService, 'query'>,
   ): Promise<void> {
-    const expired = await client.query<{ reporting_month: Date | string }>(
+    const expired = await client.query<{ reporting_month: string }>(
       `WITH current_live AS (
          SELECT reporting_month
          FROM public.namelist_imports
@@ -459,7 +462,7 @@ export class NamelistImportRepository {
          UNION
          SELECT DISTINCT reporting_month FROM public.employee_namelist_monthly
        )
-       SELECT reporting_month
+       SELECT TO_CHAR(reporting_month, 'YYYY-MM') AS reporting_month
        FROM available_months
        ORDER BY reporting_month DESC
        OFFSET 3`,
@@ -467,28 +470,29 @@ export class NamelistImportRepository {
 
     for (const row of expired.rows) {
       await this.mrmCalculations.archiveMonth(
-        mapMonth(row.reporting_month),
+        row.reporting_month,
         actorAccountId,
         client,
       );
       await this.archiveOverviewMonth(row.reporting_month, actorAccountId, client);
       await client.query(
         `DELETE FROM public.employee_namelist_monthly WHERE reporting_month = $1`,
-        [row.reporting_month],
+        [monthDate(row.reporting_month)],
       );
     }
   }
 
   private async archiveOverviewMonth(
-    reportingMonth: Date | string,
+    reportingMonth: string,
     actorAccountId: string,
     client: Pick<DatabaseService, 'query'>,
   ): Promise<void> {
+    const reportingDate = monthDate(reportingMonth);
     const sourceImport = await client.query<{ source_import_id: string | null }>(
       `SELECT MAX(source_import_id)::text AS source_import_id
        FROM public.employee_namelist_monthly
        WHERE reporting_month = $1`,
-      [reportingMonth],
+      [reportingDate],
     );
     const snapshot = await client.query<{ id: string; checksum: string }>(
       `WITH next_version AS (
@@ -528,7 +532,7 @@ export class NamelistImportRepository {
               MD5(payload.value::text), $3::bigint, $2::uuid, TRUE
        FROM next_version CROSS JOIN payload
        RETURNING id::text, checksum`,
-      [reportingMonth, actorAccountId, sourceImport.rows[0]?.source_import_id ?? null],
+      [reportingDate, actorAccountId, sourceImport.rows[0]?.source_import_id ?? null],
     );
     const stored = snapshot.rows[0];
     if (!stored) throw new Error('SNAPSHOT_VERIFICATION_FAILED');
@@ -544,7 +548,7 @@ export class NamelistImportRepository {
     return {
       id: record.preview_id,
       fileName: record.file_name,
-      reportingMonth: mapMonth(record.reporting_month),
+      reportingMonth: record.reporting_month,
       importMode: record.import_mode,
       totalRows: record.total_rows,
       validRows: record.valid_rows,
@@ -553,26 +557,26 @@ export class NamelistImportRepository {
     };
   }
 
-  private async hasCurrentMonthImport(reportingMonth: Date | string, client: Pick<DatabaseService, 'query'> = this.database): Promise<boolean> {
+  private async hasCurrentMonthImport(reportingMonth: string, client: Pick<DatabaseService, 'query'> = this.database): Promise<boolean> {
     const result = await client.query<{ exists: boolean }>(
       `SELECT EXISTS (
          SELECT 1 FROM public.namelist_imports
          WHERE reporting_month = $1 AND reporting_month_confirmed
            AND import_mode = 'live' AND status = 'completed'
        ) AS exists`,
-      [reportingMonth],
+      [monthDate(reportingMonth)],
     );
     return result.rows[0]?.exists ?? false;
   }
 
-  private async hasHistoricalMonthImport(reportingMonth: Date | string, client: Pick<DatabaseService, 'query'> = this.database): Promise<boolean> {
+  private async hasHistoricalMonthImport(reportingMonth: string, client: Pick<DatabaseService, 'query'> = this.database): Promise<boolean> {
     const result = await client.query<{ exists: boolean }>(
       `SELECT EXISTS (
          SELECT 1 FROM public.namelist_imports
          WHERE reporting_month = $1 AND reporting_month_confirmed
            AND import_mode = 'historical' AND status = 'completed'
        ) AS exists`,
-      [reportingMonth],
+      [monthDate(reportingMonth)],
     );
     return result.rows[0]?.exists ?? false;
   }

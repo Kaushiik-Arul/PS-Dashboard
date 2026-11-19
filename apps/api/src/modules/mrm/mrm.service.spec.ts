@@ -74,4 +74,48 @@ describe('MrmService calculated overrides', () => {
     expect(result.rows[0]?.cells['rolling-latest']).toBe('81');
     expect(result.rows[1]?.cells['rolling-latest']).toBe('82');
   });
+
+  it('excludes plant attrition from PS Corp but includes it in PS-IN', () => {
+    const service = new MrmService(
+      {} as MrmRepository,
+      {} as MrmCalculationService,
+    ) as MrmService & {
+      applyCalculatedValues(
+        document: MrmReportDocument,
+        buckets: MrmMetricBucket[],
+      ): MrmReportDocument;
+    };
+    const document: MrmReportDocument = {
+      schemaVersion: 1, reportingMonth: '2026-09', dataMonth: '2026-08',
+      status: 'draft', revision: 0, canManage: true,
+      sourceStatus: { available: true, source: 'history' },
+      columns: [{
+        id: 'rolling-latest', key: 'rolling-latest', label: "Aug'26",
+        type: 'value', managed: true,
+      }],
+      rows: [
+        {
+          key: 'corp-attrition', tableKey: 'ps-corp', calculationKey: 'attrition',
+          title: 'Attrition', description: '', mode: 'calculated',
+          highlighted: true, muted: false, emphasized: true, managed: true,
+          overrideColumns: [], cells: {},
+        },
+        {
+          key: 'ps-in-attrition', tableKey: 'ps-in', calculationKey: 'attrition',
+          title: 'Attrition', description: '', mode: 'calculated',
+          highlighted: true, muted: false, emphasized: true, managed: true,
+          overrideColumns: [], cells: {},
+        },
+      ],
+      attachments: [], updatedAt: null, finalizedAt: null,
+    };
+
+    const result = service.applyCalculatedValues(document, [
+      metric({ metricKey: 'attrition', rangeKey: 'PS/NE-IN', numerator: 2, denominator: null }),
+      metric({ metricKey: 'attrition', rangeKey: 'GANP', numerator: 1, denominator: null }),
+    ]);
+
+    expect(result.rows[0]?.cells['rolling-latest']).toBe('2');
+    expect(result.rows[1]?.cells['rolling-latest']).toBe('3');
+  });
 });
