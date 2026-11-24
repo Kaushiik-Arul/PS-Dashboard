@@ -2,6 +2,10 @@
 
 Project documentation is organized by ownership and workflow.
 
+## Start here
+
+- [Project Handover and Orientation](HANDOVER.md)
+
 ## Architecture
 
 - [Security Architecture](architecture/SECURITY_ARCHITECTURE.md)

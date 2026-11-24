@@ -100,6 +100,7 @@ export class MrmCalculationService {
     };
 
     employees.forEach((employee) => {
+      add('headcount', employee.range, employee.org_unit);
       const direct = normalizedKey(employee.direct_or_indirect);
       const range = normalizedKey(employee.range);
       const grade = normalizedKey(employee.ps_group);
@@ -133,7 +134,17 @@ export class MrmCalculationService {
       }
     });
 
-    attrition.forEach((row) => add(row.metric, row.range, row.org_unit));
+    attrition.forEach((row) => {
+      add(row.metric, row.range, row.org_unit);
+      if (row.metric !== 'transfer') return;
+      if (row.within_ps_type === 'plant_to_corp') {
+        add('transfer-plant-to-corp', row.range, row.org_unit);
+      } else if (row.within_ps_type === 'corp_to_plant') {
+        add('transfer-corp-to-plant', row.range, row.org_unit);
+      } else if (row.within_ps_type === 'corp_to_corp') {
+        add('transfer-corp-to-corp', row.range, row.org_unit);
+      }
+    });
 
     return [...buckets.values()];
   }

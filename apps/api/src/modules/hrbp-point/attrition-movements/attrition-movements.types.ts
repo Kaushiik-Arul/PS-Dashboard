@@ -31,6 +31,12 @@ export type AttritionMovementCounts = {
   all: number;
   psAttrition: number;
   withinPs: number;
+  withinPsBreakdown: {
+    plantToPlant: number;
+    plantToCorp: number;
+    corpToPlant: number;
+    corpToCorp: number;
+  };
   pending: number;
 };
 

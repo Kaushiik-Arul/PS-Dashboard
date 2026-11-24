@@ -33,6 +33,8 @@ const excludedCorporateRanges = new Set(['BIDP', 'NAP', 'JAP', 'GANP']);
 // Filled from the uploaded PUL workbook rather than calculated from the Namelist.
 const pulSheetRows = new Set(['indirect-mss', 'direct-mss', 'total-mss']);
 
+const percentageRows = new Set(['expat', 'attrition', 'rotation', 'transfer']);
+
 function shiftMonth(month: string, offset: number): string {
   const [year, monthNumber] = month.split('-').map(Number);
   const date = new Date(Date.UTC(year, monthNumber - 1 + offset, 1));
@@ -321,8 +323,30 @@ export class MrmService {
           const metric = totals.get(
             `${row.tableKey}\0${dataMonth}\0${row.calculationKey ?? row.key}`,
           );
-          const zeroWhenEmpty = ['attrition', 'rotation', 'transfer']
-            .includes(row.calculationKey ?? row.key);
+          const metricKey = row.calculationKey ?? row.key;
+          const zeroWhenEmpty = ['attrition', 'rotation', 'transfer'].includes(metricKey);
+          if (percentageRows.has(metricKey)) {
+            const lookup = (key: string) => totals.get(`${row.tableKey}\0${dataMonth}\0${key}`);
+            const headcount = lookup('headcount')?.numerator ?? 0;
+            const count = metric?.numerator ?? 0;
+            if (!metric && !zeroWhenEmpty) {
+              cells[columnKey] = null;
+              continue;
+            }
+            if (metricKey === 'transfer') {
+              cells[columnKey] = row.tableKey === 'ps-corp'
+                ? `Corp → Corp: ${lookup('transfer-corp-to-corp')?.numerator ?? 0}`
+                : `Plant → Corp: ${lookup('transfer-plant-to-corp')?.numerator ?? 0}`
+                  + ` | Corp → Plant: ${lookup('transfer-corp-to-plant')?.numerator ?? 0}`;
+              continue;
+            }
+            let value = String(count);
+            if (count > 0 && headcount > 0) {
+              value = `${count} (${((count / headcount) * 100).toFixed(1)}%)`;
+            }
+            cells[columnKey] = value;
+            continue;
+          }
           cells[columnKey] = metric
             ? formatMrmMetricValue(metric)
             : zeroWhenEmpty ? '0' : null;

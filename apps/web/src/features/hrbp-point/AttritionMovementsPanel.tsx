@@ -15,7 +15,7 @@ import { PsExitImportButton } from './PsExitImportButton';
 const pageSizes = [10, 25, 50] as const;
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const initialQuery: AttritionMovementQuery = { view: 'all', search: '', year: null, month: null, page: 1, pageSize: 25 };
-const emptyPage: AttritionMovementsPage = { items: [], total: 0, counts: { all: 0, psAttrition: 0, withinPs: 0, pending: 0 }, availablePeriods: [], ...initialQuery };
+const emptyPage: AttritionMovementsPage = { items: [], total: 0, counts: { all: 0, psAttrition: 0, withinPs: 0, pending: 0, withinPsBreakdown: { plantToPlant: 0, plantToCorp: 0, corpToPlant: 0, corpToCorp: 0 } }, availablePeriods: [], ...initialQuery };
 
 function readable(value: string | null): string {
   if (!value) return 'Not available';
@@ -206,11 +206,17 @@ export function AttritionMovementsPanel({ client }: { client: AttritionMovements
     { value: 'within_ps', label: 'Within-PS transfers', count: result.counts.withinPs },
     { value: 'pending', label: 'Pending departures', count: result.counts.pending },
   ];
+  const breakdown = result.counts.withinPsBreakdown;
+  const withinBreakdown: [string, number][] = [
+    ['Plant → Plant', breakdown.plantToPlant],
+    ['Plant → Corp', breakdown.plantToCorp],
+    ['Corp → Plant', breakdown.corpToPlant],
+    ['Corp → Corp', breakdown.corpToCorp],
+  ];
 
-  return <section className="attrition-movements-panel" aria-labelledby="attrition-movements-title">
-    <header className="hrbp-page__heading"><div><p className="hrbp-section__eyebrow">Workforce movement review</p><h2 id="attrition-movements-title">Attrition movements</h2><p>Review finalized PS movements and unresolved departures across reporting periods.</p></div><div className="attrition-movements-actions"><button className="a-button a-button--secondary -small" type="button" aria-label="Export confirmed attrition history" disabled={exportBusy} onClick={() => void exportConfirmedHistory()}><i className="a-icon a-button__icon boschicon-bosch-ic-download" aria-hidden="true" /><span className="a-button__label">{exportBusy ? 'Preparing...' : 'Export history'}</span></button><PsExitImportButton onCommitted={() => load({ ...result, page: 1 })} /></div></header>
+  return <section className="attrition-movements-panel" aria-labelledby="attrition-movements-title">    <header className="hrbp-page__heading"><div><p className="hrbp-section__eyebrow">Workforce movement review</p><h2 id="attrition-movements-title">Attrition movements</h2><p>Review finalized PS movements and unresolved departures across reporting periods.</p></div><div className="attrition-movements-actions"><button className="a-button a-button--secondary -small" type="button" aria-label="Export confirmed attrition history" disabled={exportBusy} onClick={() => void exportConfirmedHistory()}><i className="a-icon a-button__icon boschicon-bosch-ic-download" aria-hidden="true" /><span className="a-button__label">{exportBusy ? 'Preparing...' : 'Export history'}</span></button><PsExitImportButton onCommitted={() => load({ ...result, page: 1 })} /></div></header>
     <div className="data-table-card attrition-movements-table">
-      <nav className="attrition-movement-tabs" aria-label="Attrition movement views">{tabs.map((tab) => <button key={tab.value} type="button" className={result.view === tab.value ? 'is-active' : ''} aria-current={result.view === tab.value ? 'page' : undefined} disabled={busy} onClick={() => selectView(tab.value)}><span>{tab.label}</span><strong>{tab.count}</strong></button>)}</nav>
+      <nav className="attrition-movement-tabs" aria-label="Attrition movement views">{tabs.map((tab) => <button key={tab.value} type="button" className={result.view === tab.value ? 'is-active' : ''} aria-current={result.view === tab.value ? 'page' : undefined} disabled={busy} onClick={() => selectView(tab.value)}><span>{tab.label}</span><strong>{tab.count}</strong>{tab.value === 'within_ps' && <small className="attrition-movement-breakdown">{withinBreakdown.map(([label, count]) => <span key={label}>{label}<b>{count}</b></span>)}</small>}</button>)}</nav>
       <div className="attrition-movements-toolbar">
         <form className="attrition-movements-search" role="search" onSubmit={submitSearch}><label><span className="visually-hidden">Search attrition movements</span><input type="search" maxLength={100} value={searchInput} placeholder="Search employee or assignment" onChange={(event) => setSearchInput(event.target.value)} /></label><button className="a-button a-button--primary -small" type="submit" disabled={busy} aria-label="Search attrition movements"><i className="a-icon a-button__icon boschicon-bosch-ic-search" aria-hidden="true" /></button></form>
         <div className="attrition-movements-filters"><label><span>Year</span><select value={result.year ?? ''} disabled={busy} onChange={(event) => void load({ ...result, year: event.target.value ? Number(event.target.value) : null, page: 1 })}><option value="">All years</option>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label><label><span>Month</span><select value={result.month ?? ''} disabled={busy} onChange={(event) => void load({ ...result, month: event.target.value ? Number(event.target.value) : null, page: 1 })}><option value="">All months</option>{monthNames.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}</select></label></div>

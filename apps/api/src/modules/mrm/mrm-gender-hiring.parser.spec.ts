@@ -42,6 +42,7 @@ describe('parseMrmGenderHiring', () => {
       [3, 50, false, false],
       [4, 0, true, true],
     ]);
+    expect(result.hireRows.map((item) => [item.row, item.gender])).toEqual([[2, 'M'], [3, 'F'], [4, 'M']]);
   });
 });
 

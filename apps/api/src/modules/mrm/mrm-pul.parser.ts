@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import ExcelJS from 'exceljs';
 
 export type MrmPulSource = { value: string; header: string; sheet: string; row: number; previousValue: string | null; previousHeader: string };
-export type MrmPulKey = 'corp' | 'in' | 'indirectMss' | 'directMss';
+export type MrmPulKey = 'corp' | 'in' | 'indirectMss' | 'directMss' | 'pcdDirectHc' | 'permanent' | 'temporary';
 export type MrmPulResult = Record<MrmPulKey, MrmPulSource | null> & { errors: string[] };
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -36,6 +36,9 @@ const sources = {
   in: { sheet: 'consolidation', label: 'indirect', pick: 'first' },
   indirectMss: { sheet: 'consolidation', label: 'indirect m&ss', pick: 'first' },
   directMss: { sheet: 'consolidation', label: 'direct m&ss', pick: 'first' },
+  pcdDirectHc: { sheet: 'consolidation', label: 'direct', pick: 'first' },
+  permanent: { sheet: 'consolidation', label: 'permanent', pick: 'first' },
+  temporary: { sheet: 'consolidation', label: 'temporary', pick: 'first' },
 } as const;
 
 function readSource(
@@ -93,7 +96,7 @@ export async function parseMrmPul(buffer: Buffer, dataMonth: string): Promise<Mr
     throw new BadRequestException('The file is not a valid XLSX workbook.');
   }
 
-  const result: MrmPulResult = { corp: null, in: null, indirectMss: null, directMss: null, errors: [] };
+  const result: MrmPulResult = { corp: null, in: null, indirectMss: null, directMss: null, pcdDirectHc: null, permanent: null, temporary: null, errors: [] };
   for (const key of Object.keys(sources) as MrmPulKey[]) {
     try {
       result[key] = readSource(workbook, sources[key], Number(match[1]), Number(match[2]));
@@ -101,6 +104,6 @@ export async function parseMrmPul(buffer: Buffer, dataMonth: string): Promise<Mr
       result.errors.push(error instanceof Error ? error.message : 'Could not read the PUL value.');
     }
   }
-  if (!result.corp && !result.in && !result.indirectMss && !result.directMss) throw new BadRequestException(result.errors.join(' '));
+  if (!(Object.keys(sources) as MrmPulKey[]).some((key) => result[key])) throw new BadRequestException(result.errors.join(' '));
   return result;
 }

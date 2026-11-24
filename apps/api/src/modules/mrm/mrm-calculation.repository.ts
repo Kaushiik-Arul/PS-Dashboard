@@ -22,6 +22,7 @@ export type MrmAttritionSourceRow = {
   metric: 'attrition' | 'rotation' | 'transfer';
   range: string;
   org_unit: string;
+  within_ps_type: string;
 };
 
 @Injectable()
@@ -130,16 +131,18 @@ export class MrmCalculationRepository {
     const result = await executor.query<MrmAttritionSourceRow>(
       `SELECT CASE
                 WHEN event.event_type = 'transfer' AND event.transfer_type = 'within_ps' THEN 'transfer'
-                WHEN event.event_type = 'transfer' AND event.transfer_type = 'out_of_ps_out_of_rbin' THEN 'rotation'
+                WHEN event.event_type = 'transfer'
+                  AND event.transfer_type IN ('out_of_ps_out_of_rbin', 'out_of_ps_within_rbin') THEN 'rotation'
                 ELSE 'attrition'
               END::text AS metric,
               COALESCE(mapping.range_value, '') AS range,
-              COALESCE(event.old_organizational_unit, '') AS org_unit
+              COALESCE(event.old_organizational_unit, '') AS org_unit,
+              COALESCE(event.within_ps_type, '') AS within_ps_type
        FROM public.employee_attrition_events event
        LEFT JOIN public.org_unit_range_mappings mapping
          ON LOWER(REGEXP_REPLACE(BTRIM(mapping.organizational_unit), '[[:space:]]+', ' ', 'g'))
           = LOWER(REGEXP_REPLACE(BTRIM(COALESCE(event.old_organizational_unit, '')), '[[:space:]]+', ' ', 'g'))
-       WHERE COALESCE(event.exit_lwd, event.event_month) >= $1::date
+       WHERE COALESCE(event.exit_lwd, event.event_month) >= DATE_TRUNC('year', $1::date)
          AND COALESCE(event.exit_lwd, event.event_month) < ($1::date + INTERVAL '1 month')
          AND event.deleted_at IS NULL
          AND event.classification_status = 'confirmed'
@@ -149,7 +152,7 @@ export class MrmCalculationRepository {
              AND (
                event.event_type IN ('resignation', 'retirement')
                OR (event.event_type = 'transfer'
-                 AND event.transfer_type IN ('out_of_ps_within_rbin', 'out_of_ps_out_of_rbin'))
+                 AND event.transfer_type IN ('out_of_ps_out_of_rbin', 'out_of_ps_within_rbin'))
              )
            )
            OR (event.event_type = 'transfer' AND event.transfer_type = 'within_ps'

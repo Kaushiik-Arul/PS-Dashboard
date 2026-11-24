@@ -142,7 +142,7 @@
   max-height: calc(100vh - 3rem);
   max-width: calc(100vw - 3rem);
   padding: 0;
-  width: 60rem;
+  width: 75rem;
 }
 
 .mrm-gender-dialog::backdrop { background: rgb(0 0 0 / 58%); }
@@ -200,7 +200,7 @@
 }
 
 .mrm-gender-list-title { font-size: 1rem; margin: 0; }
-.mrm-gender-table { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); overflow: auto; }
+.mrm-gender-table { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); flex: 1 1 auto; min-height: 22rem; overflow: auto; }
 .mrm-gender-table table { border-collapse: collapse; font-size: 0.8125rem; width: 100%; }
 .mrm-gender-table th, .mrm-gender-table td { padding: 0.5rem 0.75rem; text-align: start; vertical-align: top; }
 .mrm-gender-table thead th { background: var(--background); border-block-end: var(--app-border-width) solid var(--base-major__enabled__default__fill); position: sticky; top: 0; }

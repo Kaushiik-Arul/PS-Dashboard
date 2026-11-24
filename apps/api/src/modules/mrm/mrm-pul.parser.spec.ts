@@ -14,6 +14,8 @@ async function workbookBuffer(): Promise<Buffer> {
   consolidation.addRow(['Direct M&SS', 243, 243, null]);
   consolidation.addRow(['Indirect', 1348, 1350, null]);
   consolidation.addRow(['Indirect M&SS', 1220, 1227, null]);
+  consolidation.addRow(['Permanent', 2267, 2267, null]);
+  consolidation.addRow(['Temporary', 3345, 3390, null]);
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 
@@ -24,6 +26,9 @@ describe('parseMrmPul', () => {
     expect(result.in).toMatchObject({ value: '1350', header: 'YTD 10.26',     row: 4, previousValue: '1348' });
         expect(result.indirectMss).toMatchObject({ value: '1227', previousValue: '1220', row: 5 });
     expect(result.directMss).toMatchObject({ value: '243', row: 3 });
+    expect(result.pcdDirectHc).toMatchObject({ value: '5900', previousValue: '5855', row: 2 });
+    expect(result.permanent).toMatchObject({ value: '2267', row: 6 });
+    expect(result.temporary).toMatchObject({ value: '3390', previousValue: '3345', row: 7 });
     expect((await parseMrmPul(await workbookBuffer(), '2026-09')).corp?.previousValue).toBeNull();
   });
 

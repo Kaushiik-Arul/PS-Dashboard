@@ -634,7 +634,26 @@ Authorized users can download attachments. HRBP can upload or delete attachments
 
 - **Copy Tables:** Copies both tables as rich HTML and plain text suitable for pasting into Excel or PowerPoint.
 - **Export Excel:** Downloads a formatted `.xls` representation containing both table sections.
-- Status cells are represented with presentation-friendly status indicators.
+- Status cells are shown as coloured dots (green, amber, red). The Excel export and copied table keep the colour using a coloured `●`.
+
+### 11.8 Calculated KPI Rules
+
+- Namelist KPIs (M&SS, Expat, SUL, Women in SLx, Internal transfer) use the namelist of the data month. PS Corp excludes the BidP, NaP, JaP and GanP ranges.
+- Attrition (resignation + retirement), Job Rotation (out of PS, with or without leaving RBIN) and Transfer (within PS) come from attrition tracking events, counted year to date.
+- Expat, Attrition and Job Rotation show `count (x.x%)` over the headcount of the same data month.
+- Transfer shows `Plant → Corp | Corp → Plant` in PS-IN and only `Corp → Corp` in PS Corp.
+- Any calculated cell can be overridden by the HRBP while the report is a draft, including its status dot.
+
+### 11.9 Excel Uploads (PUL and Gender Hiring)
+
+HRBP can fill cells from workbooks without storing them or writing an audit record; values persist only when the draft is saved.
+
+- **PUL:** fills PUL, Corp PUL, Direct/Indirect/Total M&SS, PCd Direct HC, Permanent and Temporary from the `YTD MM.YY` column of the data month.
+- **Gender Hiring:** a preview with Gender Diversity Hiring (`F: n (x.x%)`, year to date) and Hiring performance (average Lead Time to Offer). A "Counted in" dropdown lists joiners without a range mapping so HRBP can choose PS-IN only or PS-IN + PS Corp.
+
+### 11.10 Operations Guide
+
+`/mrm/operations-guide`, opened from the MRM header, explains which KPI uses which data source and how it is calculated.
 
 Relevant implementation:
 
@@ -819,6 +838,7 @@ An employee may intentionally appear in both Talent and Development pools.
 
 - Review permanent RBIN-derived movements, PS Exit events, and unresolved departure candidates in one table; resolved candidate audit rows remain hidden.
 - Switch between All records, PS attrition, Within-PS transfers, and Pending departures with live counts.
+- The Within-PS transfers tile shows a four-way breakdown: Plant → Plant, Plant → Corp, Corp → Plant and Corp → Corp.
 - Search by employee or assignment and filter across reporting year and month.
 - Compare previous and current Area, Organizational Unit, Range, and Plant/Corporate classification.
 - Display the frozen source employee name with Pers.No and allow movement searches by either value.
@@ -1186,6 +1206,7 @@ PS Dashboard replaces disconnected spreadsheets with a governed workforce platfo
 2. Update a manual value and status.
 3. Show autosave and revision state.
 4. Add a supporting attachment.
+4a. Upload a PUL or Gender Hiring workbook to fill cells, and open the Operations guide.
 5. Copy the formatted tables or export both sections to Excel.
 6. Explain finalization and immutability without finalizing a production report during the demo.
 

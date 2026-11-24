@@ -8,6 +8,7 @@ export type MrmGenderHiringRow = {
   orgUnit: string;
   range: string | null;
   inCorp: boolean;
+  gender: 'F' | 'M' | 'O';
 };
 export type MrmGenderHiringMonth = {
   month: string;
@@ -17,6 +18,7 @@ export type MrmGenderHiringMonth = {
 };
 export type MrmLeadTimeRow = MrmGenderHiringRow & { leadTime: number; leadTimeMissing: boolean };
 export type MrmGenderHiringResult = {
+  hireRows: MrmGenderHiringRow[];
   leadTimeRows: MrmLeadTimeRow[];
   latest: MrmGenderHiringMonth;
   previous: MrmGenderHiringMonth;
@@ -113,6 +115,7 @@ export async function parseMrmGenderHiring(
     const empty = (month: string): MrmGenderHiringMonth => ({ month, rows: [], inCount: 0, corpCount: 0 });
     const yearStart = `${previousMonth.slice(0, 4)}-01`;
     const result: MrmGenderHiringResult = {
+      hireRows: [],
       leadTimeRows: [],
       latest: empty(latestMonth),
       previous: empty(previousMonth),
@@ -141,7 +144,12 @@ export async function parseMrmGenderHiring(
       const range = rangeByOrgUnit.get(normalize(orgUnit))?.trim() || null;
       if (!range) unmapped.add(orgUnit || '(blank)');
       const inCorp = Boolean(range) && !corporateExcludedRanges.has(range!.toUpperCase());
-      const base = { row: rowNumber, name, joiningDate, orgUnit, range, inCorp };
+      const isMale = gender === 'male' || gender === 'm';
+      const base = {
+        row: rowNumber, name, joiningDate, orgUnit, range, inCorp,
+        gender: (isFemale ? 'F' : isMale ? 'M' : 'O') as 'F' | 'M' | 'O',
+      };
+      if (inLeadTimeWindow) result.hireRows.push(base);
       if (target) {
         target.rows.push(base);
         target.inCount += 1;

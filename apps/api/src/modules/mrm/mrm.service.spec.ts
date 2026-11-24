@@ -113,9 +113,11 @@ describe('MrmService calculated overrides', () => {
     const result = service.applyCalculatedValues(document, [
       metric({ metricKey: 'attrition', rangeKey: 'PS/NE-IN', numerator: 2, denominator: null }),
       metric({ metricKey: 'attrition', rangeKey: 'GANP', numerator: 1, denominator: null }),
+      metric({ metricKey: 'headcount', rangeKey: 'PS/NE-IN', numerator: 100, denominator: null }),
+      metric({ metricKey: 'headcount', rangeKey: 'GANP', numerator: 100, denominator: null }),
     ]);
 
-    expect(result.rows[0]?.cells['rolling-latest']).toBe('2');
-    expect(result.rows[1]?.cells['rolling-latest']).toBe('3');
+    expect(result.rows[0]?.cells['rolling-latest']).toBe('2 (2.0%)');
+    expect(result.rows[1]?.cells['rolling-latest']).toBe('3 (1.5%)');
   });
 });

@@ -101,6 +101,10 @@
 .attrition-movement-tabs button:disabled { cursor: wait; }
 .attrition-movement-tabs button span { font-size: 0.8125rem; font-weight: 700; }
 .attrition-movement-tabs button strong { font: var(--sem__typography__bold__xl); }
+.attrition-movement-tabs button { flex-wrap: wrap; }
+.attrition-movement-breakdown { display: grid; flex-basis: 100%; font-size: 0.75rem; gap: 0.125rem 1rem; grid-template-columns: repeat(2, auto); justify-content: start; }
+.attrition-movement-breakdown span { display: flex; font-weight: 400; gap: var(--app-space-2); justify-content: space-between; }
+.attrition-movement-breakdown b { font-weight: 700; }
 .attrition-movements-toolbar { align-items: end; background: var(--base-minor__enabled__default__fill); border-block-end: var(--app-border-width) solid var(--base-major__disabled__default__fill); display: flex; gap: var(--app-space-4); justify-content: space-between; padding: var(--app-space-3) var(--app-space-4); }
 .attrition-movements-search { display: flex; flex: 1 1 24rem; max-width: 32rem; }
 .attrition-movements-search label { flex: 1; min-width: 0; }

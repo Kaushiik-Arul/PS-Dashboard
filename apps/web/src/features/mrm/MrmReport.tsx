@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getCsrfToken } from "@/auth/csrf";
 import type { MrmColumn, MrmColumnType, MrmMonth, MrmReportDocument, MrmRow, MrmSavePayload } from "./mrm.types";
@@ -35,9 +36,11 @@ function cellText(row: MrmRow, column: MrmColumn) {
   return value;
 }
 
+const multilineKeys = new Set(["gender-hiring", "transfer"]);
+
 function calculatedCellValue(row: MrmRow, column: MrmColumn) {
   const value = String(row.cells[column.key] ?? "");
-  if (row.calculationKey !== "gender-hiring") {
+  if (!multilineKeys.has(row.calculationKey ?? "")) {
     return <span className="mrm-calculated-value">{value}</span>;
   }
   const values = value.split(" | ").filter(Boolean);
@@ -50,7 +53,7 @@ function calculatedCellValue(row: MrmRow, column: MrmColumn) {
 
 function calculatedInputValue(row: MrmRow, column: MrmColumn) {
   const value = String(row.cells[column.key] ?? "");
-  return row.calculationKey === "gender-hiring" ? value.replaceAll(" | ", "\n") : value;
+  return multilineKeys.has(row.calculationKey ?? "") ? value.replaceAll(" | ", "\n") : value;
 }
 
 function newId(prefix: string) {
@@ -66,10 +69,10 @@ function reportTables(rows: MrmRow[]) {
 
 type MrmReportProps = { initialReport: MrmReportDocument; months: MrmMonth[] };
 type PulSource = { value: string; header: string; previousValue: string | null };
-type GenderPreviewRow = { row: number; name: string; joiningDate: string; orgUnit: string; range: string | null; inCorp: boolean };
+type GenderPreviewRow = { row: number; name: string; joiningDate: string; orgUnit: string; range: string | null; inCorp: boolean; gender: "F" | "M" | "O" };
 type GenderPreviewMonth = { month: string; rows: GenderPreviewRow[]; inCount: number; corpCount: number };
 type LeadTimeRow = GenderPreviewRow & { leadTime: number; leadTimeMissing: boolean };
-type GenderPreview = { latest: GenderPreviewMonth; previous: GenderPreviewMonth; leadTimeRows: LeadTimeRow[]; unmappedOrgUnits: string[]; unreadableDates: { row: number; name: string; text: string }[]; fileName?: string };
+type GenderPreview = { latest: GenderPreviewMonth; previous: GenderPreviewMonth; hireRows: GenderPreviewRow[]; leadTimeRows: LeadTimeRow[]; unmappedOrgUnits: string[]; unreadableDates: { row: number; name: string; text: string }[]; fileName?: string };
 
 function savePayload(source: MrmReportDocument): MrmSavePayload {
   return {
@@ -200,8 +203,8 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         headers: csrf ? { "X-CSRF-Token": csrf } : undefined,
         body,
       });
-      const result = await response.json().catch(() => null) as { corp?: PulSource | null; in?: PulSource | null; indirectMss?: PulSource | null; directMss?: PulSource | null; errors?: string[]; message?: string } | null;
-      if (!response.ok || !result || (!result.corp && !result.in && !result.indirectMss && !result.directMss)) throw new Error(result?.message || "The PUL file could not be read.");
+      const result = await response.json().catch(() => null) as { corp?: PulSource | null; in?: PulSource | null; indirectMss?: PulSource | null; directMss?: PulSource | null; pcdDirectHc?: PulSource | null; permanent?: PulSource | null; temporary?: PulSource | null; errors?: string[]; message?: string } | null;
+      if (!response.ok || !result || !Object.values(result).some((value) => value && typeof value === "object" && !Array.isArray(value))) throw new Error(result?.message || "The PUL file could not be read.");
       const notes: string[] = [];
       const hasPrevious = document.columns.some((column) => column.key === "rolling-previous");
       const previousEmpty = (rowKey: string) => hasPrevious && !String(document.rows.find((item) => item.key === rowKey)?.cells["rolling-previous"] ?? "").trim();
@@ -226,7 +229,10 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         };
         fill("total-mss", "Total M&SS", total);
       }
-      const header = (result.corp ?? result.in ?? result.indirectMss ?? result.directMss)!.header;
+      fill("pcd-direct-hc", "PCd (Direct HC)", result.pcdDirectHc);
+      fill("permanent", "t/o Permanent", result.permanent);
+      fill("temporary", "t/o Temporary", result.temporary);
+      const header = (result.corp ?? result.in ?? result.indirectMss ?? result.directMss ?? result.pcdDirectHc ?? result.permanent ?? result.temporary)!.header;
       setMessage(`${notes.join(", ")} (${header}).${result.errors?.length ? ` Skipped: ${result.errors.join(" ")}` : ""}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The PUL file could not be read.");
@@ -279,7 +285,20 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
   };
 
   const inCorp = (item: GenderPreviewRow) => genderCorpOverrides[item.row] ?? item.inCorp;
-  const corpCountOf = (month: GenderPreviewMonth) => month.rows.filter(inCorp).length;
+  const hireRowsOf = (preview: GenderPreview, key: "latest" | "previous") => {
+    const month = preview[key].month;
+    return preview.hireRows.filter((item) => item.joiningDate.slice(0, 4) === month.slice(0, 4) && item.joiningDate.slice(0, 7) <= month);
+  };
+  const genderText = (items: GenderPreviewRow[]) => {
+    const female = items.filter((item) => item.gender === "F").length;
+    const male = items.filter((item) => item.gender === "M").length;
+    const total = female + male;
+    return { female, male, text: total ? `F: ${female} (${((female / total) * 100).toFixed(1)}%)` : `F: ${female}` };
+  };
+  const genderStats = (preview: GenderPreview, key: "latest" | "previous") => {
+    const items = hireRowsOf(preview, key);
+    return { inStats: genderText(items), corpStats: genderText(items.filter(inCorp)) };
+  };
   const leadRowsOf = (preview: GenderPreview, key: "latest" | "previous") => {
     const month = preview[key].month;
     return preview.leadTimeRows.filter((item) => item.joiningDate.slice(0, 4) === month.slice(0, 4) && item.joiningDate.slice(0, 7) <= month);
@@ -308,14 +327,15 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
   const applyGenderPreview = () => {
     if (!genderPreview) return;
     const hasPrevious = document.columns.some((column) => column.key === "rolling-previous");
-    const latestCorp = corpCountOf(genderPreview.latest);
-    updateCell("gender-hiring", "rolling-latest", `F: ${genderPreview.latest.inCount}`);
-    updateCell("corp-gender-hiring", "rolling-latest", `F: ${latestCorp}`);
+    const latest = genderStats(genderPreview, "latest");
+    updateCell("gender-hiring", "rolling-latest", latest.inStats.text);
+    updateCell("corp-gender-hiring", "rolling-latest", latest.corpStats.text);
     if (hasPrevious) {
-      updateCell("gender-hiring", "rolling-previous", `F: ${genderPreview.previous.inCount}`);
-      updateCell("corp-gender-hiring", "rolling-previous", `F: ${corpCountOf(genderPreview.previous)}`);
+      const previous = genderStats(genderPreview, "previous");
+      updateCell("gender-hiring", "rolling-previous", previous.inStats.text);
+      updateCell("corp-gender-hiring", "rolling-previous", previous.corpStats.text);
     }
-    setMessage(`Gender hiring applied: PS-IN F: ${genderPreview.latest.inCount}, PS Corp F: ${latestCorp}.`);
+    setMessage(`Gender hiring applied: PS-IN ${latest.inStats.text}, PS Corp ${latest.corpStats.text}.`);
     closeGenderPreview();
   };
 
@@ -418,9 +438,9 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
         const kpi = `${row.emphasized === false ? title : `<strong>${title}</strong>`}${row.description ? `<br><small>${htmlValue(row.description)}</small>` : ""}`;
         const cells = visibleColumns.map((column) => {
           const value = cellText(row, column);
-          const statusSymbols: Record<string, string> = { Green: "🟢", Amber: "🟠", Red: "🔴" };
-          const content = column.type === "status" && statusSymbols[value]
-            ? `<span style="font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif;font-size:20px">${statusSymbols[value]}</span>`
+          const statusColors: Record<string, string> = { Green: "#00884a", Amber: "#9c7900", Red: "#e20015" };
+          const content = column.type === "status" && statusColors[value]
+            ? `<span style="color:${statusColors[value]};font-family:Arial,sans-serif;font-size:24px;line-height:24px">&#9679;</span>`
             : htmlValue(value);
           return `<td style="background:${background};border:1px solid #252525;font-size:15px;height:42px;mso-number-format:'\\@';padding:6px;text-align:center;vertical-align:middle;white-space:normal">${content}</td>`;
         }).join("");
@@ -467,6 +487,10 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
           <p className="mrm-header__description">Prepare the rolling KPI table, complete manual values, and share it with the monthly review.</p>
         </div>
         <div className="mrm-header__actions">
+          <Link className="a-button a-button--secondary -small" href="/mrm/operations-guide">
+            <i className="a-icon a-button__icon boschicon-bosch-ic-information" aria-hidden="true" />
+            <span className="a-button__label">Operations guide</span>
+          </Link>
           <button className="a-button a-button--secondary -small" type="button" onClick={() => void copyReport()}>
             <i className="a-icon a-button__icon boschicon-bosch-ic-copy" aria-hidden="true" />
             <span className="a-button__label">Copy table</span>
@@ -532,7 +556,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
       {message && <p className="mrm-message" role="status">{message}</p>}
       <dialog className="mrm-gender-dialog" ref={genderDialogRef} onCancel={(event) => { event.preventDefault(); closeGenderPreview(); }}>
         {genderPreview && (() => {
-          const current = genderPreview[genderMonth];
+          const unmappedRows = hireRowsOf(genderPreview, genderMonth).filter((item) => !item.range);
           const label = (key: "latest" | "previous") => document.columns.find((column) => column.key === `rolling-${key}`)?.label ?? genderPreview[key].month;
           const reason = (item: GenderPreviewRow) => item.inCorp
             ? ""
@@ -607,38 +631,33 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
 
                           {previewTab === "gender" && <>
             <div className="mrm-gender-cards" role="tablist" aria-label="Month to review">
-              {(["previous", "latest"] as const).map((key) => (
-                <button key={key} type="button" role="tab" aria-selected={genderMonth === key} className="mrm-gender-card" onClick={() => setGenderMonth(key)}>
+              {(["previous", "latest"] as const).map((key) => {
+                const stats = genderStats(genderPreview, key);
+                const count = hireRowsOf(genderPreview, key).length;
+                return <button key={key} type="button" role="tab" aria-selected={genderMonth === key} className="mrm-gender-card" onClick={() => setGenderMonth(key)}>
                   <span className="mrm-gender-card__month">{label(key)} column</span>
                   <span className="mrm-gender-card__numbers">
-                    <span><strong>{genderPreview[key].inCount}</strong>PS-IN</span>
-                    <span><strong>{corpCountOf(genderPreview[key])}</strong>PS Corp</span>
+                    <span><strong>{stats.inStats.text.replace("F: ", "")}</strong>PS-IN</span>
+                    <span><strong>{stats.corpStats.text.replace("F: ", "")}</strong>PS Corp</span>
                   </span>
-                  <span className="mrm-gender-card__hint">Click to see the {genderPreview[key].inCount} {genderPreview[key].inCount === 1 ? "person" : "people"}</span>
-                </button>
-              ))}
+                  <span className="mrm-gender-card__hint">Female of female + male joiners, Jan to {genderPreview[key].month} ({count} {count === 1 ? "joiner" : "joiners"})</span>
+                </button>;
+              })}
             </div>
 
             <p className="mrm-gender-rule">
-              <strong>PS-IN</strong> counts every woman who joined that month.{" "}
-              <strong>PS Corp</strong> counts the same women but leaves out the plant ranges BidP, NaP, JaP and GanP, using the range mapping of the Specific Org unit.
+              Female joiners with an <strong>Actual Date of Joining</strong> from January up to the column month, as a share of female + male joiners. <strong>PS-IN</strong> uses all of them; <strong>PS Corp</strong> leaves out the plant ranges BidP, NaP, JaP and GanP, using the range mapping of the Specific Org unit.
             </p>
-            {(genderPreview.unmappedOrgUnits.length > 0 || genderPreview.unreadableDates.length > 0) && (
-              <ul className="mrm-gender-warnings">
-                {genderPreview.unmappedOrgUnits.length > 0 && <li>No range mapping for: {genderPreview.unmappedOrgUnits.join(", ")}. They are counted in PS-IN only unless you change "Counted in" below.</li>}
-                {genderPreview.unreadableDates.length > 0 && <li>Date of joining could not be read for {genderPreview.unreadableDates.length} women (Excel row {genderPreview.unreadableDates.map((item) => item.row).join(", ")}). They are not counted.</li>}
-              </ul>
-            )}
-
-            <h3 className="mrm-gender-list-title">{label(genderMonth)} column: {current.rows.length} {current.rows.length === 1 ? "person" : "people"}</h3>
+            <h3 className="mrm-gender-list-title">{label(genderMonth)} column: {unmappedRows.length} {unmappedRows.length === 1 ? "joiner" : "joiners"} without a range mapping (set "Counted in" manually)</h3>
             <div className="mrm-gender-table">
               <table>
-                <thead><tr><th>Name</th><th>Date of joining</th><th>Specific org unit</th><th>Range</th><th>Counted in</th></tr></thead>
+                <thead><tr><th>Name</th><th>Gender</th><th>Date of joining</th><th>Specific org unit</th><th>Range</th><th>Counted in</th></tr></thead>
                 <tbody>
-                  {current.rows.map((item) => {
+                  {unmappedRows.map((item) => {
                     const changed = genderCorpOverrides[item.row] !== undefined && genderCorpOverrides[item.row] !== item.inCorp;
                     return <tr key={item.row}>
                       <td>{item.name || `Excel row ${item.row}`}</td>
+                      <td>{item.gender === "F" ? "Female" : item.gender === "M" ? "Male" : "Other"}</td>
                       <td>{item.joiningDate}</td>
                       <td>{item.orgUnit || "-"}</td>
                       <td>{item.range ?? "-"}</td>
@@ -656,7 +675,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                       </td>
                     </tr>;
                   })}
-                  {current.rows.length === 0 && <tr><td colSpan={5}>No women joined in this month.</td></tr>}
+                  {unmappedRows.length === 0 && <tr><td colSpan={6}>Every joiner has a range mapping. Nothing to set manually.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -784,7 +803,7 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                         </div>
                       )}
                       {column.type === "value" && row.mode === "manual" && <input aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}`} readOnly={!canEdit} value={String(row.cells[column.key] ?? "")} onChange={(event) => updateCell(row.key, column.key, event.target.value)} />}
-                      {column.type === "status" && <button type="button" disabled={!canEdit || row.mode === "calculated"} className="mrm-status-button" aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}: ${String(row.cells[column.key] || "not set")}. Select to change.`} title="Select to change status" onClick={() => cycleStatus(row, column)}>{row.cells[column.key] ? <i className={`mrm-status-dot is-${String(row.cells[column.key])}`} /> : <span>Set</span>}</button>}
+                      {column.type === "status" && <button type="button" disabled={!canEdit} className="mrm-status-button" aria-label={`${row.title}, ${column.label.replaceAll("\n", " ")}: ${String(row.cells[column.key] || "not set")}. Select to change.`} title="Select to change status" onClick={() => cycleStatus(row, column)}>{row.cells[column.key] ? <i className={`mrm-status-dot is-${String(row.cells[column.key])}`} /> : <span>Set</span>}</button>}
                     </td>
                   ))}
                 </tr>

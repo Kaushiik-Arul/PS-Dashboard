@@ -67,6 +67,10 @@ type CountsRow = {
   all_count: string;
   ps_attrition_count: string;
   within_ps_count: string;
+  plant_to_plant_count: string;
+  plant_to_corp_count: string;
+  corp_to_plant_count: string;
+  corp_to_corp_count: string;
   pending_count: string;
 };
 
@@ -336,6 +340,10 @@ export class AttritionMovementsRepository {
          SELECT COUNT(*)::text AS all_count,
            COUNT(*) FILTER (WHERE record_type = 'event' AND counts_as_ps_attrition)::text AS ps_attrition_count,
            COUNT(*) FILTER (WHERE record_type = 'event' AND transfer_type = 'within_ps')::text AS within_ps_count,
+                     COUNT(*) FILTER (WHERE record_type = 'event' AND transfer_type = 'within_ps' AND within_ps_type = 'plant_to_plant')::text AS plant_to_plant_count,
+                     COUNT(*) FILTER (WHERE record_type = 'event' AND transfer_type = 'within_ps' AND within_ps_type = 'plant_to_corp')::text AS plant_to_corp_count,
+                     COUNT(*) FILTER (WHERE record_type = 'event' AND transfer_type = 'within_ps' AND within_ps_type = 'corp_to_plant')::text AS corp_to_plant_count,
+                     COUNT(*) FILTER (WHERE record_type = 'event' AND transfer_type = 'within_ps' AND within_ps_type = 'corp_to_corp')::text AS corp_to_corp_count,
            COUNT(*) FILTER (WHERE record_type = 'candidate' AND record_status = 'pending')::text AS pending_count
          FROM filtered_records`,
         baseParameters,
@@ -354,6 +362,12 @@ export class AttritionMovementsRepository {
       all: Number(countRow?.all_count ?? 0),
       psAttrition: Number(countRow?.ps_attrition_count ?? 0),
       withinPs: Number(countRow?.within_ps_count ?? 0),
+      withinPsBreakdown: {
+        plantToPlant: Number(countRow?.plant_to_plant_count ?? 0),
+        plantToCorp: Number(countRow?.plant_to_corp_count ?? 0),
+        corpToPlant: Number(countRow?.corp_to_plant_count ?? 0),
+        corpToCorp: Number(countRow?.corp_to_corp_count ?? 0),
+      },
       pending: Number(countRow?.pending_count ?? 0),
     };
     const total = view === 'all' ? counts.all

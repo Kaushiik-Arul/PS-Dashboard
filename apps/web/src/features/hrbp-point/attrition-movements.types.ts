@@ -30,7 +30,13 @@ export type AttritionMovementItem = {
 export type AttritionMovementsPage = {
   items: AttritionMovementItem[];
   total: number;
-  counts: { all: number; psAttrition: number; withinPs: number; pending: number };
+  counts: {
+    all: number;
+    psAttrition: number;
+    withinPs: number;
+    pending: number;
+    withinPsBreakdown: { plantToPlant: number; plantToCorp: number; corpToPlant: number; corpToCorp: number };
+  };
   availablePeriods: string[];
   page: number;
   pageSize: number;
