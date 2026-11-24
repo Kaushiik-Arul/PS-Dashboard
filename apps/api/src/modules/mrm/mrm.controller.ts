@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -18,6 +19,9 @@ import type { Response } from 'express';
 import { RequirePermission } from '../../common/authorization/require-permission.decorator';
 import { CurrentUser } from '../auth/auth.decorators';
 import type { AuthenticatedUser } from '../auth/auth.types';
+import { parseMrmGenderHiring } from './mrm-gender-hiring.parser';
+import { MrmCalculationRepository } from './mrm-calculation.repository';
+import { parseMrmPul } from './mrm-pul.parser';
 import { MrmService } from './mrm.service';
 import type { MrmUploadedFile } from './mrm.types';
 
@@ -25,12 +29,39 @@ import type { MrmUploadedFile } from './mrm.types';
 @Controller('mrm')
 @RequirePermission('mrm:view')
 export class MrmController {
-  constructor(private readonly service: MrmService) {}
+  constructor(
+    private readonly service: MrmService,
+    private readonly calculationRepository: MrmCalculationRepository,
+  ) {}
+
+  @Post('gender-hiring-value')
+  @RequirePermission('mrm:manage')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } }))
+  async readGenderHiringValue(
+    @Body('dataMonth') dataMonth: unknown,
+    @UploadedFile() file: MrmUploadedFile | undefined,
+  ) {
+    if (!file || !Buffer.isBuffer(file.buffer)) throw new BadRequestException('Gender hiring file is required.');
+    if (typeof dataMonth !== 'string') throw new BadRequestException('Data month is required.');
+    return parseMrmGenderHiring(file.buffer, dataMonth, await this.calculationRepository.getOrgUnitRanges());
+  }
 
   @Get('months')
   @Header('Cache-Control', 'no-store')
   listMonths() {
     return this.service.listMonths();
+  }
+
+  @Post('pul-value')
+  @RequirePermission('mrm:manage')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024, files: 1 } }))
+  async readPulValue(
+    @Body('dataMonth') dataMonth: unknown,
+    @UploadedFile() file: MrmUploadedFile | undefined,
+  ) {
+    if (!file || !Buffer.isBuffer(file.buffer)) throw new BadRequestException('PUL file is required.');
+    if (typeof dataMonth !== 'string') throw new BadRequestException('Data month is required.');
+    return parseMrmPul(file.buffer, dataMonth);
   }
 
   @Get('reports/:reportingMonth')

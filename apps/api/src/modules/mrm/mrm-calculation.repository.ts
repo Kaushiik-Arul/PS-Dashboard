@@ -19,12 +19,9 @@ export type MrmEmployeeSourceRow = {
 };
 
 export type MrmAttritionSourceRow = {
-  metric_source: 'governed_attrition' | 'legacy_movement';
+  metric: 'attrition' | 'rotation' | 'transfer';
   range: string;
   org_unit: string;
-  filter_value: string;
-  reason_for_action: string;
-  detailed_reason_approved: string;
 };
 
 @Injectable()
@@ -111,18 +108,33 @@ export class MrmCalculationRepository {
     return result.rows;
   }
 
+  async getOrgUnitRanges(
+    executor: MrmQueryExecutor = this.database,
+  ): Promise<Map<string, string>> {
+    const result = await executor.query<{ organizational_unit: string; range_value: string }>(
+      `SELECT organizational_unit, range_value FROM public.org_unit_range_mappings`,
+    );
+    return new Map(
+      result.rows.map((row) => [
+        row.organizational_unit.replace(/\s+/g, ' ').trim().toLowerCase(),
+        row.range_value ?? '',
+      ]),
+    );
+  }
+
   async getAttrition(
     dataMonth: string,
     accountId: string,
     executor: MrmQueryExecutor = this.database,
   ): Promise<MrmAttritionSourceRow[]> {
     const result = await executor.query<MrmAttritionSourceRow>(
-      `SELECT 'governed_attrition'::text AS metric_source,
+      `SELECT CASE
+                WHEN event.event_type = 'transfer' AND event.transfer_type = 'within_ps' THEN 'transfer'
+                WHEN event.event_type = 'transfer' AND event.transfer_type = 'out_of_ps_out_of_rbin' THEN 'rotation'
+                ELSE 'attrition'
+              END::text AS metric,
               COALESCE(mapping.range_value, '') AS range,
-              COALESCE(event.old_organizational_unit, '') AS org_unit,
-              INITCAP(event.event_type) AS filter_value,
-              COALESCE(event.exit_reason, '') AS reason_for_action,
-              COALESCE(event.exit_reason, '') AS detailed_reason_approved
+              COALESCE(event.old_organizational_unit, '') AS org_unit
        FROM public.employee_attrition_events event
        LEFT JOIN public.org_unit_range_mappings mapping
          ON LOWER(REGEXP_REPLACE(BTRIM(mapping.organizational_unit), '[[:space:]]+', ' ', 'g'))
@@ -131,10 +143,17 @@ export class MrmCalculationRepository {
          AND COALESCE(event.exit_lwd, event.event_month) < ($1::date + INTERVAL '1 month')
          AND event.deleted_at IS NULL
          AND event.classification_status = 'confirmed'
-         AND event.counts_as_ps_attrition = TRUE
          AND (
-           event.event_type IN ('resignation', 'retirement')
-           OR (event.event_type = 'transfer' AND event.transfer_type = 'out_of_ps_out_of_rbin')
+           (
+             event.counts_as_ps_attrition = TRUE
+             AND (
+               event.event_type IN ('resignation', 'retirement')
+               OR (event.event_type = 'transfer'
+                 AND event.transfer_type IN ('out_of_ps_within_rbin', 'out_of_ps_out_of_rbin'))
+             )
+           )
+           OR (event.event_type = 'transfer' AND event.transfer_type = 'within_ps'
+             AND event.counts_as_ps_attrition = FALSE)
          )
          AND EXISTS (
            SELECT 1 FROM public.master_access access
@@ -146,30 +165,6 @@ export class MrmCalculationRepository {
                OR (access.role IN ('department_head', 'sub_department_head')
                  AND BTRIM(COALESCE(event.old_range, '')) = BTRIM(access.assigned_range)
                  AND BTRIM(COALESCE(event.old_organizational_unit, '')) = BTRIM(access.assigned_org_unit))
-             )
-         )
-       UNION ALL
-       SELECT 'legacy_movement'::text AS metric_source,
-              COALESCE(row.range, '') AS range,
-              COALESCE(row.org_unit, '') AS org_unit,
-              COALESCE(row.filter_value, '') AS filter_value,
-              COALESCE(row.reason_for_action, '') AS reason_for_action,
-              COALESCE(row.detailed_reason_approved, '') AS detailed_reason_approved
-       FROM public.attrition_rows row
-       WHERE row.lwd >= $1::date
-         AND row.lwd < ($1::date + INTERVAL '1 month')
-         AND UPPER(REGEXP_REPLACE(BTRIM(COALESCE(row.reason_for_action, '')), '[[:space:]]+', ' ', 'g'))
-           IN ('TRANSFER INTRA BOSCH', 'INTERNAL')
-         AND EXISTS (
-           SELECT 1 FROM public.master_access access
-           WHERE access.account_id = $2::uuid
-             AND (
-               access.role IN ('hrbp', 'admin')
-               OR (access.role = 'range_head'
-                 AND BTRIM(row.range) = BTRIM(access.assigned_range))
-               OR (access.role IN ('department_head', 'sub_department_head')
-                 AND BTRIM(row.range) = BTRIM(access.assigned_range)
-                 AND BTRIM(row.org_unit) = BTRIM(access.assigned_org_unit))
              )
          )`,
       [monthDate(dataMonth), accountId],

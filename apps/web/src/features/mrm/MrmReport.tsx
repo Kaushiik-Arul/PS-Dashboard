@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { getCsrfToken } from "@/auth/csrf";
 import type { MrmColumn, MrmColumnType, MrmMonth, MrmReportDocument, MrmRow, MrmSavePayload } from "./mrm.types";
@@ -65,6 +65,11 @@ function reportTables(rows: MrmRow[]) {
 }
 
 type MrmReportProps = { initialReport: MrmReportDocument; months: MrmMonth[] };
+type PulSource = { value: string; header: string; previousValue: string | null };
+type GenderPreviewRow = { row: number; name: string; joiningDate: string; orgUnit: string; range: string | null; inCorp: boolean };
+type GenderPreviewMonth = { month: string; rows: GenderPreviewRow[]; inCount: number; corpCount: number };
+type LeadTimeRow = GenderPreviewRow & { leadTime: number; leadTimeMissing: boolean };
+type GenderPreview = { latest: GenderPreviewMonth; previous: GenderPreviewMonth; leadTimeRows: LeadTimeRow[]; unmappedOrgUnits: string[]; unreadableDates: { row: number; name: string; text: string }[]; fileName?: string };
 
 function savePayload(source: MrmReportDocument): MrmSavePayload {
   return {
@@ -84,9 +89,19 @@ function savePayload(source: MrmReportDocument): MrmSavePayload {
 export function MrmReport({ initialReport, months }: MrmReportProps) {
   const router = useRouter();
   const [document, setDocument] = useState(initialReport);
+  const [expandedTables, setExpandedTables] = useState<Set<string>>(() => new Set());
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [newColumnType, setNewColumnType] = useState<MrmColumnType>("value");
   const [message, setMessage] = useState("");
+  const [pulBusy, setPulBusy] = useState(false);
+  const pulInputRef = useRef<HTMLInputElement>(null);
+  const [genderBusy, setGenderBusy] = useState(false);
+  const genderInputRef = useRef<HTMLInputElement>(null);
+  const genderDialogRef = useRef<HTMLDialogElement>(null);
+  const [genderPreview, setGenderPreview] = useState<GenderPreview | null>(null);
+  const [genderMonth, setGenderMonth] = useState<"latest" | "previous">("latest");
+  const [genderCorpOverrides, setGenderCorpOverrides] = useState<Record<number, boolean>>({});
+  const [previewTab, setPreviewTab] = useState<"gender" | "lead">("gender");
   const [saveState, setSaveState] = useState<"saved" | "unsaved" | "saving" | "error" | "conflict">("saved");
   const canEdit = document.canManage && document.status === "draft";
   const visibleColumns = document.columns.filter((column) => column.type !== "attachment");
@@ -161,9 +176,161 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
     }));
   };
 
+  const uploadPul = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!/\.xlsx$/i.test(file.name) || file.size > 50 * 1024 * 1024) {
+      setMessage("Choose an XLSX file smaller than 50 MB.");
+      return;
+    }
+    if (!document.columns.some((column) => column.key === "rolling-latest")) {
+      setMessage("The report has no reporting-month column.");
+      return;
+    }
+    setPulBusy(true);
+    setMessage("");
+    try {
+      const csrf = getCsrfToken();
+      const body = new FormData();
+      body.append("dataMonth", document.dataMonth);
+      body.append("file", file);
+      const response = await fetch("/api/mrm/pul-value", {
+        method: "POST",
+        headers: csrf ? { "X-CSRF-Token": csrf } : undefined,
+        body,
+      });
+      const result = await response.json().catch(() => null) as { corp?: PulSource | null; in?: PulSource | null; indirectMss?: PulSource | null; directMss?: PulSource | null; errors?: string[]; message?: string } | null;
+      if (!response.ok || !result || (!result.corp && !result.in && !result.indirectMss && !result.directMss)) throw new Error(result?.message || "The PUL file could not be read.");
+      const notes: string[] = [];
+      const hasPrevious = document.columns.some((column) => column.key === "rolling-previous");
+      const previousEmpty = (rowKey: string) => hasPrevious && !String(document.rows.find((item) => item.key === rowKey)?.cells["rolling-previous"] ?? "").trim();
+      const fill = (rowKey: string, label: string, source: PulSource | null | undefined) => {
+        if (!source) return;
+        updateCell(rowKey, "rolling-latest", source.value);
+        const fillPrevious = source.previousValue && previousEmpty(rowKey);
+        if (fillPrevious) updateCell(rowKey, "rolling-previous", source.previousValue!);
+        notes.push(`${label} ${source.value}`);
+      };
+      fill("corp-pul", "PS Corp PUL", result.corp);
+      fill("pul", "PS-IN PUL", result.in);
+      fill("indirect-mss", "t/o M&SS", result.indirectMss);
+      fill("direct-mss", "Direct M&SS", result.directMss);
+      if (result.indirectMss && result.directMss) {
+        const sum = (a: string, b: string) => String(Number(a) + Number(b));
+        const total = {
+          value: sum(result.indirectMss.value, result.directMss.value),
+          header: result.directMss.header,
+          previousValue: result.indirectMss.previousValue !== null && result.directMss.previousValue !== null
+            ? sum(result.indirectMss.previousValue, result.directMss.previousValue) : null,
+        };
+        fill("total-mss", "Total M&SS", total);
+      }
+      const header = (result.corp ?? result.in ?? result.indirectMss ?? result.directMss)!.header;
+      setMessage(`${notes.join(", ")} (${header}).${result.errors?.length ? ` Skipped: ${result.errors.join(" ")}` : ""}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The PUL file could not be read.");
+    } finally {
+      setPulBusy(false);
+    }
+  };
+
+  const uploadGenderHiring = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!/\.xlsx$/i.test(file.name) || file.size > 50 * 1024 * 1024) {
+      setMessage("Choose an XLSX file smaller than 50 MB.");
+      return;
+    }
+    if (!document.columns.some((column) => column.key === "rolling-latest")) {
+      setMessage("The report has no reporting-month column.");
+      return;
+    }
+    setGenderBusy(true);
+    setMessage("");
+    try {
+      const csrf = getCsrfToken();
+      const body = new FormData();
+      body.append("dataMonth", document.dataMonth);
+      body.append("file", file);
+      const response = await fetch("/api/mrm/gender-hiring-value", {
+        method: "POST",
+        headers: csrf ? { "X-CSRF-Token": csrf } : undefined,
+        body,
+      });
+      const result = await response.json().catch(() => null) as (GenderPreview & { message?: string }) | null;
+      if (!response.ok || !result?.latest || !result.previous) throw new Error(result?.message || "The gender hiring file could not be read.");
+      setGenderCorpOverrides({});
+      setPreviewTab("gender");
+      setGenderPreview({ ...result, fileName: file.name });
+      setGenderMonth("latest");
+      genderDialogRef.current?.showModal();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The gender hiring file could not be read.");
+    } finally {
+      setGenderBusy(false);
+    }
+  };
+
+  const closeGenderPreview = () => {
+    genderDialogRef.current?.close();
+    setGenderPreview(null);
+  };
+
+  const inCorp = (item: GenderPreviewRow) => genderCorpOverrides[item.row] ?? item.inCorp;
+  const corpCountOf = (month: GenderPreviewMonth) => month.rows.filter(inCorp).length;
+  const leadRowsOf = (preview: GenderPreview, key: "latest" | "previous") => {
+    const month = preview[key].month;
+    return preview.leadTimeRows.filter((item) => item.joiningDate.slice(0, 4) === month.slice(0, 4) && item.joiningDate.slice(0, 7) <= month);
+  };
+  const averageOf = (items: LeadTimeRow[]) => (items.length ? Math.round(items.reduce((sum, item) => sum + item.leadTime, 0) / items.length) : 0);
+  const leadAverages = (preview: GenderPreview, key: "latest" | "previous") => {
+    const items = leadRowsOf(preview, key);
+    return { count: items.length, inAverage: averageOf(items), corpAverage: averageOf(items.filter(inCorp)) };
+  };
+
+  const applyLeadTime = () => {
+    if (!genderPreview) return;
+    const hasPrevious = document.columns.some((column) => column.key === "rolling-previous");
+    const latest = leadAverages(genderPreview, "latest");
+    updateCell("hiring", "rolling-latest", String(latest.inAverage));
+    updateCell("corp-hiring", "rolling-latest", String(latest.corpAverage));
+    if (hasPrevious) {
+      const previous = leadAverages(genderPreview, "previous");
+      updateCell("hiring", "rolling-previous", String(previous.inAverage));
+      updateCell("corp-hiring", "rolling-previous", String(previous.corpAverage));
+    }
+    setMessage(`Hiring performance applied: PS-IN ${latest.inAverage} days, PS Corp ${latest.corpAverage} days.`);
+    closeGenderPreview();
+  };
+
+  const applyGenderPreview = () => {
+    if (!genderPreview) return;
+    const hasPrevious = document.columns.some((column) => column.key === "rolling-previous");
+    const latestCorp = corpCountOf(genderPreview.latest);
+    updateCell("gender-hiring", "rolling-latest", `F: ${genderPreview.latest.inCount}`);
+    updateCell("corp-gender-hiring", "rolling-latest", `F: ${latestCorp}`);
+    if (hasPrevious) {
+      updateCell("gender-hiring", "rolling-previous", `F: ${genderPreview.previous.inCount}`);
+      updateCell("corp-gender-hiring", "rolling-previous", `F: ${corpCountOf(genderPreview.previous)}`);
+    }
+    setMessage(`Gender hiring applied: PS-IN F: ${genderPreview.latest.inCount}, PS Corp F: ${latestCorp}.`);
+    closeGenderPreview();
+  };
+
   const changeReportingMonth = (reportingMonth: string) => {
     if (!reportingMonth) return;
     router.push(`/mrm?month=${encodeURIComponent(reportingMonth)}`);
+  };
+
+  const toggleTable = (tableKey: string) => {
+    setExpandedTables((current) => {
+      const next = new Set(current);
+      if (next.has(tableKey)) next.delete(tableKey);
+      else next.add(tableKey);
+      return next;
+    });
   };
 
   const addColumn = () => {
@@ -363,20 +530,194 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
       )}
 
       {message && <p className="mrm-message" role="status">{message}</p>}
+      <dialog className="mrm-gender-dialog" ref={genderDialogRef} onCancel={(event) => { event.preventDefault(); closeGenderPreview(); }}>
+        {genderPreview && (() => {
+          const current = genderPreview[genderMonth];
+          const label = (key: "latest" | "previous") => document.columns.find((column) => column.key === `rolling-${key}`)?.label ?? genderPreview[key].month;
+          const reason = (item: GenderPreviewRow) => item.inCorp
+            ? ""
+            : item.range ? `${item.range} is a plant range` : "no range mapping";
+          return <div className="mrm-gender-dialog__layout">
+            <header className="mrm-gender-dialog__header">
+              <div>
+                <span>Gender Diversity Hiring</span>
+                <h2>{genderPreview.fileName}</h2>
+                <p>Women who joined in each month, counted from the Actual Date of Joining column.</p>
+              </div>
+              <button className="a-button a-button--integrated" type="button" aria-label="Close preview" onClick={closeGenderPreview}><i className="a-icon a-button__icon boschicon-bosch-ic-close" aria-hidden="true" /></button>
+            </header>
 
-      {reportTables(document.rows).map((table) => <section className="mrm-report" aria-labelledby={`mrm-table-${table.key}`} key={table.key}>
-        <header className="mrm-report__header">
-          <div>
-            <p>Performance Dashboard</p>
-            <h2 id={`mrm-table-${table.key}`}>{table.title}</h2>
-          </div>
-          {isEditingLayout && <button className="a-button a-button--secondary -small" type="button" onClick={() => addRow(table.key)}>
-            <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
-            <span className="a-button__label">Add KPI row</span>
-          </button>}
-        </header>
-        <div className="mrm-table-scroll">
-          <table className="mrm-table">
+                          <div className="mrm-gender-tabs" role="tablist" aria-label="Calculation">
+                            <button type="button" role="tab" aria-selected={previewTab === "gender"} className="mrm-gender-tab" onClick={() => setPreviewTab("gender")}>Gender Diversity Hiring</button>
+                            <button type="button" role="tab" aria-selected={previewTab === "lead"} className="mrm-gender-tab" onClick={() => setPreviewTab("lead")}>Hiring performance (Lead Time)</button>
+                          </div>
+
+                          {previewTab === "lead" && (() => {
+                            const items = leadRowsOf(genderPreview, genderMonth);
+                            const missing = items.filter((item) => item.leadTimeMissing);
+                            return <>
+                              <div className="mrm-gender-cards">
+                                {(["previous", "latest"] as const).map((key) => {
+                                  const stats = leadAverages(genderPreview, key);
+                                  return <button key={key} type="button" aria-selected={genderMonth === key} className="mrm-gender-card" onClick={() => setGenderMonth(key)}>
+                                    <span className="mrm-gender-card__month">{label(key)} column</span>
+                                    <span className="mrm-gender-card__numbers">
+                                      <span><strong>{stats.inAverage}</strong>PS-IN days</span>
+                                      <span><strong>{stats.corpAverage}</strong>PS Corp days</span>
+                                    </span>
+                                    <span className="mrm-gender-card__hint">Average of {stats.count} {stats.count === 1 ? "joiner" : "joiners"}, Jan to {genderPreview[key].month}</span>
+                                  </button>;
+                                })}
+                              </div>
+                              <p className="mrm-gender-rule">
+                                Average <strong>Lead Time to Offer</strong> of everyone whose Actual Date of Joining is from January up to the column month. <strong>PS-IN</strong> uses all of them; <strong>PS Corp</strong> leaves out the plant ranges BidP, NaP, JaP and GanP. Empty lead times count as 0.
+                              </p>
+                              {missing.length > 0 && <ul className="mrm-gender-warnings"><li>Lead Time to Offer is empty for {missing.length} {missing.length === 1 ? "person" : "people"} (Excel row {missing.map((item) => item.row).join(", ")}). Counted as 0.</li></ul>}
+                              <h3 className="mrm-gender-list-title">{label(genderMonth)} column: {items.length} {items.length === 1 ? "person" : "people"}</h3>
+                              <div className="mrm-gender-table">
+                                <table>
+                                  <thead><tr><th>Name</th><th>Date of joining</th><th>Specific org unit</th><th>Range</th><th>Lead time (days)</th><th>Counted in</th></tr></thead>
+                                  <tbody>
+                                    {items.map((item) => (
+                                      <tr key={item.row}>
+                                        <td>{item.name || `Excel row ${item.row}`}</td>
+                                        <td>{item.joiningDate}</td>
+                                        <td>{item.orgUnit || "-"}</td>
+                                        <td>{item.range ?? "-"}</td>
+                                        <td>{item.leadTimeMissing ? "0 (empty)" : item.leadTime}</td>
+                                        <td>
+                                          <select
+                                            aria-label={`Counted in for ${item.name || `row ${item.row}`}`}
+                                            className={`mrm-gender-select ${inCorp(item) ? "is-both" : item.range ? "is-in" : "is-warn"}`}
+                                            value={inCorp(item) ? "both" : "in"}
+                                            onChange={(event) => setGenderCorpOverrides((prev) => ({ ...prev, [item.row]: event.target.value === "both" }))}
+                                          >
+                                            <option value="both">PS-IN + PS Corp</option>
+                                            <option value="in">PS-IN only</option>
+                                          </select>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    {items.length === 0 && <tr><td colSpan={6}>No joiners in this period.</td></tr>}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </>;
+                          })()}
+
+                          {previewTab === "gender" && <>
+            <div className="mrm-gender-cards" role="tablist" aria-label="Month to review">
+              {(["previous", "latest"] as const).map((key) => (
+                <button key={key} type="button" role="tab" aria-selected={genderMonth === key} className="mrm-gender-card" onClick={() => setGenderMonth(key)}>
+                  <span className="mrm-gender-card__month">{label(key)} column</span>
+                  <span className="mrm-gender-card__numbers">
+                    <span><strong>{genderPreview[key].inCount}</strong>PS-IN</span>
+                    <span><strong>{corpCountOf(genderPreview[key])}</strong>PS Corp</span>
+                  </span>
+                  <span className="mrm-gender-card__hint">Click to see the {genderPreview[key].inCount} {genderPreview[key].inCount === 1 ? "person" : "people"}</span>
+                </button>
+              ))}
+            </div>
+
+            <p className="mrm-gender-rule">
+              <strong>PS-IN</strong> counts every woman who joined that month.{" "}
+              <strong>PS Corp</strong> counts the same women but leaves out the plant ranges BidP, NaP, JaP and GanP, using the range mapping of the Specific Org unit.
+            </p>
+            {(genderPreview.unmappedOrgUnits.length > 0 || genderPreview.unreadableDates.length > 0) && (
+              <ul className="mrm-gender-warnings">
+                {genderPreview.unmappedOrgUnits.length > 0 && <li>No range mapping for: {genderPreview.unmappedOrgUnits.join(", ")}. They are counted in PS-IN only unless you change "Counted in" below.</li>}
+                {genderPreview.unreadableDates.length > 0 && <li>Date of joining could not be read for {genderPreview.unreadableDates.length} women (Excel row {genderPreview.unreadableDates.map((item) => item.row).join(", ")}). They are not counted.</li>}
+              </ul>
+            )}
+
+            <h3 className="mrm-gender-list-title">{label(genderMonth)} column: {current.rows.length} {current.rows.length === 1 ? "person" : "people"}</h3>
+            <div className="mrm-gender-table">
+              <table>
+                <thead><tr><th>Name</th><th>Date of joining</th><th>Specific org unit</th><th>Range</th><th>Counted in</th></tr></thead>
+                <tbody>
+                  {current.rows.map((item) => {
+                    const changed = genderCorpOverrides[item.row] !== undefined && genderCorpOverrides[item.row] !== item.inCorp;
+                    return <tr key={item.row}>
+                      <td>{item.name || `Excel row ${item.row}`}</td>
+                      <td>{item.joiningDate}</td>
+                      <td>{item.orgUnit || "-"}</td>
+                      <td>{item.range ?? "-"}</td>
+                      <td>
+                        <select
+                          aria-label={`Counted in for ${item.name || `row ${item.row}`}`}
+                          className={`mrm-gender-select ${inCorp(item) ? "is-both" : item.range ? "is-in" : "is-warn"}`}
+                          value={inCorp(item) ? "both" : "in"}
+                          onChange={(event) => setGenderCorpOverrides((prev) => ({ ...prev, [item.row]: event.target.value === "both" }))}
+                        >
+                          <option value="both">PS-IN + PS Corp</option>
+                          <option value="in">PS-IN only</option>
+                        </select>
+                        {changed ? <small className="mrm-gender-note">Changed by you</small> : !item.inCorp && <small className="mrm-gender-note">{reason(item)}</small>}
+                      </td>
+                    </tr>;
+                  })}
+                  {current.rows.length === 0 && <tr><td colSpan={5}>No women joined in this month.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            </>}
+
+            <footer className="mrm-gender-dialog__footer">
+              <p>{previewTab === "gender"
+                ? `Apply will fill the ${label("previous")} and ${label("latest")} columns of Gender Diversity Hiring in both tables.`
+                : `Apply will fill the ${label("previous")} and ${label("latest")} columns of Hiring performance (WC) in both tables.`}</p>
+              <div>
+                <button className="a-button a-button--secondary" type="button" onClick={closeGenderPreview}><span className="a-button__label">Cancel</span></button>
+                <button className="a-button a-button--primary" type="button" onClick={previewTab === "gender" ? applyGenderPreview : applyLeadTime}><span className="a-button__label">Apply to report</span></button>
+              </div>
+            </footer>
+          </div>;
+        })()}
+      </dialog>
+
+      {reportTables(document.rows).map((table) => {
+        const isExpanded = expandedTables.has(table.key);
+        const panelId = `mrm-table-panel-${table.key}`;
+        return <section className="mrm-report" aria-labelledby={`mrm-table-${table.key}`} key={table.key}>
+          <header className="mrm-report__header">
+            <div>
+              <p>Performance Dashboard</p>
+              <h2>
+                <button
+                  className="mrm-report__toggle"
+                  id={`mrm-table-${table.key}`}
+                  type="button"
+                  aria-expanded={isExpanded}
+                  aria-controls={panelId}
+                  onClick={() => toggleTable(table.key)}
+                >
+                  <span>{table.title}</span>
+                  <i className={`a-icon ${isExpanded ? "boschicon-bosch-ic-up" : "boschicon-bosch-ic-down"}`} aria-hidden="true" />
+                </button>
+              </h2>
+            </div>
+            {canEdit && table.key === "ps-corp" && <div className="mrm-report__header-actions">
+              <input ref={pulInputRef} hidden type="file" accept=".xlsx" onChange={(event) => void uploadPul(event)} />
+              <button className="a-button a-button--secondary -small" type="button" disabled={pulBusy} onClick={() => pulInputRef.current?.click()}>
+                <i className="a-icon a-button__icon boschicon-bosch-ic-upload" aria-hidden="true" />
+                <span className="a-button__label">{pulBusy ? "Reading..." : "PUL"}</span>
+              </button>
+              <input ref={genderInputRef} hidden type="file" accept=".xlsx" onChange={(event) => void uploadGenderHiring(event)} />
+              <button className="a-button a-button--secondary -small" type="button" disabled={genderBusy} onClick={() => genderInputRef.current?.click()}>
+                <i className="a-icon a-button__icon boschicon-bosch-ic-upload" aria-hidden="true" />
+                <span className="a-button__label">{genderBusy ? "Reading..." : "Gender Hiring"}</span>
+              </button>
+            </div>}
+          </header>
+          {isExpanded && <div className="mrm-report__panel" id={panelId}>
+            {isEditingLayout && <div className="mrm-report__panel-actions">
+              <button className="a-button a-button--secondary -small" type="button" onClick={() => addRow(table.key)}>
+                <i className="a-icon a-button__icon boschicon-bosch-ic-add" aria-hidden="true" />
+                <span className="a-button__label">Add KPI row</span>
+              </button>
+            </div>}
+            <div className="mrm-table-scroll">
+              <table className="mrm-table">
             <thead>
               <tr>
                 <th scope="col" className="mrm-table__kpi-column">KPI</th>
@@ -449,9 +790,11 @@ export function MrmReport({ initialReport, months }: MrmReportProps) {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      </section>)}
+              </table>
+            </div>
+          </div>}
+        </section>;
+      })}
     </main>
   );
 }

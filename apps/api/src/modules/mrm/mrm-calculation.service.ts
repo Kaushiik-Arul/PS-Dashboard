@@ -133,17 +133,7 @@ export class MrmCalculationService {
       }
     });
 
-    attrition.forEach((row) => {
-      if (row.metric_source === 'governed_attrition') {
-        add('attrition', row.range, row.org_unit);
-        return;
-      }
-      const reason = normalizedKey(row.reason_for_action);
-      if (reason === 'TRANSFER INTRA BOSCH') {
-        add('rotation', row.range, row.org_unit);
-      }
-      if (reason === 'INTERNAL') add('transfer', row.range, row.org_unit);
-    });
+    attrition.forEach((row) => add(row.metric, row.range, row.org_unit));
 
     return [...buckets.values()];
   }

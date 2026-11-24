@@ -135,6 +135,96 @@
   min-height: 1rem;
 }
 
+.mrm-gender-dialog {
+  background: var(--background);
+  border: 0;
+  color: var(--plain-pure__enabled__default__front);
+  max-height: calc(100vh - 3rem);
+  max-width: calc(100vw - 3rem);
+  padding: 0;
+  width: 60rem;
+}
+
+.mrm-gender-dialog::backdrop { background: rgb(0 0 0 / 58%); }
+
+.mrm-gender-dialog__layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: calc(100vh - 3rem);
+  padding: 1.5rem;
+}
+
+.mrm-gender-dialog__header {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.mrm-gender-dialog__header span { color: var(--accent-major__enabled__default__fill); font-size: 0.75rem; font-weight: 700; }
+.mrm-gender-dialog__header h2 { font-size: 1.25rem; margin: 0.125rem 0; overflow-wrap: anywhere; }
+.mrm-gender-dialog__header p { margin: 0; }
+
+.mrm-gender-cards { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+
+.mrm-gender-card {
+  background: transparent;
+  border: var(--app-border-width) solid var(--base-major__enabled__default__fill);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  text-align: start;
+}
+
+.mrm-gender-card[aria-selected="true"] {
+  border-color: var(--accent-major__enabled__default__fill);
+  box-shadow: inset 0 0 0 2px var(--accent-major__enabled__default__fill);
+}
+
+.mrm-gender-card__month { font-weight: 700; }
+.mrm-gender-card__numbers { display: flex; gap: 2rem; }
+.mrm-gender-card__numbers span { color: var(--base-major__enabled__default__fill); display: grid; font-size: 0.75rem; }
+.mrm-gender-card__numbers strong { color: var(--plain-pure__enabled__default__front); font-size: 2rem; line-height: 1.1; }
+.mrm-gender-card__hint { color: var(--accent-major__enabled__default__fill); font-size: 0.75rem; }
+
+.mrm-gender-rule { font-size: 0.875rem; margin: 0; }
+
+.mrm-gender-warnings {
+  border-inline-start: 4px solid var(--signal-warning-pure__enabled__default__front);
+  font-size: 0.875rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.5rem 1.5rem;
+}
+
+.mrm-gender-list-title { font-size: 1rem; margin: 0; }
+.mrm-gender-table { border: var(--app-border-width) solid var(--base-major__enabled__default__fill); overflow: auto; }
+.mrm-gender-table table { border-collapse: collapse; font-size: 0.8125rem; width: 100%; }
+.mrm-gender-table th, .mrm-gender-table td { padding: 0.5rem 0.75rem; text-align: start; vertical-align: top; }
+.mrm-gender-table thead th { background: var(--background); border-block-end: var(--app-border-width) solid var(--base-major__enabled__default__fill); position: sticky; top: 0; }
+.mrm-gender-table tbody tr + tr td { border-block-start: 1px solid rgb(128 128 128 / 30%); }
+
+.mrm-gender-tabs { border-block-end: var(--app-border-width) solid var(--base-major__enabled__default__fill); display: flex; gap: 0.5rem; }
+.mrm-gender-tab { background: transparent; border: 0; border-block-end: 3px solid transparent; color: inherit; cursor: pointer; font: inherit; font-weight: 700; padding: 0.5rem 1rem; }
+.mrm-gender-tab[aria-selected="true"] { border-block-end-color: var(--accent-major__enabled__default__fill); color: var(--accent-major__enabled__default__fill); }
+
+.mrm-gender-select { background: var(--background); border: var(--app-border-width) solid var(--base-major__enabled__default__fill); color: inherit; font: inherit; font-weight: 700; padding: 0.25rem 0.5rem; }
+.mrm-gender-select.is-both { color: var(--signal-success-pure__enabled__default__front, #1b8a3a); }
+.mrm-gender-select.is-in { color: var(--accent-major__enabled__default__fill); }
+.mrm-gender-select.is-warn { color: var(--signal-warning-pure__enabled__default__front); }
+.mrm-gender-note { color: var(--base-major__enabled__default__fill); display: block; margin-block-start: 0.25rem; }
+
+.mrm-gender-chip { font-weight: 700; }
+.mrm-gender-chip.is-both { color: var(--signal-success-pure__enabled__default__front, #1b8a3a); }
+.mrm-gender-chip.is-in { color: var(--accent-major__enabled__default__fill); }
+.mrm-gender-chip.is-warn { color: var(--signal-warning-pure__enabled__default__front); }
+
+.mrm-gender-dialog__footer { align-items: center; display: flex; gap: 1rem; justify-content: space-between; }
+.mrm-gender-dialog__footer p { font-size: 0.8125rem; margin: 0; }
+.mrm-gender-dialog__footer > div { display: flex; flex: none; gap: 0.5rem; }
+
 .mrm-report {
   margin-block-start: 1.5rem;
 }
@@ -158,10 +248,42 @@
   line-height: 1.75rem;
 }
 
+.mrm-report__toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 0.5rem;
+  padding: 0;
+  text-align: start;
+}
+
+.mrm-report__toggle:hover {
+  color: var(--accent-major__enabled__default__fill);
+}
+
+.mrm-report__toggle:focus-visible {
+  outline: 0.125rem solid var(--accent-major__enabled__default__fill);
+  outline-offset: 0.25rem;
+}
+
+.mrm-report__toggle .a-icon {
+  flex: 0 0 auto;
+}
+
 .mrm-report__header p {
   color: var(--accent-major__enabled__default__fill);
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.mrm-report__panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: 0.5rem;
 }
 
 .mrm-table-scroll {

@@ -30,6 +30,8 @@ const allowedMimeTypes = new Set([
   'image/jpeg',
 ]);
 const excludedCorporateRanges = new Set(['BIDP', 'NAP', 'JAP', 'GANP']);
+// Filled from the uploaded PUL workbook rather than calculated from the Namelist.
+const pulSheetRows = new Set(['indirect-mss', 'direct-mss', 'total-mss']);
 
 function shiftMonth(month: string, offset: number): string {
   const [year, monthNumber] = month.split('-').map(Number);
@@ -311,7 +313,7 @@ export class MrmService {
     return {
       ...document,
       rows: document.rows.map((row) => {
-        if (row.mode !== 'calculated') return row;
+        if (row.mode !== 'calculated' || pulSheetRows.has(row.key)) return row;
         const cells = { ...row.cells };
         for (const [columnKey, dataMonth] of rollingMonths) {
           if (!document.columns.some((column) => column.key === columnKey)) continue;
@@ -319,9 +321,11 @@ export class MrmService {
           const metric = totals.get(
             `${row.tableKey}\0${dataMonth}\0${row.calculationKey ?? row.key}`,
           );
-          cells[columnKey] = !metric
-            ? null
-            : formatMrmMetricValue(metric);
+          const zeroWhenEmpty = ['attrition', 'rotation', 'transfer']
+            .includes(row.calculationKey ?? row.key);
+          cells[columnKey] = metric
+            ? formatMrmMetricValue(metric)
+            : zeroWhenEmpty ? '0' : null;
         }
         return { ...row, cells };
       }),
